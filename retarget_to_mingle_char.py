@@ -1,5 +1,7 @@
 import maya.cmds as cmds
 import maya.mel as mel
+import math 
+import numpy as np
 
 def get_joint_hierarchy(root_joint):
     """
@@ -20,6 +22,7 @@ def get_joint_hierarchy(root_joint):
     _get_hierarchy(root_joint)
     return hierarchy
 
+# def 
 # src_to_tgt_map
 if True:
     src_to_tgt_map = {}
@@ -49,96 +52,110 @@ if True:
     src_to_tgt_map["RightFoot"]    = "Bip001FBXASC032RFBXASC032Foot"
     src_to_tgt_map["RightToeBase"] = "Bip001FBXASC032RFBXASC032Toe0"
 
-# strDir = "D:/2024_KAI_Retargeting/Adori/animation/0055_Freestyle002_03_RT0214.fbx"
+
+""" src char """
+# strDir = "D:/2024_KAI_Retargeting/Adori/SKM_ADORI_0229.fbx"
 # mel.eval('FBXImport -f"{}"'.format(strDir))
 
-""" get perjoint_data """
-# get hierarchy 
-object_name = "Hips"
-joint_hierarchy = get_joint_hierarchy(object_name)
+# object_name = "Hips"
+# joint_hierarchy = get_joint_hierarchy(object_name)
 
-# Get perjoint_data
-datas = []
-perjoint_data = {'rotateX': [], 'rotateY': [], 'rotateZ': [], 
-                 'translateX': [], 'translateY': [], 'translateZ': []}
-max_val = 0
-for object_name in joint_hierarchy:
-    if object_name not in src_to_tgt_map.keys():
-        print(object_name, "not found")
-        continue
-    if object_name=="Hips":
-        array = ['rotateX', 'rotateY', 'rotateZ', 'translateX', 'translateY', 'translateZ']
-        # print(object_name, array)
-    else:
-        array = ['rotateX', 'rotateY', 'rotateZ']
-        # print(object_name, array)
-    
-    # print(object_name)
-    for attr in array:
-        if cmds.keyframe(f'{object_name}.{attr}', query=True, keyframeCount=True) > 0:
-            times = cmds.keyframe(f'{object_name}.{attr}', query=True, timeChange=True)
-            values = cmds.keyframe(f'{object_name}.{attr}', query=True, valueChange=True)
-            max_time = max(times)
-            if max_time>max_val:
-                max_val = max_time
-            perjoint_data[attr] = list(zip(times, values))
-    datas.append(perjoint_data)
+""" src motion """
+if True:
+    # strDir = "D:/2024_KAI_Retargeting/Adori/animation/0055_Freestyle002_03_RT0214.fbx"
+    # mel.eval('FBXImport -f"{}"'.format(strDir))
 
-""" update """
-if False:
-    len_frame = int(max_val / duration) + 1
-    print("len_frame:", len_frame) # 2569.0 # 642.25
+    # get hierarchy 
+    object_name = "Hips"
+    joint_hierarchy = get_joint_hierarchy(object_name)
 
-    rot_x = [None] * len_frame
-    rot_y = [None] * len_frame
-    rot_z = [None] * len_frame
-    trs_x = [None] * len_frame
-    trs_y = [None] * len_frame
-    trs_z = [None] * len_frame
-    # print(len(rot_x)) # 642.25 time = 2,569번째 frame
-    for jid, perjoint_data in datas:
-        for attr, perjoint_data in perjoint_data.items():
-            if attr == "rotateX":
-                rot_array = rot_x
-            elif attr == "rotateY": 
-                rot_array = rot_y
-            elif attr == "rotateZ":
-                rot_array = rot_z
-            elif attr == "translateX":
-                rot_array = trs_x
-            elif attr == "translateY": 
-                rot_array = trs_y
-            elif attr == "translateZ":
-                rot_array = trs_z
-            else:
-                raise ValueError("")
+    # Get perjoint_data
+    datas = []
+    # times 
+    min_time = float('inf')
+    max_time = float('-inf')
 
-            for i, values in enumerate(perjoint_data):
-                time = values[0]
-                frame = int(time/duration)
+    # get motion
+    for object_name in joint_hierarchy:
+        perjoint_data = {'rotateX': [], 'rotateY': [], 'rotateZ': [], 
+                        'translateX': [], 'translateY': [], 'translateZ': []}
+        
+        if object_name not in src_to_tgt_map.keys():
+            # print(object_name, "not found")
+            continue
+        if object_name=="Hips":
+            array = ['rotateX', 'rotateY', 'rotateZ', 'translateX', 'translateY', 'translateZ']
+            # print(object_name, array)
+        else:
+            array = ['rotateX', 'rotateY', 'rotateZ']
+            # print(object_name, array)
+        
+        # print(object_name)
+        for attr in array:
+            keyframe_count = cmds.keyframe(f'{object_name}.{attr}', query=True, keyframeCount=True)
+            # print("keyframe_count: ", keyframe_count, object_name, attr)
+            if keyframe_count > 0:
+                times = cmds.keyframe(f'{object_name}.{attr}', query=True, timeChange=True)
+                values = cmds.keyframe(f'{object_name}.{attr}', query=True, valueChange=True)
+                
+                # times 
+                current_min_time = min(times)
+                current_max_time = max(times)
+                if current_min_time < min_time:
+                    min_time = current_min_time
+                if current_max_time > max_time:
+                    max_time = current_max_time
+                perjoint_data[attr] = list(zip(times, values))
+                
+                # if object_name=="Hips":
+                #     print("attr:{}, value:{}".format(attr, values))
+                #     print(perjoint_data[attr])
+        datas.append(perjoint_data)
 
-                rot = values[1]
-                rot_array[frame] = rot 
-                # print("i {}: perjoint_data{}".format(i, rot))
-    # print(rot_x)
+total_frames = max_time - min_time + 1
+print("Total number of frames:", total_frames)
+# print(datas[0])
 
-# # # load target 
-# # targetDir = "D:/2024_KAI_Retargeting/bear.fbx"
-# # # mel.eval('FBXImport -f"{}"'.format(targetDir))
+""" update to target """
+# targetDir = "D:/2024_KAI_Retargeting/bear.fbx"
+# mel.eval('FBXImport -f"{}"'.format(targetDir))
+# rot_mat = np.array([[1,0,0],[0,1,0],[0,0,1]]) # TODO 
+# print("rot_mat:", rot_mat.shape)
 for i, (src_joint, tgt_joint) in enumerate(src_to_tgt_map.items()):
-    # if i!=0:
-    #     continue
-    perjoint_data = datas[i]
-    # print("src:{}, tgt:{}, ".format(src_joint, tgt_joint))
-    if src_joint=="Hips":
-        array = ['rotateX', 'rotateY', 'rotateZ', "translateX", "translateY", "translateZ",]
-    else:
-        array = ['rotateX', 'rotateY', 'rotateZ']
+    if i!=0:
+        continue
 
-    for attr in array: 
-        value = perjoint_data[attr]
-        # print("value:", value)
-        for times, rot in value:
-            if rot is not None:
-                # print("attr: {}, times: {}, rot: {}".format(attr, times, rot))
-                cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=rot)
+    perjoint_rots = np.array([[None, None, None]])
+    perjoint_rots = np.repeat(perjoint_rots, total_frames, axis=0)
+
+    # update to tgt 
+    if True:
+        perjoint_data = datas[i]
+        # print("src:{}, tgt:{}, ".format(src_joint, tgt_joint))
+        if src_joint=="Hips":
+            array = ['rotateX', 'rotateY', 'rotateZ', "translateX", "translateY", "translateZ",]
+        else:
+            array = ['rotateX', 'rotateY', 'rotateZ']
+
+        # set translation of hip
+        for eid, attr in enumerate(array): 
+            value = perjoint_data[attr] 
+            print("attr:{}, value:{}".format(attr, value))
+            
+            # root trans
+            if attr in ["translateX", "translateY", "translateZ"]:
+                for (times, tran) in value: # trans
+                    cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tran)
+            # rotations
+            else:
+                for (times, rot) in value:
+                    perjoint_rots[int(times), eid] = rot
+    
+        array = ['rotateX', 'rotateY', 'rotateZ']
+        for times, rots in enumerate(perjoint_rots):
+            for ele_index, attr in enumerate(array):
+                rot = rots[ele_index]
+                if None != rot:
+                    # if int(times) == 0:
+                    # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, rot))
+                    cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=rot)
