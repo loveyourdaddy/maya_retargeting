@@ -122,9 +122,10 @@ print("Total number of frames:", total_frames)
 rot_mat = np.array([[1,0,0],[0,1,0],[0,0,1]])
 # rot_mat = np.array([[0,1,0],[-1,0,0],[0,0,1]])
 # rot_mat = np.array([[1,0,0],[0,0,1],[0,-1,0]])
+import copy 
 for i, (src_joint, tgt_joint) in enumerate(src_to_tgt_map.items()):
-    if i!=0:
-        continue
+    # if i!=0:
+    #     continue
 
     perjoint_rots = np.array([[None, None, None]])
     perjoint_rots = np.repeat(perjoint_rots, total_frames, axis=0)
@@ -141,7 +142,7 @@ for i, (src_joint, tgt_joint) in enumerate(src_to_tgt_map.items()):
         # set translation of hip
         for eid, attr in enumerate(array): 
             value = perjoint_data[attr] 
-            print("attr:{}, value:{}".format(attr, value))
+            # print("attr:{}, value:{}".format(attr, value))
             
             # root trans
             if attr in ["translateX", "translateY", "translateZ"]:
@@ -158,16 +159,16 @@ for i, (src_joint, tgt_joint) in enumerate(src_to_tgt_map.items()):
             if None in rots:
                 continue
                 
-            # rotated_rots = np.matmul(rot_mat, rots) 
-            # if int(times) == 0:
-            #     print(rots)
-            #     print(rotated_rots)
-            
+            # tgt_rot = copy.deepcopy(src_rot)
+            # tgt_rot[0] = -src_rot[0] - 90
+            # tgt_rot[1] = -src_rot[2]
+            # tgt_rot[2] = src_rot[1]
             for eid, attr in enumerate(array):
-                if int(times) == 0:
-                    print(rots[eid])
-                    # print(rotated_rots[eid])
-                # rot = rotated_rots[eid]
-                tgt_rot = src_rot[eid]
+                if eid==0:
+                    tgt_rot = -src_rot[1] # -src_rot[0] - 90
+                elif eid==1:
+                    tgt_rot = -src_rot[0]
+                else:
+                    tgt_rot = -src_rot[2] # + 180
                 # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, rot))
                 cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tgt_rot)
