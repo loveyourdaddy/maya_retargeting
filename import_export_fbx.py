@@ -6,13 +6,11 @@ import maya.mel as mel
 import argparse
 
 """
-usage 
-1. window cmd 
-mayapy D:\2024_KAI_Retargeting\import_export_fbx.py 
---SrcMotionDir ""
---TgtCharDir ""
---TgtMotionDir ""
+usage
+- mayapy import_export_fbx.py --src_motion_path "" --tgt_char_path "" --tgt_motion_path ""
 """
+# D:\2024_KAI_Retargeting\
+
 # Load the FBX plugin
 if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
     cmds.loadPlugin('fbxmaya')
