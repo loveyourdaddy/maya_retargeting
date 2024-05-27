@@ -119,8 +119,9 @@ print("Total number of frames:", total_frames)
 """ update to target """
 # targetDir = "D:/2024_KAI_Retargeting/bear.fbx"
 # mel.eval('FBXImport -f"{}"'.format(targetDir))
-# rot_mat = np.array([[1,0,0],[0,1,0],[0,0,1]]) # TODO 
-# print("rot_mat:", rot_mat.shape)
+rot_mat = np.array([[1,0,0],[0,1,0],[0,0,1]])
+# rot_mat = np.array([[0,1,0],[-1,0,0],[0,0,1]])
+# rot_mat = np.array([[1,0,0],[0,0,1],[0,-1,0]])
 for i, (src_joint, tgt_joint) in enumerate(src_to_tgt_map.items()):
     if i!=0:
         continue
@@ -153,9 +154,20 @@ for i, (src_joint, tgt_joint) in enumerate(src_to_tgt_map.items()):
     
         array = ['rotateX', 'rotateY', 'rotateZ']
         for times, rots in enumerate(perjoint_rots):
-            for ele_index, attr in enumerate(array):
-                rot = rots[ele_index]
-                if None != rot:
-                    # if int(times) == 0:
-                    # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, rot))
-                    cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=rot)
+            src_rot = np.array(rots)
+            if None in rots:
+                continue
+                
+            # rotated_rots = np.matmul(rot_mat, rots) 
+            # if int(times) == 0:
+            #     print(rots)
+            #     print(rotated_rots)
+            
+            for eid, attr in enumerate(array):
+                if int(times) == 0:
+                    print(rots[eid])
+                    # print(rotated_rots[eid])
+                # rot = rotated_rots[eid]
+                tgt_rot = src_rot[eid]
+                # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, rot))
+                cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tgt_rot)
