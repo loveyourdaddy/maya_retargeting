@@ -119,10 +119,9 @@ print("Total number of frames:", total_frames)
 """ update to target """
 # targetDir = "D:/2024_KAI_Retargeting/bear.fbx"
 # mel.eval('FBXImport -f"{}"'.format(targetDir))
-rot_mat = np.array([[1,0,0],[0,1,0],[0,0,1]])
+# rot_mat = np.array([[1,0,0],[0,1,0],[0,0,1]])
 # rot_mat = np.array([[0,1,0],[-1,0,0],[0,0,1]])
 # rot_mat = np.array([[1,0,0],[0,0,1],[0,-1,0]])
-import copy 
 for i, (src_joint, tgt_joint) in enumerate(src_to_tgt_map.items()):
     # if i!=0:
     #     continue
@@ -165,10 +164,12 @@ for i, (src_joint, tgt_joint) in enumerate(src_to_tgt_map.items()):
             # tgt_rot[2] = src_rot[1]
             for eid, attr in enumerate(array):
                 if eid==0:
-                    tgt_rot = -src_rot[1] # -src_rot[0] - 90
+                    tgt_rot = src_rot[1] # -src_rot[0] - 90
                 elif eid==1:
                     tgt_rot = -src_rot[0]
                 else:
-                    tgt_rot = -src_rot[2] # + 180
+                    tgt_rot = src_rot[2]
+                    if src_joint=="Hips":
+                        tgt_rot += 90
                 # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, rot))
                 cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tgt_rot)
