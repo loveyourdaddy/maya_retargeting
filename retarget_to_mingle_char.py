@@ -23,6 +23,15 @@ def get_joint_hierarchy(root_joint):
     _get_hierarchy(root_joint)
     return hierarchy
 
+def get_transform_rotation(node_name):
+    if cmds.objExists(node_name): #  and cmds.objectType(node_name) == 'transform'
+        rotateX = cmds.getAttr(f"{node_name}.rotateX")
+        rotateY = cmds.getAttr(f"{node_name}.rotateY")
+        rotateZ = cmds.getAttr(f"{node_name}.rotateZ")
+        return rotateX, rotateY, rotateZ
+    else:
+        return None
+
 # def 
 # src_to_tgt_map
 if True:
@@ -108,8 +117,7 @@ if True:
         datas.append(perjoint_data)
 
 total_frames = max_time - min_time + 1
-print("Total number of frames:", total_frames)
-# print(datas[0])
+# print("Total number of frames:", total_frames)
 
 
 """ calculate perjoint delta of src """
@@ -146,28 +154,22 @@ for i, perjoint_data in enumerate(datas):
 """ get Tpose value of tgt """
 array = ['rotateX', 'rotateY', 'rotateZ']
 tgt_Tpose = []
-object_name = "Hips"
+object_name = "Bip001FBXASC032Pelvis"
 joint_hierarchy = get_joint_hierarchy(object_name)
 for object_name in joint_hierarchy:
-    if object_name not in src_to_tgt_map.keys():
+    if object_name not in src_to_tgt_map.values():
         continue
-    perjoint_data = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
-
-    for attr in array:
-        keyframe_count = cmds.keyframe(f'{object_name}.{attr}', query=True, keyframeCount=True)
-        # print("keyframe_count: ", keyframe_count, object_name, attr)
-        if keyframe_count > 0:
-            times = cmds.keyframe(f'{object_name}.{attr}', query=True, timeChange=True)
-            values = cmds.keyframe(f'{object_name}.{attr}', query=True, valueChange=True)
-        perjoint_data[attr] = list(zip(times, values))[0]
-    tgt_Tpose.append(perjoint_data)
+    rotation = get_transform_rotation(object_name)
+    tgt_Tpose.append(rotation)
 
 
 """ update to target """
 # targetDir = "D:/2024_KAI_Retargeting/bear.fbx"
 # mel.eval('FBXImport -f"{}"'.format(targetDir))
+# exception = [7,8,9,10, 15,16,17,18] 
 if True:
     for i, (src_joint, tgt_joint) in enumerate(src_to_tgt_map.items()):
+        print("i {}, src_joint {}, tgt_joint {}".format(i, src_joint, tgt_joint))
         # if i!=0:
         #     continue
 
@@ -192,7 +194,9 @@ if True:
 
         # update to tgt
         array = ['rotateX', 'rotateY', 'rotateZ']
+        # print("tgt_Tpose:", tgt_Tpose)
         tgt_joint_Tpose = tgt_Tpose[i]
+        # print("tgt_joint_Tpose:", tgt_joint_Tpose)
         for times, rots in enumerate(perjoint_rots):
             src_rot = np.array(rots)
             if None in rots:
@@ -203,15 +207,19 @@ if True:
                 if src_rot[eid] is None:
                     continue
                 
-                # print("eid:{}, tgt_rot: {}".format(eid, tgt_joint_Tpose))
-
                 if eid==0:
-                    tgt_rot = tgt_joint_Tpose["rotateY"][1] + src_rot[1] # -src_rot[0] - 90
+                    tgt_rot = tgt_joint_Tpose[0] + src_rot[1]
                 elif eid==1:
-                    tgt_rot = -tgt_joint_Tpose["rotateX"][1] + -src_rot[0]
+                    if i not in exception: # normal
+                        tgt_rot = tgt_joint_Tpose[1] + -src_rot[0]
+                    else:
+                        tgt_rot = tgt_joint_Tpose[1] + src_rot[0]
                 else:
-                    tgt_rot = tgt_joint_Tpose["rotateZ"][1] + src_rot[2]
-                    if src_joint=="Hips":
-                        tgt_rot += 90
+                    tgt_rot = tgt_joint_Tpose[2] - src_rot[2]
+                    # if i not in exception: # normal
+                    #     tgt_rot = tgt_joint_Tpose[2] + src_rot[2]
+                    # else: 
+                    #     tgt_rot = tgt_joint_Tpose[2] - src_rot[2]
+
                 # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, rot))
                 cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tgt_rot)
