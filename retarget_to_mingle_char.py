@@ -232,40 +232,18 @@ if True:
         # Tpose rot 
         src_Tpose_rot = np.array(src_Tpose_rots[i])
         tgt_Tpose_rot = np.array(tgt_Tpose_rots[i])
-        # print("{}:{}".format(src_Tpose_rot, tgt_Tpose_rot))
+        print("{}:{}".format(src_Tpose_rot, tgt_Tpose_rot))
+        print(np.matmul(tgt_zero_trf, inv_src_zero_trf))
 
         for times in frames:
-            # print(times, i)
-            # if None in rots:
-            #     continue
+            # get src delta rot
             rots = np.array(src_rots[times][i])
-            
-            # get delta angle in source 
-            src_delta_rot = rots - src_Tpose_rot # perjoint_rots
-            if times==301:
-                # print("rots: ", rots)
-                # print("src_Tpose_rot: ", src_Tpose_rot)
-                print("src_delta_rot: ", src_delta_rot)
-                
+            # src_delta_rot = rots - src_Tpose_rot
 
             # set tgt rot
-            tgt_delta_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, src_delta_rot))
-            tgt_rot = tgt_Tpose_rot + tgt_delta_rot
-            if times==301:
-                print("tgt_Tpose_rot: ", tgt_Tpose_rot)
-                print("tgt_delta_rot: ", tgt_delta_rot)
-                print("tgt_rot: ", tgt_rot)
-                new_delta = tgt_rot
-                new_delta[0] = tgt_delta_rot[1]
-                new_delta[1] = -tgt_delta_rot[0]
-                new_delta[2] = tgt_delta_rot[2]
-                print("new_delta:", new_delta)
-                new_tgt_rot = tgt_Tpose_rot + new_delta
-                print("new_tgt_rot: ", new_tgt_rot)
-                # print("tgt_zero_trf: ", tgt_zero_trf)
-                # print("inv_src_zero_trf: ", inv_src_zero_trf)
-                # print("src_zero_trf: ", src_zero_trf)
-                # print(src_delta_rot - tgt_delta_rot)
+            # tgt_delta_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, src_delta_rot))
+            # tgt_rot = tgt_Tpose_rot + tgt_delta_rot
+            tgt_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, rots)) 
             
             for eid, attr in enumerate(array):
                 # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, tgt_rot[eid]))
