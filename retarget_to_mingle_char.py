@@ -1,6 +1,6 @@
 import maya.cmds as cmds
 import maya.mel as mel
-import math 
+# import math 
 import numpy as np
 import copy
 
@@ -24,7 +24,7 @@ def get_joint_hierarchy(root_joint):
     return hierarchy
 
 def get_rotation(node_name):
-    if cmds.objExists(node_name): #  and cmds.objectType(node_name) == 'transform'
+    if cmds.objExists(node_name):
         rotateX = cmds.getAttr(f"{node_name}.rotateX")
         rotateY = cmds.getAttr(f"{node_name}.rotateY")
         rotateZ = cmds.getAttr(f"{node_name}.rotateZ")
@@ -48,8 +48,6 @@ def get_zero_rot_matrix(joint_name):
     cmds.setAttr(joint_name+".rotateY", 0)
     cmds.setAttr(joint_name+".rotateZ", 0)
     zero_rot_trf = (get_rot_matrix(joint_name))
-    # if object_name=="Hips":
-    #     print("src_zero_trf ", zero_rot_trf)
 
     # back own value
     cmds.setAttr(joint_name+".rotateX", rotateX)
@@ -91,13 +89,11 @@ if True:
 """ src char """
 # strDir = "D:/2024_KAI_Retargeting/Adori/SKM_ADORI_0229.fbx"
 # mel.eval('FBXImport -f"{}"'.format(strDir))
-
-# object_name = "Hips"
-# joint_hierarchy = get_joint_hierarchy(object_name)
 # cmds.setAttr("ADORI.rotateX", 0) # -90
-cmds.setAttr("Bip001.rotateX", -90) # -90
+# cmds.setAttr("Bip001.rotateX", -90) # -90
 
-""" src motion """
+""" src """
+# src motion
 if True:
     # strDir = "D:/2024_KAI_Retargeting/Adori/animation/0055_Freestyle002_03_RT0214.fbx"
     # mel.eval('FBXImport -f"{}"'.format(strDir))
@@ -144,14 +140,13 @@ if True:
         datas.append(perjoint_data)
 
 
-# frames 
+# source frames 
 cmds.playbackOptions(min=min_time, max=max_time)
 total_frames = int(max_time - min_time + 1)
 frames = range(0, total_frames)
 print("Total number of frames:", total_frames)
-# print(total_frames)
 
-# zero rot trf 
+# source zero rot trf 
 src_zero_trfs = []
 object_name = "Hips"
 joint_hierarchy = get_joint_hierarchy(object_name)
@@ -160,8 +155,7 @@ for object_name in joint_hierarchy:
     if object_name not in src_to_tgt_map.keys():
         continue
     src_zero_trf = get_zero_rot_matrix(object_name)
-    # if object_name=="Hips":
-    #     print("src_zero_trf ", src_zero_trf)
+    print("object_name: ", src_zero_trf)
     src_zero_trfs.append(src_zero_trf)
 
 # # source motion
@@ -204,9 +198,8 @@ for object_name in joint_hierarchy:
 # mel.eval('FBXImport -f"{}"'.format(targetDir))
 if True:
     for i, (src_joint, tgt_joint) in enumerate(src_to_tgt_map.items()):
-        # print("i {}, src_joint {}, tgt_joint {}".format(i, src_joint, tgt_joint))
-        if i!=0:
-            continue
+        # if i!=0:
+        #     continue
 
         # update to tgt: translation of hip
         perjoint_data = datas[i] # datas
@@ -224,9 +217,6 @@ if True:
         for eid, attr in enumerate(array):
             value = perjoint_data[attr]
             for (times, rot) in value:
-                # if eid is inverse, -rot 
-                # if eid==0:
-                #     rot *= -1
                 perjoint_rots[int(times), eid] = rot
 
         # tgt Tpose angle 
@@ -238,36 +228,17 @@ if True:
         src_zero_trf = src_zero_trfs[i]
         inv_src_zero_trf = np.linalg.inv(src_zero_trf)
 
-        # print("tgt_zero_trf ", tgt_zero_trf)
-        # print("src_zero_trf ", src_zero_trf)
-        # print("inv_src_zero_trf ", inv_src_zero_trf)
-
         for times, rots in enumerate(perjoint_rots):
             if None in rots:
                 continue
             
             # get delta angle in source 
-            src_delta_angle = rots - perjoint_rots[0] # np.array([0,0,0])
+            src_delta_angle = rots - perjoint_rots[0] # np.array([0,0,0]) TODO: Tpose rot 
 
-            # set tgt rot  
-            # delta_tgt_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, src_delta_angle))
-            trf = np.array([0,1,0, -1,0,0, 0,0,1]).reshape(3,3)
-            delta_tgt_rot = np.matmul(trf, src_delta_angle)
+            # set tgt rot   
+            delta_tgt_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, src_delta_angle))
             
             tgt_rot = tgt_Tpose_rot + delta_tgt_rot
-            if times==259:
-                print("src_delta_angle: ", src_delta_angle)
-                print(trf)
-                print("delta_tgt_rot: ", delta_tgt_rot)
-                print("tgt_Tpose_rot: ", tgt_Tpose_rot)
-                print("tgt_rot: ", tgt_rot)
-            #     print("tgt_zero_trf:", tgt_zero_trf)
-                # print("src_zero_trf:", src_zero_trf)
-            #     print("inv_src_zero_trf:", inv_src_zero_trf)
-            #     print(src_delta_angle)
-            #     print(delta_tgt_rot)
-            #     print(tgt_Tpose_rot)
-            #     print(tgt_rot)
             for eid, attr in enumerate(array):
-            #     # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, rot))
+                # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, rot))
                 cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tgt_rot[eid])
