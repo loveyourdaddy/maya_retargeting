@@ -33,7 +33,7 @@ def get_rotation(node_name):
         return None
 
 def get_rot_matrix(joint_name):
-    joint_matrix = cmds.xform(joint_name, q=True, ws=True, m=True)
+    joint_matrix = cmds.xform(joint_name, q=True, ws=True, m=True) # local coodinaite -> global coordina?
     joint_matrix = np.array(joint_matrix)
     joint_matrix = joint_matrix.reshape(4,4)
     return (joint_matrix[:3, :3]) # copy.deepcopy
@@ -221,13 +221,7 @@ if True:
 
         # get rotation 
         array = ['rotateX', 'rotateY', 'rotateZ']
-        # perjoint_rots = np.array([[None, None, None]])
-        # perjoint_rots = np.repeat(perjoint_rots, total_frames, axis=0)
-        # for eid, attr in enumerate(array):
-        #     value = perjoint_data[attr]
-        #     for (times, rot) in value:
-        #         perjoint_rots[int(times), eid] = rot
-
+        
         # update to tgt
         tgt_zero_trf = tgt_zero_trfs[i]
         # src zero trf 
@@ -248,11 +242,31 @@ if True:
             
             # get delta angle in source 
             src_delta_rot = rots - src_Tpose_rot # perjoint_rots
+            if times==301:
+                # print("rots: ", rots)
+                # print("src_Tpose_rot: ", src_Tpose_rot)
+                print("src_delta_rot: ", src_delta_rot)
+                
 
             # set tgt rot
             tgt_delta_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, src_delta_rot))
             tgt_rot = tgt_Tpose_rot + tgt_delta_rot
+            if times==301:
+                print("tgt_Tpose_rot: ", tgt_Tpose_rot)
+                print("tgt_delta_rot: ", tgt_delta_rot)
+                print("tgt_rot: ", tgt_rot)
+                new_delta = tgt_rot
+                new_delta[0] = tgt_delta_rot[1]
+                new_delta[1] = -tgt_delta_rot[0]
+                new_delta[2] = tgt_delta_rot[2]
+                print("new_delta:", new_delta)
+                new_tgt_rot = tgt_Tpose_rot + new_delta
+                print("new_tgt_rot: ", new_tgt_rot)
+                # print("tgt_zero_trf: ", tgt_zero_trf)
+                # print("inv_src_zero_trf: ", inv_src_zero_trf)
+                # print("src_zero_trf: ", src_zero_trf)
+                # print(src_delta_rot - tgt_delta_rot)
             
             for eid, attr in enumerate(array):
-                print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, tgt_rot[eid]))
+                # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, tgt_rot[eid]))
                 cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tgt_rot[eid])
