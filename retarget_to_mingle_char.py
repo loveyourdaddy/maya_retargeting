@@ -211,7 +211,7 @@ if True:
             continue
 
         # update to tgt: translation of hip
-        perjoint_data = datas[i] # datas
+        perjoint_data = datas[i]
         if i==0:
             array = ["translateX", "translateY", "translateZ",]
             for eid, attr in enumerate(array): 
@@ -227,24 +227,53 @@ if True:
         # src zero trf 
         src_zero_trf = src_zero_trfs[i]
         inv_src_zero_trf = np.linalg.inv(src_zero_trf)
-        # print("{}:{}".format(i, np.matmul(inv_src_zero_trf, tgt_zero_trf)))
 
         # Tpose rot 
         src_Tpose_rot = np.array(src_Tpose_rots[i])
         tgt_Tpose_rot = np.array(tgt_Tpose_rots[i])
-        print("{}:{}".format(src_Tpose_rot, tgt_Tpose_rot))
-        print(np.matmul(tgt_zero_trf, inv_src_zero_trf))
+        # print("{}:{}".format(src_Tpose_rot, tgt_Tpose_rot))
+        # print(np.matmul(tgt_zero_trf, inv_src_zero_trf))
 
-        for times in frames:
-            # get src delta rot
-            rots = np.array(src_rots[times][i])
-            # src_delta_rot = rots - src_Tpose_rot
+        if False:
+            for times in frames:
+                # get src delta rot
+                rots = np.array(src_rots[times][i])
+                # src_delta_rot = rots - src_Tpose_rot
 
-            # set tgt rot
-            # tgt_delta_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, src_delta_rot))
-            # tgt_rot = tgt_Tpose_rot + tgt_delta_rot
-            tgt_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, rots)) 
-            
+                # set tgt rot
+                # tgt_delta_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, src_delta_rot))
+                # tgt_rot = tgt_Tpose_rot + tgt_delta_rot
+                tgt_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, rots)) 
+                
+                for eid, attr in enumerate(array):
+                    # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, tgt_rot[eid]))
+                    cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tgt_rot[eid])
+        else:
+            array = ['rotateX', 'rotateY', 'rotateZ']
+            # print(perjoint_data)
             for eid, attr in enumerate(array):
-                # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, tgt_rot[eid]))
-                cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tgt_rot[eid])
+                value = perjoint_data[attr] 
+                for (times, rots) in value:  # 3개를 1개로 모아서 계산해야.
+                    # print("times:", times)
+                    # print("rots:", rots)
+                    src_rot = (rots)
+                    # src_rot = np.array(rots)
+                    # print(src_rot)
+                    # if None in rots:
+                    #     continue
+
+                    # if int(times) == 0:
+                    #     print(rots[eid])
+                    # tgt_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, src_rot))
+                    tgt_rot = src_rot # [eid]
+                    
+                    print(tgt_rot)
+                    # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, rot))
+                    cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tgt_rot)
+            
+        # for eid, attr in enumerate(array): 
+        #     value = perjoint_data[attr] 
+        #     for (times, rots) in (value):
+        #         src_rot = np.array(rots)
+        #         if None in rots:
+        #             continue
