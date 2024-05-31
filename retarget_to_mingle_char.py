@@ -197,8 +197,6 @@ if True:
                 continue
             src_rot = get_rotation(object_name)
             src_frame_rot.append(src_rot)
-            # if frame==0:
-            #     print("{}: {}".format(object_name, src_rot))
         src_rots.append(src_frame_rot)
 
 
@@ -250,27 +248,44 @@ if True:
                     cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tgt_rot[eid])
         else:
             array = ['rotateX', 'rotateY', 'rotateZ']
-            # print(perjoint_data)
-            for eid, attr in enumerate(array):
-                value = perjoint_data[attr] 
-                for (times, rots) in value:  # 3개를 1개로 모아서 계산해야.
-                    # print("times:", times)
-                    # print("rots:", rots)
-                    src_rot = (rots)
-                    # src_rot = np.array(rots)
-                    # print(src_rot)
-                    # if None in rots:
-                    #     continue
-
-                    # if int(times) == 0:
-                    #     print(rots[eid])
-                    # tgt_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, src_rot))
-                    tgt_rot = src_rot # [eid]
-                    
-                    print(tgt_rot)
-                    # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, rot))
-                    cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tgt_rot)
+            # perjoint_data: (attr, (frames, ros))
+            value_x = perjoint_data[array[0]] 
+            value_y = perjoint_data[array[1]] 
+            value_z = perjoint_data[array[2]] 
             
+            # 공통 업데이트 times 찾기
+            times_x = []
+            for time, _ in value_x:
+                times_x.append(time)
+            times_y = []
+            for time, _ in value_y:
+                times_y.append(time)
+            times_z = []
+            for time, _ in value_z:
+                times_z.append(time)
+            times_x = np.array(times_x)
+            times_y = np.array(times_y)
+            times_z = np.array(times_z)
+            times_x_y = np.intersect1d(times_x, times_y)
+            times = np.intersect1d(times_x_y, times_z)
+            print(times)
+
+            for time in (times):
+                index_x = np.argwhere(times_x==time)[0][0]
+                index_y = np.argwhere(times_y==time)[0][0]
+                index_z = np.argwhere(times_z==time)[0][0]
+                rots = np.array([value_x[index_x][1], value_y[index_y][1], value_z[index_z][1]])
+                print("{}: {}, {}, {}: {}".format(time, index_x, index_y, index_z, rots))
+
+                src_rot = np.array(rots)
+                tgt_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, src_rot))
+                print("{}: {}".format(time, tgt_rot))
+                
+                # print(tgt_rot)
+                for eid, attr in enumerate(array):
+                    # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, rot))
+                    cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot[eid])
+        
         # for eid, attr in enumerate(array): 
         #     value = perjoint_data[attr] 
         #     for (times, rots) in (value):
