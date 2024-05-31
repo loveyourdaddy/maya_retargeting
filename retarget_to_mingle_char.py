@@ -138,7 +138,7 @@ if True:
                 if current_max_time > max_time:
                     max_time = current_max_time
                 perjoint_data[attr] = list(zip(times, values))
-                
+        
         datas.append(perjoint_data)
 
     # source frames 
@@ -147,57 +147,69 @@ if True:
     frames = range(0, total_frames)
     print("Total number of frames:", total_frames)
 
-# src Tpose trf 
-print("src")
-if True:
-    src_zero_trfs = []
-    src_Tpose_rots = []
-    # zero_rot_data = []
-    object_name = "Hips"
-    joint_hierarchy = get_joint_hierarchy(object_name)
-    i=0
-    for object_name in joint_hierarchy:
-        if object_name not in src_to_tgt_map.keys():
-            continue
-        src_zero_trf = get_rot_matrix(object_name)
-        src_zero_trfs.append(src_zero_trf)
-        src_Tpose_rot = get_rotation(object_name)
-        src_Tpose_rots.append(src_Tpose_rot)
-        # print("{}: {}".format(object_name, src_Tpose_rot))
-
-        # src_angle = get_rotation(object_name)
-        # print(src_angle)
-# tgt zero rot trf 
-print("TGT")
-if True:
-    tgt_zero_trfs = []
-    tgt_Tpose_rots = []
-    object_name = "Bip001FBXASC032Pelvis"
-    joint_hierarchy = get_joint_hierarchy(object_name)
-    for object_name in joint_hierarchy:
-        if object_name not in src_to_tgt_map.values():
-            continue
-        tgt_zero_trf = get_rot_matrix(object_name) # global coordinate?
-        tgt_zero_trfs.append(tgt_zero_trf)
-        tgt_Tpose_rot = get_rotation(object_name)
-        tgt_Tpose_rots.append(tgt_Tpose_rot)
-        # print("{}: {}".format(object_name, tgt_Tpose_rot))
-
 # src motions 
-print("src motion")
-if True:
-    src_rots = []
-    object_name = "Hips"
-    joint_hierarchy = get_joint_hierarchy(object_name)
-    for frame in frames:
-        cmds.currentTime(frame)
-        src_frame_rot = []
-        for object_name in joint_hierarchy:
-            if object_name not in src_to_tgt_map.keys():
-                continue
-            src_rot = get_rotation(object_name)
-            src_frame_rot.append(src_rot)
-        src_rots.append(src_frame_rot)
+# print("src motion")
+# if True:
+#     src_rots = []
+#     object_name = "Hips"
+#     joint_hierarchy = get_joint_hierarchy(object_name)
+#     for frame in frames:
+#         cmds.currentTime(frame)
+#         src_frame_rot = []
+#         for object_name in joint_hierarchy:
+#             if object_name not in src_to_tgt_map.keys():
+#                 continue
+#             src_rot = get_rotation(object_name)
+#             src_frame_rot.append(src_rot)
+#         src_rots.append(src_frame_rot)
+
+# Tpose trf 
+src_Tpose_trfs = []
+src_Tpose_rots = []
+object_name = "Hips"
+joint_hierarchy = get_joint_hierarchy(object_name)
+for object_name in joint_hierarchy:
+    if object_name not in src_to_tgt_map.keys():
+        continue
+    src_Tpose_trfs.append(get_rot_matrix(object_name))
+    src_Tpose_rots.append(get_rotation(object_name))
+# joint=1
+# frame = 0
+# print("datas: ({}, {}, {})".format(datas[joint]["rotateX"][frame][1], datas[joint]["rotateY"][frame][1], datas[joint]["rotateZ"][frame][1]))
+# print("src_Tpose_rots: ", src_Tpose_rots)
+
+
+""" TGT """
+# Trf 
+tgt_Tpose_trfs = []
+# Tpose data 
+tgt_Tpose_rots = []
+object_name = "Bip001FBXASC032Pelvis"
+joint_hierarchy = get_joint_hierarchy(object_name)
+for object_name in joint_hierarchy:
+    if object_name not in src_to_tgt_map.values():
+        continue
+    tgt_Tpose_trfs.append(get_rot_matrix(object_name)) # global coordinate?
+    tgt_Tpose_rots.append(get_rotation(object_name))
+    # print("{}: {}".format(object_name, tgt_Tpose_rot))
+
+print("tgt: {}".format(tgt_Tpose_rots))
+
+# Tpose data 
+# array = ['rotateX', 'rotateY', 'rotateZ']
+# tgt_Tpose_data = []
+# for object_name in joint_hierarchy:
+#     perjoint_data = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
+#     for attr in array:
+#         keyframe_count = cmds.keyframe(f'{object_name}.{attr}', query=True, keyframeCount=True)
+#         print("tgt keyframe_count: ", keyframe_count, object_name, attr)
+#         if keyframe_count > 0:
+#             times = cmds.keyframe(f'{object_name}.{attr}', query=True, timeChange=True)
+#             values = cmds.keyframe(f'{object_name}.{attr}', query=True, valueChange=True)
+#             perjoint_data[attr] = list(zip(times, values))
+
+#     tgt_Tpose_data.append(perjoint_data)
+# print("tgt_Tpose_data: ", tgt_Tpose_data)
 
 
 """ update to target """
@@ -221,18 +233,18 @@ if True:
         array = ['rotateX', 'rotateY', 'rotateZ']
         
         # update to tgt
-        tgt_zero_trf = tgt_zero_trfs[i]
+        tgt_Tpose_trf = tgt_Tpose_trfs[i]
         # src zero trf 
-        src_zero_trf = src_zero_trfs[i]
-        inv_src_zero_trf = np.linalg.inv(src_zero_trf)
-
-        # Tpose rot 
-        src_Tpose_rot = np.array(src_Tpose_rots[i])
-        tgt_Tpose_rot = np.array(tgt_Tpose_rots[i])
-        # print("{}:{}".format(src_Tpose_rot, tgt_Tpose_rot))
-        # print(np.matmul(tgt_zero_trf, inv_src_zero_trf))
+        src_Tpose_trf = src_Tpose_trfs[i]
+        inv_src_Tpose_trf = np.linalg.inv(src_Tpose_trf)
+        trf = np.matmul(tgt_Tpose_trf, inv_src_Tpose_trf)
 
         if False:
+            # Tpose rot 
+            src_Tpose_rot = np.array(src_Tpose_rots[i])
+            tgt_Tpose_rot = np.array(tgt_Tpose_rots[i])
+            # print("{}:{}".format(src_Tpose_rot, tgt_Tpose_rot))
+            # print(np.matmul(tgt_zero_trf, inv_src_zero_trf))
             for times in frames:
                 # get src delta rot
                 rots = np.array(src_rots[times][i])
@@ -268,27 +280,27 @@ if True:
             times_z = np.array(times_z)
             times_x_y = np.intersect1d(times_x, times_y)
             times = np.intersect1d(times_x_y, times_z)
-            print(times)
 
+            # Tpose
+            Tpose_rots = np.array([value_x[0][1], value_y[0][1], value_z[0][1]])
             for time in (times):
+                # src rot 
                 index_x = np.argwhere(times_x==time)[0][0]
                 index_y = np.argwhere(times_y==time)[0][0]
                 index_z = np.argwhere(times_z==time)[0][0]
                 rots = np.array([value_x[index_x][1], value_y[index_y][1], value_z[index_z][1]])
-                print("{}: {}, {}, {}: {}".format(time, index_x, index_y, index_z, rots))
+                src_rots = np.array(rots)
 
-                src_rot = np.array(rots)
-                tgt_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, src_rot))
-                print("{}: {}".format(time, tgt_rot))
+                # delta src, tgt
+                src_delta_rots = src_rots - Tpose_rots
+                tgt_delta_rots = np.matmul(trf, src_delta_rots)
+                tgt_rots = tgt_Tpose_rots[i] + tgt_delta_rots
                 
-                # print(tgt_rot)
+                # update 
                 for eid, attr in enumerate(array):
-                    # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, rot))
-                    cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot[eid])
-        
-        # for eid, attr in enumerate(array): 
-        #     value = perjoint_data[attr] 
-        #     for (times, rots) in (value):
-        #         src_rot = np.array(rots)
-        #         if None in rots:
-        #             continue
+                    tgt_rot = tgt_rots[eid]
+                    # if i==0 and eid==0:
+                    #     tgt_rot -= 90
+                    if i==0 and eid==2:
+                        tgt_rot -= 90
+                    cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot)
