@@ -46,7 +46,7 @@ def get_rot_matrix(joint_name):
 
     joint_matrix = np.array(joint_matrix)
     joint_matrix = joint_matrix.reshape(4,4)
-    return (joint_matrix[:3, :3]) # copy.deepcopy
+    return joint_matrix[:3, :3] # copy.deepcopy
 
 def get_zero_rot_matrix(joint_name):
     # rotateX = cmds.getAttr(joint_name+".rotateX")
@@ -136,8 +136,8 @@ joint_hierarchy = get_joint_hierarchy(object_name)
 cmds.currentTime(0)
 src_Tpose_trfs.append(get_rot_matrix(object_name)) # copy.deepcopy(
 src_Tpose_rots.append(get_rotation(object_name))
-print("src_Tpose_trfs: ", src_Tpose_trfs)
-print("src_Tpose_rots: ", src_Tpose_rots)
+# print("src_Tpose_trfs: ", src_Tpose_trfs)
+# print("src_Tpose_rots: ", src_Tpose_rots)
 
 
 # get min max time 
@@ -174,6 +174,12 @@ if True:
             # print("keyframe_count: ", keyframe_count, object_name, attr)
             if keyframe_count > 0:
                 times = cmds.keyframe(f'{object_name}.{attr}', query=True, timeChange=True)
+                if attr=="rotateX":
+                    times_x = times
+                elif attr=="rotateY":
+                    times_y = times
+                elif attr=="rotateZ":
+                    times_z = times
                 values = cmds.keyframe(f'{object_name}.{attr}', query=True, valueChange=True)
                 
                 # times 
@@ -186,6 +192,17 @@ if True:
                 perjoint_data[attr] = list(zip(times, values))
         
         datas.append(perjoint_data)
+
+        # times 
+        if object_name=="Hips":
+            times_x = np.array(times_x)
+            times_y = np.array(times_y)
+            times_z = np.array(times_z)
+            times_x_y = np.union1d(times_x, times_y)
+            common_times = np.union1d(times_x_y, times_z) # intersect1d
+            print(common_times)
+            print(len(common_times))
+
 
     # source frames 
     cmds.playbackOptions(min=min_time, max=max_time)
@@ -200,7 +217,7 @@ if True:
     object_name = "Hips"
     joint_hierarchy = get_joint_hierarchy(object_name)
     # for frame in frames: # 이건 정수만 있음.
-    for time in times:
+    for time in common_times:
         cmds.currentTime(time)
         src_frame_rot = []
         for object_name in joint_hierarchy:
@@ -223,8 +240,8 @@ joint_hierarchy = get_joint_hierarchy(object_name)
 tgt_Tpose_trfs.append(get_rot_matrix(object_name))
 tgt_Tpose_rots.append(get_rotation(object_name))
 # print("{}: {}".format(object_name, tgt_Tpose_rot))
-print("tgt_Tpose_trfs:", tgt_Tpose_trfs)
-print("tgt_Tpose_rots:", tgt_Tpose_rots)
+# print("tgt_Tpose_trfs:", tgt_Tpose_trfs)
+# print("tgt_Tpose_rots:", tgt_Tpose_rots)
 
 # Tpose data 
 # array = ['rotateX', 'rotateY', 'rotateZ']
@@ -273,18 +290,20 @@ if True:
         # trf = np.matmul(inv_src_Tpose_trf, tgt_Tpose_trf)
         # trf = np.array([[1,0,0], [0,0,-1], [0,1,0]])
         trf = np.array([[0,-1,0], [1,0,0], [0,0,1]])
+        # trf = np.array([[0,-1,0], [0,0,1], [1,0,0]])
+        # trf = np.array([[0,0,1], [0,1,0], [-1,0,0]])
         trf = np.transpose(trf)
 
         if True:
             # set by src_rots (by moving frames)
             array = ['rotateX', 'rotateY', 'rotateZ']
             # Tpose rot 
-            src_Tpose_rot = np.array(src_Tpose_rots[i])
-            tgt_Tpose_rot = np.array(tgt_Tpose_rots[i])
-            # print(times)
-            for tid, time in enumerate(times):
+            # src_Tpose_rot = np.array(src_Tpose_rots[i])
+            # tgt_Tpose_rot = np.array(tgt_Tpose_rots[i])
+            for tid, time in enumerate(common_times):
                 # get src delta rot
                 src_rot = np.array(src_rots[tid][i])
+                # print("{}: {}".format(time, src_rot))
                 # src_delta_rot = rots - src_Tpose_rot
 
                 # set tgt rot
