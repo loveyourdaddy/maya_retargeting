@@ -34,6 +34,16 @@ def get_rotation(node_name):
 
 def get_rot_matrix(joint_name):
     joint_matrix = cmds.xform(joint_name, q=True, ws=True, m=True) # local coodinaite -> global coordina?
+    # print("joint_matrix:", joint_matrix)
+    
+    # matrix = joint_matrix
+    # left_vector = (matrix[0], matrix[1], matrix[2])
+    # up_vector = (matrix[4], matrix[5], matrix[6])
+    # forward_vector = (matrix[8], matrix[9], matrix[10])
+    # print("left_vector:", left_vector)
+    # print("up_vector:", up_vector)
+    # print("forward_vector:", forward_vector)
+
     joint_matrix = np.array(joint_matrix)
     joint_matrix = joint_matrix.reshape(4,4)
     return (joint_matrix[:3, :3]) # copy.deepcopy
@@ -48,7 +58,7 @@ def get_zero_rot_matrix(joint_name):
     cmds.setAttr(joint_name+".rotateY", 0)
     cmds.setAttr(joint_name+".rotateZ", 0)
     zero_rot_trf = get_rot_matrix(joint_name)
-    zero_rot_trf_copy = copy.deepcopy(zero_rot_trf)
+    # zero_rot_trf_copy = copy.deepcopy(zero_rot_trf)
     # print(type(zero_rot_trf))
 
     # back own value
@@ -56,9 +66,9 @@ def get_zero_rot_matrix(joint_name):
     # cmds.setAttr(joint_name+".rotateY", rotateY)
     # cmds.setAttr(joint_name+".rotateZ", rotateZ)
 
-    return zero_rot_trf_copy 
+    return zero_rot_trf 
 
-# src_to_tgt_map
+""" src_to_tgt_map """
 if True:
     src_to_tgt_map = {}
     src_to_tgt_map["Hips"] = "Bip001FBXASC032Pelvis"
@@ -95,8 +105,24 @@ if True:
 # cmds.setAttr("Bip001.rotateX", -90) # -90
 
 """ src """
-# src motion
+# Tpose trf 
+src_Tpose_trfs = [] # check changed 
+src_Tpose_rots = []
+object_name = "Hips"
+joint_hierarchy = get_joint_hierarchy(object_name)
+# for object_name in joint_hierarchy:
+# if object_name not in src_to_tgt_map.keys():
+#     continue
+cmds.currentTime(0)
+src_Tpose_trfs.append(get_rot_matrix(object_name)) # copy.deepcopy(
+src_Tpose_rots.append(get_rotation(object_name))
+print("src_Tpose_trfs: ", src_Tpose_trfs)
+print("src_Tpose_rots: ", src_Tpose_rots)
+
+
+# get min max time 
 if True:
+    # src motion by (x key frames, y, z)
     # strDir = "D:/2024_KAI_Retargeting/Adori/animation/0055_Freestyle002_03_RT0214.fbx"
     # mel.eval('FBXImport -f"{}"'.format(strDir))
 
@@ -144,40 +170,25 @@ if True:
     # source frames 
     cmds.playbackOptions(min=min_time, max=max_time)
     total_frames = int(max_time - min_time + 1)
-    frames = range(0, total_frames)
-    print("Total number of frames:", total_frames)
+    # frames = range(0, total_frames)
+    # print("Total number of frames:", total_frames)
+    # print('times:', times)
 
-# src motions 
-# print("src motion")
-# if True:
-#     src_rots = []
-#     object_name = "Hips"
-#     joint_hierarchy = get_joint_hierarchy(object_name)
-#     for frame in frames:
-#         cmds.currentTime(frame)
-#         src_frame_rot = []
-#         for object_name in joint_hierarchy:
-#             if object_name not in src_to_tgt_map.keys():
-#                 continue
-#             src_rot = get_rotation(object_name)
-#             src_frame_rot.append(src_rot)
-#         src_rots.append(src_frame_rot)
-
-# Tpose trf 
-src_Tpose_trfs = []
-src_Tpose_rots = []
-object_name = "Hips"
-joint_hierarchy = get_joint_hierarchy(object_name)
-for object_name in joint_hierarchy:
-    if object_name not in src_to_tgt_map.keys():
-        continue
-    src_Tpose_trfs.append(get_rot_matrix(object_name))
-    src_Tpose_rots.append(get_rotation(object_name))
-# joint=1
-# frame = 0
-# print("datas: ({}, {}, {})".format(datas[joint]["rotateX"][frame][1], datas[joint]["rotateY"][frame][1], datas[joint]["rotateZ"][frame][1]))
-# print("src_Tpose_rots: ", src_Tpose_rots)
-
+# src motions by xform (after set key)
+if False:
+    src_rots = [] # [frames, joints, 3]
+    object_name = "Hips"
+    joint_hierarchy = get_joint_hierarchy(object_name)
+    # for frame in frames: # 이건 정수만 있음.
+    for time in times:
+        cmds.currentTime(time)
+        src_frame_rot = []
+        for object_name in joint_hierarchy:
+            if object_name not in src_to_tgt_map.keys():
+                continue
+            src_rot = get_rotation(object_name)
+            src_frame_rot.append(src_rot)
+        src_rots.append(src_frame_rot)
 
 """ TGT """
 # Trf 
@@ -186,14 +197,14 @@ tgt_Tpose_trfs = []
 tgt_Tpose_rots = []
 object_name = "Bip001FBXASC032Pelvis"
 joint_hierarchy = get_joint_hierarchy(object_name)
-for object_name in joint_hierarchy:
-    if object_name not in src_to_tgt_map.values():
-        continue
-    tgt_Tpose_trfs.append(get_rot_matrix(object_name)) # global coordinate?
-    tgt_Tpose_rots.append(get_rotation(object_name))
-    # print("{}: {}".format(object_name, tgt_Tpose_rot))
-
-print("tgt: {}".format(tgt_Tpose_rots))
+# for object_name in joint_hierarchy:
+# if object_name not in src_to_tgt_map.values():
+#     continue
+tgt_Tpose_trfs.append(get_rot_matrix(object_name))
+tgt_Tpose_rots.append(get_rotation(object_name))
+# print("{}: {}".format(object_name, tgt_Tpose_rot))
+print("tgt_Tpose_trfs:", tgt_Tpose_trfs)
+print("tgt_Tpose_rots:", tgt_Tpose_rots)
 
 # Tpose data 
 # array = ['rotateX', 'rotateY', 'rotateZ']
@@ -220,26 +231,37 @@ if True:
         if i!=0:
             continue
 
-        # update to tgt: translation of hip
+        # set translation 
         perjoint_data = datas[i]
         if i==0:
             array = ["translateX", "translateY", "translateZ",]
             for eid, attr in enumerate(array): 
-                value = perjoint_data[attr] 
+                value = np.array(perjoint_data[attr])
                 for (times, tran) in value: 
                     cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tran)
-
-        # get rotation 
-        array = ['rotateX', 'rotateY', 'rotateZ']
         
-        # update to tgt
-        tgt_Tpose_trf = tgt_Tpose_trfs[i]
         # src zero trf 
-        src_Tpose_trf = src_Tpose_trfs[i]
-        inv_src_Tpose_trf = np.linalg.inv(src_Tpose_trf)
-        trf = np.matmul(tgt_Tpose_trf, inv_src_Tpose_trf)
+        # src_Tpose_trf = np.transpose(src_Tpose_trfs[i])
+        # print("src_Tpose_trf:", src_Tpose_trf)
+        # inv_src_Tpose_trf = np.linalg.inv(src_Tpose_trf)
+        # print("inv_src_Tpose_trf:", inv_src_Tpose_trf)
+        # update to tgt
+        # tgt_Tpose_trf = np.transpose(tgt_Tpose_trfs[i])
+        # print("tgt_Tpose_trf:", tgt_Tpose_trf)
+        # trf 
+        # trf = np.matmul(tgt_Tpose_trf, inv_src_Tpose_trf)
+        # trf = np.matmul(inv_src_Tpose_trf, tgt_Tpose_trf)
+        # trf = np.array([[0,1,0], [-1,0,0], [0,0,1]])
+        trf = np.array([[1,0,0], [0,0,-1], [0,1,0]])
+        # trf = np.array([[0,-1,0], [1,0,0], [0,0,1]])
+        # trf = np.array([[0,1,0], [-1,0,0], [0,0,1]])
+        # trf = np.transpose(trf)
+        print("trf:", trf)
 
         if False:
+            # set by src_rots (by moving frames)
+            # get rotation 
+            array = ['rotateX', 'rotateY', 'rotateZ']
             # Tpose rot 
             src_Tpose_rot = np.array(src_Tpose_rots[i])
             tgt_Tpose_rot = np.array(tgt_Tpose_rots[i])
@@ -258,10 +280,12 @@ if True:
                 for eid, attr in enumerate(array):
                     # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, tgt_rot[eid]))
                     cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tgt_rot[eid])
-        else:
+        
+        if True:
+            # set by perjoint_data (key frames)
             array = ['rotateX', 'rotateY', 'rotateZ']
             # perjoint_data: (attr, (frames, ros))
-            value_x = perjoint_data[array[0]] 
+            value_x = perjoint_data[array[0]]  
             value_y = perjoint_data[array[1]] 
             value_z = perjoint_data[array[2]] 
             
@@ -283,7 +307,7 @@ if True:
 
             # Tpose
             Tpose_rots = np.array([value_x[0][1], value_y[0][1], value_z[0][1]])
-            for time in (times):
+            for tid, time in enumerate(times):
                 # src rot 
                 index_x = np.argwhere(times_x==time)[0][0]
                 index_y = np.argwhere(times_y==time)[0][0]
@@ -294,13 +318,16 @@ if True:
                 # delta src, tgt
                 src_delta_rots = src_rots - Tpose_rots
                 tgt_delta_rots = np.matmul(trf, src_delta_rots)
-                tgt_rots = tgt_Tpose_rots[i] + tgt_delta_rots
+                tgt_rots = tgt_Tpose_rots[i] + tgt_delta_rots  # 
+                if time==0:
+                    print(src_rots)
+                    print(src_delta_rots)
+                    print(tgt_delta_rots)
+                    print(tgt_Tpose_rots[i])
                 
                 # update 
                 for eid, attr in enumerate(array):
                     tgt_rot = tgt_rots[eid]
-                    # if i==0 and eid==0:
-                    #     tgt_rot -= 90
-                    if i==0 and eid==2:
-                        tgt_rot -= 90
+                    # if eid==2:
+                    #     tgt_rot += 90
                     cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot)
