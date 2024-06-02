@@ -68,6 +68,26 @@ def get_zero_rot_matrix(joint_name):
 
     return zero_rot_trf 
 
+def R_to_E(R):
+    
+    beta = np.arcsin(-R[2, 0])
+    
+    # Calculate alpha and gamma based on the value of cos(beta)
+    if np.cos(beta) != 0:
+        alpha = np.arctan2(R[2, 1], R[2, 2])
+        gamma = np.arctan2(R[1, 0], R[0, 0])
+    else:
+        alpha = np.arctan2(-R[1, 2], R[1, 1])
+        gamma = 0
+
+    # Convert radians to degrees
+    alpha = np.degrees(alpha)
+    beta = np.degrees(beta)
+    gamma = np.degrees(gamma)
+
+    # return alpha, beta, gamma
+    return np.array([alpha, beta, gamma])
+
 """ src_to_tgt_map """
 if True:
     src_to_tgt_map = {}
@@ -175,7 +195,7 @@ if True:
     # print('times:', times)
 
 # src motions by xform (after set key)
-if False:
+if True:
     src_rots = [] # [frames, joints, 3]
     object_name = "Hips"
     joint_hierarchy = get_joint_hierarchy(object_name)
@@ -186,7 +206,7 @@ if False:
         for object_name in joint_hierarchy:
             if object_name not in src_to_tgt_map.keys():
                 continue
-            src_rot = get_rotation(object_name)
+            src_rot = get_rot_matrix(object_name)
             src_frame_rot.append(src_rot)
         src_rots.append(src_frame_rot)
 
@@ -237,8 +257,8 @@ if True:
             array = ["translateX", "translateY", "translateZ",]
             for eid, attr in enumerate(array): 
                 value = np.array(perjoint_data[attr])
-                for (times, tran) in value: 
-                    cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tran)
+                for (time, tran) in value: 
+                    cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tran)
         
         # src zero trf 
         # src_Tpose_trf = src_Tpose_trfs[i] # np.transpose(
@@ -254,32 +274,36 @@ if True:
         # trf = np.array([[1,0,0], [0,0,-1], [0,1,0]])
         trf = np.array([[0,-1,0], [1,0,0], [0,0,1]])
         trf = np.transpose(trf)
-        print("trf:", trf)
 
-        if False:
+        if True:
             # set by src_rots (by moving frames)
-            # get rotation 
             array = ['rotateX', 'rotateY', 'rotateZ']
             # Tpose rot 
             src_Tpose_rot = np.array(src_Tpose_rots[i])
             tgt_Tpose_rot = np.array(tgt_Tpose_rots[i])
-            # print("{}:{}".format(src_Tpose_rot, tgt_Tpose_rot))
-            # print(np.matmul(tgt_zero_trf, inv_src_zero_trf))
-            for times in frames:
+            # print(times)
+            for tid, time in enumerate(times):
                 # get src delta rot
-                rots = np.array(src_rots[times][i])
+                src_rot = np.array(src_rots[tid][i])
                 # src_delta_rot = rots - src_Tpose_rot
 
                 # set tgt rot
                 # tgt_delta_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, src_delta_rot))
                 # tgt_rot = tgt_Tpose_rot + tgt_delta_rot
-                tgt_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, rots)) 
+                # tgt_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, rots)) 
+                
+                # delta src, tgt
+                src_delta_rot = src_rot # - Tpose_rots np.array([0,90,0]) +
+                tgt_delta_rot = np.matmul(trf, src_delta_rot)
+                # print(tgt_delta_rot)
+                tgt_delta_rot = R_to_E(tgt_delta_rot)
+
+                tgt_rot = tgt_delta_rot
                 
                 for eid, attr in enumerate(array):
-                    # print("tgt_joint: {}, attr: {}, times: {}, rot: {}".format(tgt_joint, attr, times, tgt_rot[eid]))
-                    cmds.setKeyframe(tgt_joint, attribute=attr, t=times, v=tgt_rot[eid])
+                    cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot[eid])
         
-        if True:
+        if False:
             # set by perjoint_data (key frames)
             array = ['rotateX', 'rotateY', 'rotateZ']
             # perjoint_data: (attr, (frames, ros))
