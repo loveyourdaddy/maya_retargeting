@@ -251,12 +251,9 @@ if True:
         # trf 
         # trf = np.matmul(tgt_Tpose_trf, inv_src_Tpose_trf)
         # trf = np.matmul(inv_src_Tpose_trf, tgt_Tpose_trf)
-        # trf = np.array([[0,1,0], [-1,0,0], [0,0,1]])
-        trf = np.array([[1,0,0], [0,0,-1], [0,1,0]])
-        # trf = np.array([[1,0,0], [0,0,1], [0,-1,0]])
-        # trf = np.array([[0,-1,0], [1,0,0], [0,0,1]])
-        # trf = np.array([[0,1,0], [-1,0,0], [0,0,1]])
-        # trf = np.transpose(trf)
+        # trf = np.array([[1,0,0], [0,0,-1], [0,1,0]])
+        trf = np.array([[0,-1,0], [1,0,0], [0,0,1]])
+        trf = np.transpose(trf)
         print("trf:", trf)
 
         if False:
@@ -317,17 +314,15 @@ if True:
                 src_rots = np.array(rots)
 
                 # delta src, tgt
-                src_delta_rots = src_rots #- Tpose_rots
+                src_delta_rots = src_rots # - Tpose_rots np.array([0,90,0]) +
                 tgt_delta_rots = np.matmul(trf, src_delta_rots)
-                tgt_rots = np.array([0,0,90]) + tgt_delta_rots  # tgt_Tpose_rots[i]  
-                if tid==(len(times)-1):
-                    print(src_delta_rots)
-                    print(tgt_delta_rots)
-                    print(tgt_rots)
+                tgt_rots = np.array([0,0,90]) + tgt_delta_rots  # 
+                # if tid==(len(times)-1):
+                #     print(src_delta_rots)
+                #     print(tgt_delta_rots)
+                #     print(tgt_rots)
                 
                 # update 
                 for eid, attr in enumerate(array):
                     tgt_rot = tgt_rots[eid]
-                    # if eid==2:
-                    #     tgt_rot += 90
                     cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot)
