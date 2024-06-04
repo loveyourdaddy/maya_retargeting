@@ -126,7 +126,7 @@ if True:
 
 """ src """
 # Tpose trf 
-src_Tpose_trfs = [] # check changed 
+src_Tpose_trfs = []
 src_Tpose_rots = []
 object_name = "Hips"
 joint_hierarchy = get_joint_hierarchy(object_name)
@@ -134,11 +134,17 @@ joint_hierarchy = get_joint_hierarchy(object_name)
 # if object_name not in src_to_tgt_map.keys():
 #     continue
 cmds.currentTime(0)
-src_Tpose_trfs.append(get_rot_matrix(object_name)) # copy.deepcopy(
+# src_front_trf = np.array([[0,0,-1],[0,1,0],[1,0,0]])
+src_Tpose_trfs.append(get_rot_matrix(object_name)) # transpose
 src_Tpose_rots.append(get_rotation(object_name))
-# print("src_Tpose_trfs: ", src_Tpose_trfs)
-# print("src_Tpose_rots: ", src_Tpose_rots)
-
+src_trf = np.transpose(src_Tpose_trfs[0])
+# src_trf = src_Tpose_trf #@ src_front_trf
+# print("src_trf:", src_trf)
+inv_src_trf = np.linalg.inv(src_trf)
+print("inv_src_trf:", inv_src_trf)
+origin_angle = inv_src_trf @ src_Tpose_rots[0]
+origin_angle[1] += 90
+print("origin_angle:", origin_angle)
 
 # get min max time 
 if True:
@@ -237,9 +243,19 @@ joint_hierarchy = get_joint_hierarchy(object_name)
 # for object_name in joint_hierarchy:
 # if object_name not in src_to_tgt_map.values():
 #     continue
-tgt_Tpose_trfs.append(get_rot_matrix(object_name))
+# tgt_front_trf = np.array([[0,1,0],[0,0,1],[1,0,0]]) 
+tgt_Tpose_trfs.append(get_rot_matrix(object_name)) # transpose
 tgt_Tpose_rots.append(get_rotation(object_name))
-# print("{}: {}".format(object_name, tgt_Tpose_rot))
+
+target_angle = origin_angle
+target_angle[0] += -90
+target_angle[2] += -90
+print("target_angle before conver:", target_angle)
+tgt_trf = np.transpose(tgt_Tpose_trfs[0])
+# tgt_trf = tgt_Tpose_trf @ tgt_front_trf
+target_angle = tgt_trf @ target_angle
+print("tgt_Tpose_trfs:", tgt_trf)
+print("target_angle:", target_angle)
 # print("tgt_Tpose_trfs:", tgt_Tpose_trfs)
 # print("tgt_Tpose_rots:", tgt_Tpose_rots)
 
@@ -274,8 +290,8 @@ if True:
             array = ["translateX", "translateY", "translateZ",]
             for eid, attr in enumerate(array): 
                 value = np.array(perjoint_data[attr])
-                for (time, tran) in value: 
-                    cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tran)
+                # for (time, tran) in value: 
+                #     cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tran)
         
         # src zero trf 
         # src_Tpose_trf = src_Tpose_trfs[i] # np.transpose(
@@ -289,12 +305,12 @@ if True:
         # trf = np.matmul(tgt_Tpose_trf, inv_src_Tpose_trf)
         # trf = np.matmul(inv_src_Tpose_trf, tgt_Tpose_trf)
         # trf = np.array([[1,0,0], [0,0,-1], [0,1,0]])
-        trf = np.array([[0,-1,0], [1,0,0], [0,0,1]])
+        # trf = np.array([[0,-1,0], [1,0,0], [0,0,1]])
         # trf = np.array([[0,-1,0], [0,0,1], [1,0,0]])
         # trf = np.array([[0,0,1], [0,1,0], [-1,0,0]])
-        trf = np.transpose(trf)
+        # trf = np.transpose(trf)
 
-        if True:
+        if False:
             # set by src_rots (by moving frames)
             array = ['rotateX', 'rotateY', 'rotateZ']
             # Tpose rot 
