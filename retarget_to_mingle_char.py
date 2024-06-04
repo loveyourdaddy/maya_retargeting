@@ -257,7 +257,7 @@ if True:
         for object_name in joint_hierarchy:
             if object_name not in src_to_tgt_map.keys():
                 continue
-            src_rot = get_rotation(object_name) # get_rotation get_rot_matrix
+            src_rot = get_rot_matrix(object_name) # get_rotation get_rot_matrix
             src_frame_rot.append(src_rot)
         src_rots.append(src_frame_rot)
 
@@ -349,7 +349,7 @@ if True:
                 # tgt_origin_angle[1] += 90
                 # tgt_origin_mat = E_to_R(tgt_origin_angle)
                 tgt_rot = trf @ src_rot
-                # tgt_rot = R_to_E(tgt_origin_mat)
+                tgt_rot = R_to_E(tgt_rot)
                 
                 for eid, attr in enumerate(array):
                     cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot[eid])
