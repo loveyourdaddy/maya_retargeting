@@ -319,6 +319,10 @@ if True:
         inv_src_trf = np.linalg.inv(src_trf)
         # tgt 
         tgt_trf = np.transpose(tgt_Tpose_trfs[i])
+        print("inv_src_trf:", inv_src_trf)
+        print("tgt_trf:", tgt_trf)
+        # src to tgt zero trf 
+        zero_trf = np.array([[0,1,0],[-1,0,0],[0,0,1]])
 
         if True:
             # set by src_rots (by moving frames)
@@ -328,24 +332,32 @@ if True:
                 src_rot = np.array(src_rots[tid][i])
                 
                 # src
-                # print("inv_src_trf:", inv_src_trf)
                 # print("src_rot:", src_rot)
-                src_origin_rot = inv_src_trf @ src_rot # src_Tpose_rots
-                origin_angle = R_to_E(src_origin_rot)
+                src_zero_rot = inv_src_trf @ src_rot # src_Tpose_rots
+                # origin_angle = R_to_E(src_origin_rot)
                 # print("origin_angle:", origin_angle)
-                origin_angle[1] += -90
-                origin_angle[2] += -90
+                # origin_angle[1] += -90
+                # origin_angle[2] += 90
+
+                # tgt_zero_rot 
+                tgt_zero_rot = zero_trf @ src_zero_rot
                 
                 # tgt
-                tgt_origin_angle = origin_angle
-                tgt_origin_angle[0] += 180
-                tgt_origin_angle[1] += 90
-                tgt_origin_mat = E_to_R(tgt_origin_angle)
-                tgt_origin_mat = tgt_trf @ tgt_origin_mat
-                tgt_rot = R_to_E(tgt_origin_mat)
-                
+                # tgt_origin_angle = origin_angle
+                # tgt_origin_angle[0] += 180
+                # tgt_origin_angle[1] += 90
+                # tgt_origin_mat = E_to_R(tgt_origin_angle)
+                tgt_rot = tgt_trf @ tgt_zero_rot
+                tgt_rot_angle = R_to_E(tgt_rot)
+                if tid==0:
+                    print("src_rot ", src_rot) 
+                    print("src_origin_rot ", src_zero_rot) # must be identity
+                    print("tgt_zero_rot ", tgt_zero_rot) 
+                    print("tgt_rot ", tgt_rot)
+                    print("tgt_rot_angle ", tgt_rot_angle)
+                    
                 for eid, attr in enumerate(array):
-                    cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot[eid])
+                    cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot_angle[eid])
         
         if False:
             # set by perjoint_data (key frames)
