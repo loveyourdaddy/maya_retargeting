@@ -88,6 +88,38 @@ def R_to_E(R):
     # return alpha, beta, gamma
     return np.array([alpha, beta, gamma])
 
+def E_to_R(E, order="zyx", radians=True): # xyz
+    """
+    Args:
+        E: (..., 3)
+    """
+    if E.shape[-1] != 3:
+        raise ValueError(f"Invalid Euler angles shape {E.shape}")
+    if len(order) != 3:
+        raise ValueError(f"Order must have 3 characters, but got {order}")
+
+    if not radians:
+        E = np.deg2rad(E)
+
+    def _euler_axis_to_R(angle, axis):
+        one  = np.ones_like(angle, dtype=np.float32)
+        zero = np.zeros_like(angle, dtype=np.float32)
+        cos  = np.cos(angle, dtype=np.float32)
+        sin  = np.sin(angle, dtype=np.float32)
+
+        if axis == "x":
+            R_flat = (one, zero, zero, zero, cos, -sin, zero, sin, cos)
+        elif axis == "y":
+            R_flat = (cos, zero, sin, zero, one, zero, -sin, zero, cos)
+        elif axis == "z":
+            R_flat = (cos, -sin, zero, sin, cos, zero, zero, zero, one)
+        else:
+            raise ValueError(f"Invalid axis: {axis}")
+        return np.stack(R_flat, axis=-1).reshape(angle.shape + (3, 3))
+
+    R = [_euler_axis_to_R(E[..., i], order[i]) for i in range(3)]
+    return np.matmul(np.matmul(R[0], R[1]), R[2])
+
 """ src_to_tgt_map """
 if True:
     src_to_tgt_map = {}
@@ -124,7 +156,7 @@ if True:
 # cmds.setAttr("ADORI.rotateX", 0) # -90
 # cmds.setAttr("Bip001.rotateX", -90) # -90
 
-""" src """
+""" src Tpose """
 # Tpose trf 
 src_Tpose_trfs = []
 src_Tpose_rots = []
@@ -134,18 +166,15 @@ joint_hierarchy = get_joint_hierarchy(object_name)
 # if object_name not in src_to_tgt_map.keys():
 #     continue
 cmds.currentTime(0)
-# src_front_trf = np.array([[0,0,-1],[0,1,0],[1,0,0]])
 src_Tpose_trfs.append(get_rot_matrix(object_name)) # transpose
 src_Tpose_rots.append(get_rotation(object_name))
 src_trf = np.transpose(src_Tpose_trfs[0])
-# src_trf = src_Tpose_trf #@ src_front_trf
-# print("src_trf:", src_trf)
 inv_src_trf = np.linalg.inv(src_trf)
-print("inv_src_trf:", inv_src_trf)
 origin_angle = inv_src_trf @ src_Tpose_rots[0]
-origin_angle[1] += 90
-print("origin_angle:", origin_angle)
+origin_angle[1] += -90
+origin_angle[2] += -90
 
+""" src motion """
 # get min max time 
 if True:
     # src motion by (x key frames, y, z)
@@ -206,9 +235,8 @@ if True:
             times_z = np.array(times_z)
             times_x_y = np.union1d(times_x, times_y)
             common_times = np.union1d(times_x_y, times_z) # intersect1d
-            print(common_times)
-            print(len(common_times))
-
+            # print(common_times)
+            # print(len(common_times))
 
     # source frames 
     cmds.playbackOptions(min=min_time, max=max_time)
@@ -229,11 +257,11 @@ if True:
         for object_name in joint_hierarchy:
             if object_name not in src_to_tgt_map.keys():
                 continue
-            src_rot = get_rot_matrix(object_name)
+            src_rot = get_rot_matrix(object_name) # get_rotation
             src_frame_rot.append(src_rot)
         src_rots.append(src_frame_rot)
 
-""" TGT """
+""" TGT Tpose """
 # Trf 
 tgt_Tpose_trfs = []
 # Tpose data 
@@ -248,16 +276,10 @@ tgt_Tpose_trfs.append(get_rot_matrix(object_name)) # transpose
 tgt_Tpose_rots.append(get_rotation(object_name))
 
 target_angle = origin_angle
-target_angle[0] += -90
-target_angle[2] += -90
-print("target_angle before conver:", target_angle)
+target_angle[0] += 180
+target_angle[1] += 90
 tgt_trf = np.transpose(tgt_Tpose_trfs[0])
-# tgt_trf = tgt_Tpose_trf @ tgt_front_trf
 target_angle = tgt_trf @ target_angle
-print("tgt_Tpose_trfs:", tgt_trf)
-print("target_angle:", target_angle)
-# print("tgt_Tpose_trfs:", tgt_Tpose_trfs)
-# print("tgt_Tpose_rots:", tgt_Tpose_rots)
 
 # Tpose data 
 # array = ['rotateX', 'rotateY', 'rotateZ']
@@ -271,7 +293,6 @@ print("target_angle:", target_angle)
 #             times = cmds.keyframe(f'{object_name}.{attr}', query=True, timeChange=True)
 #             values = cmds.keyframe(f'{object_name}.{attr}', query=True, valueChange=True)
 #             perjoint_data[attr] = list(zip(times, values))
-
 #     tgt_Tpose_data.append(perjoint_data)
 # print("tgt_Tpose_data: ", tgt_Tpose_data)
 
@@ -290,50 +311,38 @@ if True:
             array = ["translateX", "translateY", "translateZ",]
             for eid, attr in enumerate(array): 
                 value = np.array(perjoint_data[attr])
-                # for (time, tran) in value: 
-                #     cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tran)
+                for (time, tran) in value: 
+                    cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tran)
         
-        # src zero trf 
-        # src_Tpose_trf = src_Tpose_trfs[i] # np.transpose(
-        # print("src_Tpose_trf:", src_Tpose_trf)
-        # inv_src_Tpose_trf = np.linalg.inv(src_Tpose_trf)
-        # print("inv_src_Tpose_trf:", inv_src_Tpose_trf)
-        # update to tgt
-        # tgt_Tpose_trf = tgt_Tpose_trfs[i] # np.transpose
-        # print("tgt_Tpose_trf:", tgt_Tpose_trf)
-        # trf 
-        # trf = np.matmul(tgt_Tpose_trf, inv_src_Tpose_trf)
-        # trf = np.matmul(inv_src_Tpose_trf, tgt_Tpose_trf)
-        # trf = np.array([[1,0,0], [0,0,-1], [0,1,0]])
-        # trf = np.array([[0,-1,0], [1,0,0], [0,0,1]])
-        # trf = np.array([[0,-1,0], [0,0,1], [1,0,0]])
-        # trf = np.array([[0,0,1], [0,1,0], [-1,0,0]])
-        # trf = np.transpose(trf)
+        # src 
+        src_trf = np.transpose(src_Tpose_trfs[i])
+        inv_src_trf = np.linalg.inv(src_trf)
+        # tgt 
+        tgt_trf = np.transpose(tgt_Tpose_trfs[i])
 
-        if False:
+        if True:
             # set by src_rots (by moving frames)
             array = ['rotateX', 'rotateY', 'rotateZ']
-            # Tpose rot 
-            # src_Tpose_rot = np.array(src_Tpose_rots[i])
-            # tgt_Tpose_rot = np.array(tgt_Tpose_rots[i])
             for tid, time in enumerate(common_times):
                 # get src delta rot
                 src_rot = np.array(src_rots[tid][i])
-                # print("{}: {}".format(time, src_rot))
-                # src_delta_rot = rots - src_Tpose_rot
-
-                # set tgt rot
-                # tgt_delta_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, src_delta_rot))
-                # tgt_rot = tgt_Tpose_rot + tgt_delta_rot
-                # tgt_rot = np.matmul(tgt_zero_trf, np.matmul(inv_src_zero_trf, rots)) 
                 
-                # delta src, tgt
-                src_delta_rot = src_rot # - Tpose_rots np.array([0,90,0]) +
-                tgt_delta_rot = np.matmul(trf, src_delta_rot)
-                # print(tgt_delta_rot)
-                tgt_delta_rot = R_to_E(tgt_delta_rot)
-
-                tgt_rot = tgt_delta_rot
+                # src
+                # print("inv_src_trf:", inv_src_trf)
+                # print("src_rot:", src_rot)
+                src_origin_rot = inv_src_trf @ src_rot # src_Tpose_rots
+                origin_angle = R_to_E(src_origin_rot)
+                # print("origin_angle:", origin_angle)
+                origin_angle[1] += -90
+                origin_angle[2] += -90
+                
+                # tgt
+                tgt_origin_angle = origin_angle
+                tgt_origin_angle[0] += 180
+                tgt_origin_angle[1] += 90
+                tgt_origin_mat = E_to_R(tgt_origin_angle)
+                tgt_origin_mat = tgt_trf @ tgt_origin_mat
+                tgt_rot = R_to_E(tgt_origin_mat)
                 
                 for eid, attr in enumerate(array):
                     cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot[eid])
