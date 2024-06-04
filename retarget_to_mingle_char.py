@@ -320,12 +320,12 @@ if True:
         # tgt 
         tgt_trf = np.transpose(tgt_Tpose_trfs[i])
         # zero_rot_trf
-        zero_rot_trf = np.array([[0,-1,0], [1,0,0], [0,0,1]])
-        trf = tgt_trf @ zero_rot_trf @ inv_src_trf
+        # zero_rot_trf = np.array([[0,1,0], [-1,0,0], [0,0,1]])
+        # trf = tgt_trf @ zero_rot_trf @ inv_src_trf
         print("inv_src_trf:", inv_src_trf)
-        print("zero_rot_trf:", zero_rot_trf)
+        # print("zero_rot_trf:", zero_rot_trf)
         print("tgt_trf:", tgt_trf)
-        print("trf:", trf)
+        # print("trf:", trf)
 
         if True:
             # set by src_rots (by moving frames)
@@ -337,18 +337,21 @@ if True:
                 # src 
                 # print("inv_src_trf:", inv_src_trf)
                 # print("src_rot:", src_rot)
-                # origin_angle = inv_src_trf @ src_rot # src_Tpose_rots
-                # origin_angle = R_to_E(src_origin_rot)
+                origin_angle = inv_src_trf @ src_rot # src_Tpose_rots
+                origin_angle = R_to_E(origin_angle)
                 # # print("origin_angle:", origin_angle)
                 # origin_angle[1] += -90
-                # origin_angle[2] += -90
+                origin_angle[2] += -90
+                if tid==0:
+                    print("origin_angle:", origin_angle)
+                origin_angle = E_to_R(origin_angle)
                 
                 # tgt
                 # tgt_origin_angle = origin_angle
                 # tgt_origin_angle[0] += 180
                 # tgt_origin_angle[1] += 90
                 # tgt_origin_mat = E_to_R(tgt_origin_angle)
-                tgt_rot = trf @ src_rot
+                tgt_rot = tgt_trf @ origin_angle
                 tgt_rot = R_to_E(tgt_rot)
                 
                 for eid, attr in enumerate(array):
