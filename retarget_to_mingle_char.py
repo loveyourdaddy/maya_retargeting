@@ -282,10 +282,11 @@ joint_hierarchy = get_joint_hierarchy(object_name)
 # if object_name not in src_to_tgt_map.values():
 #     continue
 # tgt_front_trf = np.array([[0,1,0],[0,0,1],[1,0,0]]) 
-rot = get_rotation(object_name)
-rot = np.array(rot)
+rot = np.array(get_rotation(object_name))
+# rot_mat = E_to_R(rot)
+rot_mat = get_rot_matrix(object_name)
 tgt_Tpose_rots.append(rot)
-tgt_Tpose_trfs.append(E_to_R(rot)) # transpose
+tgt_Tpose_trfs.append(rot_mat) # transpose
 
 # Tpose data 
 # array = ['rotateX', 'rotateY', 'rotateZ']
@@ -320,13 +321,20 @@ if True:
                 for (time, tran) in value: 
                     cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tran)
         
-        # src
-        src_trf = src_Tpose_trfs[i]
-        inv_src_trf = np.linalg.inv(src_trf)
-        # tgt
+        # # src
+        # src_trf = src_Tpose_trfs[i]
+        # inv_src_trf = np.linalg.inv(src_trf)
+        # # tgt
+        # tgt_trf = tgt_Tpose_trfs[i]
+        # # src to tgt zero trf
+        # zero_trf = np.array([[0,1,0],[-1,0,0],[0,0,1]])
+        # # trf = tgt_trf @ zero_trf @ inv_src_trf
+        
+        # trf 
+        src_rot_mat = np.array(src_rot_mats[0][0])
         tgt_trf = tgt_Tpose_trfs[i]
-        # src to tgt zero trf
-        zero_trf = np.array([[0,1,0],[-1,0,0],[0,0,1]])
+        trf = np.linalg.inv(src_rot_mat) @ tgt_trf
+        print("trf:", trf)
 
         if True:
             # set by src_rots (by moving frames)
@@ -335,27 +343,23 @@ if True:
                 # get src delta rot
                 src_rot_mat = np.array(src_rot_mats[tid][i])
 
-                # src
-                src_zero_rot_mat = inv_src_trf @ src_rot_mat
-
-                # tgt_zero_rot 
-                tgt_zero_rot_mat = zero_trf @ src_zero_rot_mat
-                
-                # tgt
-                tgt_rot_mat = tgt_trf @ tgt_zero_rot_mat
+                tgt_rot_mat = trf @ src_rot_mat
                 tgt_rot = R_to_E(tgt_rot_mat)
                 if tid==0:
-                    src_rot = R_to_E(src_rot_mat)
-                    print("src_rot ", src_rot) 
-                #     print("src_origin_rot ", src_zero_rot) # must be identity
-                #     print("tgt_zero_rot ", tgt_zero_rot) 
-                #     print("tgt_rot ", tgt_rot)
-                #     print("tgt_rot_angle ", tgt_rot_angle)
+                    # src
+                    # src_zero_rot_mat = zero_trf @ src_rot_mat
+                    # tgt_rot = R_to_E(src_zero_rot_mat)
+                    # print("src_zero_rot_mat ", src_zero_rot_mat) 
+                    print("tgt_rot ", tgt_rot)
+
+                    # tgt_zero_rot 
+                    # tgt_zero_rot_mat = zero_trf @ src_zero_rot_mat
+                    
+                    # tgt
+                    # tgt_rot_mat = tgt_trf @ tgt_zero_rot_mat
                 
-                for eid, attr in enumerate(array):
-                    cmds.setKeyframe(src_joint, attribute=attr, t=time, v=src_rot[eid])
-                    cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot[eid])
-                    # print("{} {} {}".format(time, attr, src_rot[eid]))
+                # for eid, attr in enumerate(array):
+                #     cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot[eid])
         
         if False:
             # set by perjoint_data (key frames)
