@@ -28,46 +28,31 @@ def get_rotation(node_name):
         rotateX = cmds.getAttr(f"{node_name}.rotateX")
         rotateY = cmds.getAttr(f"{node_name}.rotateY")
         rotateZ = cmds.getAttr(f"{node_name}.rotateZ")
-        return rotateX, rotateY, rotateZ
+        return np.array([rotateX, rotateY, rotateZ])
     else:
         return None
 
+    # Tpose data 
+    # array = ['rotateX', 'rotateY', 'rotateZ']
+    # tgt_Tpose_data = []
+    # for object_name in joint_hierarchy:
+    #     perjoint_data = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
+    #     for attr in array:
+    #         keyframe_count = cmds.keyframe(f'{object_name}.{attr}', query=True, keyframeCount=True)
+    #         print("tgt keyframe_count: ", keyframe_count, object_name, attr)
+    #         if keyframe_count > 0:
+    #             times = cmds.keyframe(f'{object_name}.{attr}', query=True, timeChange=True)
+    #             values = cmds.keyframe(f'{object_name}.{attr}', query=True, valueChange=True)
+    #             perjoint_data[attr] = list(zip(times, values))
+    #     tgt_Tpose_data.append(perjoint_data)
+    # print("tgt_Tpose_data: ", tgt_Tpose_data)
+
 def get_rot_matrix(joint_name):
     joint_matrix = cmds.xform(joint_name, q=True, ws=True, m=True) # local coodinaite -> global coordina?
-    # print("joint_matrix:", joint_matrix)
-    
-    # matrix = joint_matrix
-    # left_vector = (matrix[0], matrix[1], matrix[2])
-    # up_vector = (matrix[4], matrix[5], matrix[6])
-    # forward_vector = (matrix[8], matrix[9], matrix[10])
-    # print("left_vector:", left_vector)
-    # print("up_vector:", up_vector)
-    # print("forward_vector:", forward_vector)
-
     joint_matrix = np.array(joint_matrix)
     joint_matrix = joint_matrix.reshape(4,4)
 
     return np.transpose(joint_matrix[:3, :3])
-
-# def get_zero_rot_matrix(joint_name):
-#     # rotateX = cmds.getAttr(joint_name+".rotateX")
-#     # rotateY = cmds.getAttr(joint_name+".rotateY")
-#     # rotateZ = cmds.getAttr(joint_name+".rotateZ")
-    
-#     # set zero and get trf 
-#     cmds.setAttr(joint_name+".rotateX", 0)
-#     cmds.setAttr(joint_name+".rotateY", 0)
-#     cmds.setAttr(joint_name+".rotateZ", 0)
-#     zero_rot_trf = get_rot_matrix(joint_name)
-#     # zero_rot_trf_copy = copy.deepcopy(zero_rot_trf)
-#     # print(type(zero_rot_trf))
-
-#     # back own value
-#     # cmds.setAttr(joint_name+".rotateX", rotateX)
-#     # cmds.setAttr(joint_name+".rotateY", rotateY)
-#     # cmds.setAttr(joint_name+".rotateZ", rotateZ)
-
-#     return zero_rot_trf 
 
 def R_to_E(R):
     # print(R)
@@ -170,12 +155,8 @@ cmds.currentTime(0)
 rot = get_rotation(object_name)
 rot = np.array(rot)
 rot_mat = get_rot_matrix(object_name)
-# rot_mat = np.transpose(rot_mat)
-# print("rot:", rot)
-# print("rot_mat converted:", E_to_R(rot))
-# print("rot_mat:", rot_mat)
 src_Tpose_rots.append(rot)
-src_Tpose_trfs.append(rot_mat) # transpose E_to_R(rot)
+src_Tpose_trfs.append(rot_mat)
 
 """ src motion """
 # get min max time 
@@ -254,7 +235,6 @@ if True:
     src_rot_mats = []
     object_name = "Hips"
     joint_hierarchy = get_joint_hierarchy(object_name)
-    # for frame in frames: # 이건 정수만 있음.
     for time in common_times:
         cmds.currentTime(time)
         src_frame_rot = []
@@ -262,19 +242,16 @@ if True:
         for object_name in joint_hierarchy:
             if object_name not in src_to_tgt_map.keys():
                 continue
-            src_rot = get_rotation(object_name) # get_rotation get_rot_matrix
+            src_rot = get_rotation(object_name)
             src_frame_rot.append(src_rot)
             
             rot_mat = get_rot_matrix(object_name)
-            # rot_mat = np.transpose(rot_mat)
             src_frame_rot_mat.append(rot_mat)
         src_rots.append(src_frame_rot)
         src_rot_mats.append(src_frame_rot_mat)
 
 """ TGT Tpose """
-# Trf 
 tgt_Tpose_trfs = []
-# Tpose data 
 tgt_Tpose_rots = []
 object_name = "Bip001FBXASC032Pelvis"
 joint_hierarchy = get_joint_hierarchy(object_name)
@@ -282,26 +259,10 @@ joint_hierarchy = get_joint_hierarchy(object_name)
 # if object_name not in src_to_tgt_map.values():
 #     continue
 # tgt_front_trf = np.array([[0,1,0],[0,0,1],[1,0,0]]) 
-rot = np.array(get_rotation(object_name))
-# rot_mat = E_to_R(rot)
-rot_mat = get_rot_matrix(object_name)
+rot = get_rotation(object_name)
 tgt_Tpose_rots.append(rot)
+rot_mat = get_rot_matrix(object_name) # rot_mat = E_to_R(rot)
 tgt_Tpose_trfs.append(rot_mat) # transpose
-
-# Tpose data 
-# array = ['rotateX', 'rotateY', 'rotateZ']
-# tgt_Tpose_data = []
-# for object_name in joint_hierarchy:
-#     perjoint_data = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
-#     for attr in array:
-#         keyframe_count = cmds.keyframe(f'{object_name}.{attr}', query=True, keyframeCount=True)
-#         print("tgt keyframe_count: ", keyframe_count, object_name, attr)
-#         if keyframe_count > 0:
-#             times = cmds.keyframe(f'{object_name}.{attr}', query=True, timeChange=True)
-#             values = cmds.keyframe(f'{object_name}.{attr}', query=True, valueChange=True)
-#             perjoint_data[attr] = list(zip(times, values))
-#     tgt_Tpose_data.append(perjoint_data)
-# print("tgt_Tpose_data: ", tgt_Tpose_data)
 
 
 """ update to target """
