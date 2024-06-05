@@ -1,8 +1,8 @@
 import maya.cmds as cmds
 import maya.mel as mel
-# import math 
 import numpy as np
-import copy
+# import math 
+# import copy
 
 def get_joint_hierarchy(root_joint):
     """
@@ -46,30 +46,31 @@ def get_rot_matrix(joint_name):
 
     joint_matrix = np.array(joint_matrix)
     joint_matrix = joint_matrix.reshape(4,4)
-    return joint_matrix[:3, :3] # copy.deepcopy
 
-def get_zero_rot_matrix(joint_name):
-    # rotateX = cmds.getAttr(joint_name+".rotateX")
-    # rotateY = cmds.getAttr(joint_name+".rotateY")
-    # rotateZ = cmds.getAttr(joint_name+".rotateZ")
+    return np.transpose(joint_matrix[:3, :3])
+
+# def get_zero_rot_matrix(joint_name):
+#     # rotateX = cmds.getAttr(joint_name+".rotateX")
+#     # rotateY = cmds.getAttr(joint_name+".rotateY")
+#     # rotateZ = cmds.getAttr(joint_name+".rotateZ")
     
-    # set zero and get trf 
-    cmds.setAttr(joint_name+".rotateX", 0)
-    cmds.setAttr(joint_name+".rotateY", 0)
-    cmds.setAttr(joint_name+".rotateZ", 0)
-    zero_rot_trf = get_rot_matrix(joint_name)
-    # zero_rot_trf_copy = copy.deepcopy(zero_rot_trf)
-    # print(type(zero_rot_trf))
+#     # set zero and get trf 
+#     cmds.setAttr(joint_name+".rotateX", 0)
+#     cmds.setAttr(joint_name+".rotateY", 0)
+#     cmds.setAttr(joint_name+".rotateZ", 0)
+#     zero_rot_trf = get_rot_matrix(joint_name)
+#     # zero_rot_trf_copy = copy.deepcopy(zero_rot_trf)
+#     # print(type(zero_rot_trf))
 
-    # back own value
-    # cmds.setAttr(joint_name+".rotateX", rotateX)
-    # cmds.setAttr(joint_name+".rotateY", rotateY)
-    # cmds.setAttr(joint_name+".rotateZ", rotateZ)
+#     # back own value
+#     # cmds.setAttr(joint_name+".rotateX", rotateX)
+#     # cmds.setAttr(joint_name+".rotateY", rotateY)
+#     # cmds.setAttr(joint_name+".rotateZ", rotateZ)
 
-    return zero_rot_trf 
+#     return zero_rot_trf 
 
 def R_to_E(R):
-    
+    # print(R)
     beta = np.arcsin(-R[2, 0])
     
     # Calculate alpha and gamma based on the value of cos(beta)
@@ -88,7 +89,7 @@ def R_to_E(R):
     # return alpha, beta, gamma
     return np.array([alpha, beta, gamma])
 
-def E_to_R(E, order="zyx", radians=True): # xyz
+def E_to_R(E, order="zyx", radians=True): # 
     """
     Args:
         E: (..., 3)
@@ -166,13 +167,15 @@ joint_hierarchy = get_joint_hierarchy(object_name)
 # if object_name not in src_to_tgt_map.keys():
 #     continue
 cmds.currentTime(0)
-src_Tpose_trfs.append(get_rot_matrix(object_name)) # transpose
-src_Tpose_rots.append(get_rotation(object_name))
-src_trf = np.transpose(src_Tpose_trfs[0])
-inv_src_trf = np.linalg.inv(src_trf)
-origin_angle = inv_src_trf @ src_Tpose_rots[0]
-origin_angle[1] += -90
-origin_angle[2] += -90
+rot = get_rotation(object_name)
+rot = np.array(rot)
+rot_mat = get_rot_matrix(object_name)
+# rot_mat = np.transpose(rot_mat)
+# print("rot:", rot)
+# print("rot_mat converted:", E_to_R(rot))
+# print("rot_mat:", rot_mat)
+src_Tpose_rots.append(rot)
+src_Tpose_trfs.append(rot_mat) # transpose E_to_R(rot)
 
 """ src motion """
 # get min max time 
@@ -248,18 +251,25 @@ if True:
 # src motions by xform (after set key)
 if True:
     src_rots = [] # [frames, joints, 3]
+    src_rot_mats = []
     object_name = "Hips"
     joint_hierarchy = get_joint_hierarchy(object_name)
     # for frame in frames: # 이건 정수만 있음.
     for time in common_times:
         cmds.currentTime(time)
         src_frame_rot = []
+        src_frame_rot_mat = []
         for object_name in joint_hierarchy:
             if object_name not in src_to_tgt_map.keys():
                 continue
-            src_rot = get_rot_matrix(object_name) # get_rotation
+            src_rot = get_rotation(object_name) # get_rotation get_rot_matrix
             src_frame_rot.append(src_rot)
+            
+            rot_mat = get_rot_matrix(object_name)
+            # rot_mat = np.transpose(rot_mat)
+            src_frame_rot_mat.append(rot_mat)
         src_rots.append(src_frame_rot)
+        src_rot_mats.append(src_frame_rot_mat)
 
 """ TGT Tpose """
 # Trf 
@@ -272,14 +282,10 @@ joint_hierarchy = get_joint_hierarchy(object_name)
 # if object_name not in src_to_tgt_map.values():
 #     continue
 # tgt_front_trf = np.array([[0,1,0],[0,0,1],[1,0,0]]) 
-tgt_Tpose_trfs.append(get_rot_matrix(object_name)) # transpose
-tgt_Tpose_rots.append(get_rotation(object_name))
-
-target_angle = origin_angle
-target_angle[0] += 180
-target_angle[1] += 90
-tgt_trf = np.transpose(tgt_Tpose_trfs[0])
-target_angle = tgt_trf @ target_angle
+rot = get_rotation(object_name)
+rot = np.array(rot)
+tgt_Tpose_rots.append(rot)
+tgt_Tpose_trfs.append(E_to_R(rot)) # transpose
 
 # Tpose data 
 # array = ['rotateX', 'rotateY', 'rotateZ']
@@ -314,14 +320,12 @@ if True:
                 for (time, tran) in value: 
                     cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tran)
         
-        # src 
-        src_trf = np.transpose(src_Tpose_trfs[i])
+        # src
+        src_trf = src_Tpose_trfs[i]
         inv_src_trf = np.linalg.inv(src_trf)
-        # tgt 
-        tgt_trf = np.transpose(tgt_Tpose_trfs[i])
-        print("inv_src_trf:", inv_src_trf)
-        print("tgt_trf:", tgt_trf)
-        # src to tgt zero trf 
+        # tgt
+        tgt_trf = tgt_Tpose_trfs[i]
+        # src to tgt zero trf
         zero_trf = np.array([[0,1,0],[-1,0,0],[0,0,1]])
 
         if True:
@@ -329,35 +333,29 @@ if True:
             array = ['rotateX', 'rotateY', 'rotateZ']
             for tid, time in enumerate(common_times):
                 # get src delta rot
-                src_rot = np.array(src_rots[tid][i])
-                
+                src_rot_mat = np.array(src_rot_mats[tid][i])
+
                 # src
-                # print("src_rot:", src_rot)
-                src_zero_rot = inv_src_trf @ src_rot # src_Tpose_rots
-                # origin_angle = R_to_E(src_origin_rot)
-                # print("origin_angle:", origin_angle)
-                # origin_angle[1] += -90
-                # origin_angle[2] += 90
+                src_zero_rot_mat = inv_src_trf @ src_rot_mat
 
                 # tgt_zero_rot 
-                tgt_zero_rot = zero_trf @ src_zero_rot
+                tgt_zero_rot_mat = zero_trf @ src_zero_rot_mat
                 
                 # tgt
-                # tgt_origin_angle = origin_angle
-                # tgt_origin_angle[0] += 180
-                # tgt_origin_angle[1] += 90
-                # tgt_origin_mat = E_to_R(tgt_origin_angle)
-                tgt_rot = tgt_trf @ tgt_zero_rot
-                tgt_rot_angle = R_to_E(tgt_rot)
+                tgt_rot_mat = tgt_trf @ tgt_zero_rot_mat
+                tgt_rot = R_to_E(tgt_rot_mat)
                 if tid==0:
+                    src_rot = R_to_E(src_rot_mat)
                     print("src_rot ", src_rot) 
-                    print("src_origin_rot ", src_zero_rot) # must be identity
-                    print("tgt_zero_rot ", tgt_zero_rot) 
-                    print("tgt_rot ", tgt_rot)
-                    print("tgt_rot_angle ", tgt_rot_angle)
-                    
+                #     print("src_origin_rot ", src_zero_rot) # must be identity
+                #     print("tgt_zero_rot ", tgt_zero_rot) 
+                #     print("tgt_rot ", tgt_rot)
+                #     print("tgt_rot_angle ", tgt_rot_angle)
+                
                 for eid, attr in enumerate(array):
-                    cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot_angle[eid])
+                    cmds.setKeyframe(src_joint, attribute=attr, t=time, v=src_rot[eid])
+                    cmds.setKeyframe(tgt_joint, attribute=attr, t=time, v=tgt_rot[eid])
+                    # print("{} {} {}".format(time, attr, src_rot[eid]))
         
         if False:
             # set by perjoint_data (key frames)
