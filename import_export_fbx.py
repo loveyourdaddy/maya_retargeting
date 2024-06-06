@@ -12,6 +12,8 @@ usage
 # mayapy import_export_fbx.py --sourceMotion "./motions/Adori/animation/0055_Freestyle002_03_RT0214.fbx" --targetChar "./models/Dancstruct/SKM_ADORI_0229.fbx"
 # D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy
 
+# dynamic dict 
+
 # Load the FBX plugin
 if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
     cmds.loadPlugin('fbxmaya')
@@ -31,15 +33,20 @@ def get_args():
 # load source
 args = get_args()
 
-sourceMotion = args.sourceMotion
-mel.eval('FBXImport -f"{}"'.format(sourceMotion))
-target_motion = sourceMotion.split('/')[-1].split('.')[0]
-
+"""
+order :
+load target char -> load motion 
+"""
 # load target 
 targetChar = args.targetChar
 mel.eval('FBXImport -f"{}"'.format(targetChar))
 # target char
 target_char = targetChar.split('/')[-1].split('.')[0]
+
+# load motion 
+sourceMotion = args.sourceMotion
+mel.eval('FBXImport -f"{}"'.format(sourceMotion))
+target_motion = sourceMotion.split('/')[-1].split('.')[0]
 
 # export
 output_dir = args.tgt_motion_path + target_char
