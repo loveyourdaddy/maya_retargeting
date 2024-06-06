@@ -154,9 +154,9 @@ joint_hierarchy = get_joint_hierarchy(object_name)
 cmds.currentTime(0)
 rot = get_rotation(object_name)
 rot = np.array(rot)
-rot_mat = get_rot_matrix(object_name)
+src_rot_mat = get_rot_matrix(object_name)
 src_Tpose_rots.append(rot)
-src_Tpose_trfs.append(rot_mat)
+src_Tpose_trfs.append(src_rot_mat)
 
 """ src motion """
 # get min max time 
@@ -261,8 +261,8 @@ joint_hierarchy = get_joint_hierarchy(object_name)
 # tgt_front_trf = np.array([[0,1,0],[0,0,1],[1,0,0]]) 
 rot = get_rotation(object_name)
 tgt_Tpose_rots.append(rot)
-rot_mat = get_rot_matrix(object_name) # rot_mat = E_to_R(rot)
-tgt_Tpose_trfs.append(rot_mat) # transpose
+tgt_rot_mat = get_rot_matrix(object_name) # rot_mat = E_to_R(rot)
+tgt_Tpose_trfs.append(tgt_rot_mat)
 
 
 """ update to target """
@@ -293,9 +293,15 @@ if True:
         
         # trf 
         src_rot_mat = np.array(src_rot_mats[0][0])
+        src_rot_converted = R_to_E(src_rot_mat)
         tgt_trf = tgt_Tpose_trfs[i]
         trf = np.linalg.inv(src_rot_mat) @ tgt_trf
-        print("trf:", trf)
+        print("src_rot_mat:", src_rot_mat)
+        print("src_rot_converted: ", src_rot_converted)
+        print("tgt_trf ", tgt_trf)
+        # print("tgt_rot_mat ", tgt_rot_mat)
+        tgt_rot_converted = R_to_E(tgt_trf)
+        print("tgt_rot_converted ", tgt_rot_converted)
 
         if True:
             # set by src_rots (by moving frames)
@@ -311,7 +317,7 @@ if True:
                     # src_zero_rot_mat = zero_trf @ src_rot_mat
                     # tgt_rot = R_to_E(src_zero_rot_mat)
                     # print("src_zero_rot_mat ", src_zero_rot_mat) 
-                    print("tgt_rot ", tgt_rot)
+                    print("output tgt_rot ", tgt_rot)
 
                     # tgt_zero_rot 
                     # tgt_zero_rot_mat = zero_trf @ src_zero_rot_mat
