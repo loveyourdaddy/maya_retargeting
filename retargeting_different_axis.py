@@ -302,20 +302,15 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
     rot_data = get_array_from_keyframe_data(keyframe_data, rot_attr)
     src_delta_data = get_delta_rotation(rot_data)
-    src_delta_data = E_to_R(src_delta_data)
+    print(src_delta_data.shape)
 
     # trf ([len_frame, 3, 3])
-    # trf = np.array([[0,0,1],[0,1,0],[-1,0,0]])
-    # trf = np.array([[1,0,0],[0,1,0],[0,0,1]])
     trf = np.array([[0,0,1],[0,1,0],[-1,0,0]])
     trf = np.repeat(trf[None, :], len(src_delta_data), axis=0)
 
     # tgt_delta_data: [len_frame, 3, 3] * [len_frame, 3] -> [len_frame, 3, 1] -> [len_frame, 3]
-    tgt_delta_rot_mat = np.matmul(trf, src_delta_data)
-    tgt_delta_data = []
-    for delta in tgt_delta_rot_mat:
-        euler = R_to_E(delta)
-        tgt_delta_data.append(euler)
+    print(trf.shape)
+    tgt_delta_data = np.matmul(trf, src_delta_data[..., None])[..., 0]
 
     # add Tpose value -> get tgt rotation 
     target_data = copy.deepcopy(tgt_delta_data)
