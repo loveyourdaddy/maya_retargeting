@@ -82,65 +82,7 @@ def get_keyframe_data(joint):
     
     return trans_data, rot_data
 
-# def get_uniform_keyframe_data(joint):
-#     # keyframe 
-#     trans_data = {'translateX': [], 'translateY': [], 'translateZ': []}
-#     for attr in trans_data.keys():
-#         keyframe_count = cmds.keyframe(f'{joint}.{attr}', query=True, keyframeCount=True)
-#         if keyframe_count > 0:
-#             times = cmds.keyframe(f'{joint}.{attr}', query=True, timeChange=True)
-#             values = cmds.keyframe(f'{joint}.{attr}', query=True, valueChange=True)
-#             trans_data[attr] = list(zip(times, values))
-    
-#     # rot 
-#     rot_data = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
-#     # get common values 
-#     for attr in rot_data.keys():
-#         times = cmds.keyframe(f'{joint}.{attr}', query=True, timeChange=True)
-#         if attr=="rotateX":
-#             times_x = times
-#         elif attr=="rotateY":
-#             times_y = times
-#         elif attr=="rotateZ":
-#             times_z = times
-#     times_x = np.array(times_x)
-#     times_y = np.array(times_y)
-#     times_z = np.array(times_z)
-#     times_x_y = np.intersect1d(times_x, times_y)
-#     common_times = np.intersect1d(times_x_y, times_z)
-
-#     for attr in rot_data.keys():
-#         keyframe_count = cmds.keyframe(f'{joint}.{attr}', query=True, keyframeCount=True)
-#         if keyframe_count > 0:
-#             times = cmds.keyframe(f'{joint}.{attr}', query=True, timeChange=True)
-#             values = cmds.keyframe(f'{joint}.{attr}', query=True, valueChange=True)
-            
-#             # select common times and values 
-#             refined_times = []
-#             refined_values = []
-#             for common_t in common_times:
-#                 if common_t not in times:
-#                     continue
-#                 index = times.index(common_t)
-#                 refined_times.append(times[index])
-#                 refined_values.append(values[index])
-
-#             # set attribute 
-#             rot_data[attr] = list(zip(refined_times, refined_values))
-    
-#     return trans_data, rot_data
-
-# def get_Tpose_data(keyframe_data):
-#     # TODO
-#     Tpose_data = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
-#     frame = 0
-#     for attr in keyframe_data.keys():
-#         Tpose_data[attr] = keyframe_data[attr][frame][1]
-#     return Tpose_data
-
 def get_array_from_keyframe_data(keyframe_data, rot_attr):
-    # rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
-
     min_time = 0
     max_time = 0
     for attr in rot_attr:
@@ -151,9 +93,10 @@ def get_array_from_keyframe_data(keyframe_data, rot_attr):
             max_time = time
         if min_time > time:
             min_time = time
-    rot_data = np.full((max_time+1-min_time, 3), None)
+    rot_data = np.full((max_time+1-min_time, 3), None, dtype=np.float32)
     
     # assume: time이 int 단위
+    len_frame = len(rot_data)
     for attr_idx, attr in enumerate(rot_attr.keys()):
         for fid, data_perframe in enumerate(keyframe_data[attr]):
             frame = int(data_perframe[0])
@@ -165,9 +108,10 @@ def get_array_from_keyframe_data(keyframe_data, rot_attr):
             rot_data[0][attr_idx] = 0
         
         # interpolation TODO: 뒤에 값과 함께 interpolation
-        for fid in range(len(rot_data)):
-            if rot_data[fid][attr_idx]==None:
-                rot_data[fid] = rot_data[fid-1]
+        for fid in range(len_frame):
+            condition = np.isnan(rot_data[fid][attr_idx])
+            if condition:
+                rot_data[fid][attr_idx] = rot_data[fid-1][attr_idx]
 
     return rot_data # [frames, attr 3]
 
@@ -187,13 +131,61 @@ def set_translate_keyframe(joint, keyframe_data):
             cmds.setKeyframe(joint, attribute=attr, time=time, value=value)
 
 def set_rotation_keyframe(joint, keyframe_data, rot_attr):
-    # rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
     for attr_idx, attr in enumerate(rot_attr.keys()):
         for tid, perframe_data in enumerate(keyframe_data):
-            value = perframe_data[attr_idx]
-            # if attr_idx==0:
-            #     print("{} {}".format(tid, value))
+            value = float(perframe_data[attr_idx])
             cmds.setKeyframe(joint, attribute=attr, time=tid, value=value)
+
+def R_to_E(R):
+    beta = np.arcsin(-R[2, 0])
+    
+    # Calculate alpha and gamma based on the value of cos(beta)
+    if np.cos(beta) != 0:
+        alpha = np.arctan2(R[2, 1], R[2, 2])
+        gamma = np.arctan2(R[1, 0], R[0, 0])
+    else:
+        alpha = np.arctan2(-R[1, 2], R[1, 1])
+        gamma = 0
+
+    # Convert radians to degrees
+    alpha = np.degrees(alpha)
+    beta = np.degrees(beta)
+    gamma = np.degrees(gamma)
+
+    # return alpha, beta, gamma
+    return np.array([alpha, beta, gamma])
+
+def E_to_R(E, order="zyx", radians=False):
+    """
+    Args:
+        E: (..., 3)
+    """
+    if E.shape[-1] != 3:
+        raise ValueError(f"Invalid Euler angles shape {E.shape}")
+    if len(order) != 3:
+        raise ValueError(f"Order must have 3 characters, but got {order}")
+
+    if not radians:
+        E = np.deg2rad(E)
+
+    def _euler_axis_to_R(angle, axis):
+        one  = np.ones_like(angle, dtype=np.float32)
+        zero = np.zeros_like(angle, dtype=np.float32)
+        cos  = np.cos(angle, dtype=np.float32)
+        sin  = np.sin(angle, dtype=np.float32)
+
+        if axis == "x":
+            R_flat = (one, zero, zero, zero, cos, -sin, zero, sin, cos)
+        elif axis == "y":
+            R_flat = (cos, zero, sin, zero, one, zero, -sin, zero, cos)
+        elif axis == "z":
+            R_flat = (cos, -sin, zero, sin, cos, zero, zero, zero, one)
+        else:
+            raise ValueError(f"Invalid axis: {axis}")
+        return np.stack(R_flat, axis=-1).reshape(angle.shape + (3, 3))
+
+    R = [_euler_axis_to_R(E[..., i], order[i]) for i in range(3)]
+    return np.matmul(np.matmul(R[0], R[1]), R[2])
 
 def get_parser():
     parser = argparse.ArgumentParser(description='Import an FBX file into Maya')
@@ -304,15 +296,26 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
     # assumption: first frame is Tpose
     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
     rot_data = get_array_from_keyframe_data(keyframe_data, rot_attr)
-    src_delta_data = get_delta_rotation(rot_data) # (attr 3, len_rot)
+    src_delta_data = get_delta_rotation(rot_data)
+    src_delta_data = E_to_R(src_delta_data)
 
     # get tgt delta rotation ([len_frame, 3, 3])
-    trf = np.array([[0,0,1],[0,1,0],[-1,0,0]]) 
-    trf = np.repeat(trf[None, :], len(src_delta_data), axis=0) 
+    # trf = np.array([[-1,0,0],[0,1,0],[0,0,1]])
+    # trf = np.repeat(trf[None, :], len(src_delta_data), axis=0) 
+    
     # src_delta_data: [len_frame, 3, 3] * [len_frame, 3] -> [len_frame, 3, 1] -> [len_frame, 3]
-    tgt_delta_data = np.matmul(trf, src_delta_data[..., None])[..., 0] 
-    # print("src_delta_data:", src_delta_data[:10])
-    # print("tgt_delta_data:", tgt_delta_data[:10])
+    # tgt_delta_data = np.matmul(trf, src_delta_data)
+    tgt_delta_data = src_delta_data
+    tgt_delta_datas = []
+    for delta in tgt_delta_data:
+        # rot_mat = E_to_R(delta)
+        euler = R_to_E(delta)
+        # print("{} -> {} -> {}".format(delta, rot_mat, euler))
+        tgt_delta_datas.append(euler)
+    tgt_delta_data = tgt_delta_datas
+    # frame = 300
+    # print("src_delta_data:", src_delta_data[frame])
+    # print("tgt_delta_data:", tgt_delta_data[frame])
 
     # add Tpose value -> get tgt rotation 
     target_data = copy.deepcopy(tgt_delta_data)
@@ -321,7 +324,7 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
     for fid in range(len_frame):
         for attr_idx in range(3):
             target_data[fid][attr_idx] += tgt_Tpose[tgt_index][attr_idx]
-    # print("target_data:", target_data[:10])
+    # print("target_data:", target_data[frame])
 
     # target의 Tpose 데이터를 알아야
     set_rotation_keyframe(tgt_joint, target_data, rot_attr)
