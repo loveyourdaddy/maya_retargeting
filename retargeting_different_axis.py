@@ -111,7 +111,6 @@ def set_rotation_keyframe(joint, keyframe_data, src_keyframe):
         elif attr=="rotateZ":
             attr_idx=2
         
-        # print("{} {}".format(attr, keyframe_data[attr_idx][0]))
         for tid, (time, _) in enumerate(keyframes):
             value = keyframe_data[attr_idx][tid]
             cmds.setKeyframe(joint, attribute=attr, time=time, value=value)
@@ -164,6 +163,17 @@ for i, joint in enumerate(tgt_joint_hierarchy):
 sourceMotion = args.sourceMotion
 mel.eval('FBXImport -f"{}"'.format(sourceMotion))
 target_motion = sourceMotion.split('/')[-1].split('.')[0]
+
+# src locator 
+src_locator = cmds.ls(type='locator')
+src_locator = list(set(src_locator) - set(tgt_locator))
+src_locator = src_locator[0].replace("Shape","")
+src_locator_translation = cmds.xform(src_locator, q=True, ws =True, ro=True)
+# hip joint: inverse of locator rotation 
+for i in range(3):
+    tgt_Tpose[0][i] = -src_locator_translation[i]
+
+""" refine joint """
 # src joint hierarchy
 src_joints = cmds.ls(type='joint')
 src_joints = list(set(src_joints) - set(tgt_joints))
@@ -182,31 +192,27 @@ src_joint_index, tgt_joint_index = [], []
 for joint in joint_hierarchy:
     src_joint_index.append(src_joint_hierarchy.index(joint))
     tgt_joint_index.append(tgt_joint_hierarchy_refined.index(joint))
-# print("{}:{}".format(src_joint_index, tgt_joint_index))
 
-# src locator 
-src_locator = cmds.ls(type='locator')
-src_locator = list(set(src_locator) - set(tgt_locator))
-src_locator = src_locator[0].replace("Shape","")
-src_locator_translation = cmds.xform(src_locator, q=True, ws =True, ro=True)
-
-# hip joint: inverse of locator rotation 
-for i in range(3):
-    tgt_Tpose[0][i] = -src_locator_translation[i]
-
+src_select_hierarchy, tgt_select_hierarchy = [], []
+for i in range(len(src_joint_index)):
+    src_select_hierarchy.append(src_joint_hierarchy[src_joint_index[i]])
+    tgt_select_hierarchy.append(tgt_joint_hierarchy[tgt_joint_index[i]])
+src_joint_hierarchy = src_select_hierarchy
+tgt_joint_hierarchy = tgt_select_hierarchy
 
 """ set to target char """
 # locator
 print("src_locator_translation ",src_locator_translation)
 cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
-# joints 
-print("src_joint_hierarchy:", src_joint_hierarchy[src_joint_index])
-print("tgt_joint_hierarchy", tgt_joint_hierarchy[tgt_joint_index])
 
-for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy[src_joint_index], tgt_joint_hierarchy[tgt_joint_index])):
+# joints 
+for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
+    print("{} {} {}".format(j, src_joint, tgt_joint))
     keyframe_data = get_keyframe_data(src_joint)
+
     # root update 
-    set_translate_keyframe(tgt_joint, keyframe_data)
+    if j==0:
+        set_translate_keyframe(tgt_joint, keyframe_data)
 
     # get src delta rotation 
     """ assumption: first frame is Tpose  """
@@ -219,21 +225,25 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy[src_joint_ind
     tgt_delta_data = copy.deepcopy(src_delta_data)
     tgt_delta_data[0] = src_delta_data[2]
     tgt_delta_data[2] = src_delta_data[0]
+    # print("{}:{}".format(tgt_delta_data[2][:10], src_delta_data[0][:10]))
     for data_perframe in tgt_delta_data[2]:
         data_perframe *= -1
+
     # tgt keyframe foramt 
     tgt_keyframe_form = copy.deepcopy(keyframe_data)
     tgt_keyframe_form["rotateX"] = keyframe_data["rotateZ"]
     tgt_keyframe_form["rotateZ"] = keyframe_data["rotateX"]
-    
+
     # get tgt rotation 
     target_data = copy.deepcopy(tgt_delta_data)
+    tgt_index = tgt_joint_index[j]
     for attr_idx in range(3):
         for fid in range(len(target_data[attr_idx])):
-            target_data[attr_idx][fid] = tgt_Tpose[j][attr_idx] # +
+            target_data[attr_idx][fid] += tgt_Tpose[tgt_index][attr_idx]
+            # if fid==0 or fid==1:
+            # print("{} {}:{}".format(attr_idx, fid, target_data[attr_idx][fid]))
 
     # target의 Tpose 데이터를 알아야
-    # print("{} {} {}".format(j, src_joint, tgt_joint))
     set_rotation_keyframe(tgt_joint, target_data, tgt_keyframe_form)
 
 # freeze
