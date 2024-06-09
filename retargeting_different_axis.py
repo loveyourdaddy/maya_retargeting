@@ -230,6 +230,7 @@ tgt_Tpose = [[0,0,0] for _ in range(len(tgt_joint_hierarchy))] # [num_joint, att
 # other joint: tgt load할때 얻기
 for i, joint in enumerate(tgt_joint_hierarchy):
     tgt_Tpose[i] = cmds.xform(joint, q=True,ws=False, ro=True)
+tgt_Tpose = np.array(tgt_Tpose)
 
 """ load motion """
 sourceMotion = args.sourceMotion
@@ -278,6 +279,10 @@ print("src_locator_translation ",src_locator_translation)
 cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
 
 # joints
+tgt_Tpose_rot_mat = E_to_R(tgt_Tpose)
+# print(src_delta_data[0][j])
+# print(tgt_Tpose_rot_mat[j])
+# trf = np.matmul(np.inverse(src_delta_data[0][j]), tgt_Tpose_rot_mat[j])
 for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
     if j!=0:
         continue
@@ -299,23 +304,18 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
     src_delta_data = get_delta_rotation(rot_data)
     src_delta_data = E_to_R(src_delta_data)
 
-    # get tgt delta rotation ([len_frame, 3, 3])
-    # trf = np.array([[-1,0,0],[0,1,0],[0,0,1]])
-    # trf = np.repeat(trf[None, :], len(src_delta_data), axis=0) 
-    
-    # src_delta_data: [len_frame, 3, 3] * [len_frame, 3] -> [len_frame, 3, 1] -> [len_frame, 3]
-    # tgt_delta_data = np.matmul(trf, src_delta_data)
-    tgt_delta_data = src_delta_data
-    tgt_delta_datas = []
-    for delta in tgt_delta_data:
-        # rot_mat = E_to_R(delta)
+    # trf ([len_frame, 3, 3])
+    # trf = np.array([[0,0,1],[0,1,0],[-1,0,0]])
+    # trf = np.array([[1,0,0],[0,1,0],[0,0,1]])
+    trf = np.array([[0,0,1],[0,1,0],[-1,0,0]])
+    trf = np.repeat(trf[None, :], len(src_delta_data), axis=0)
+
+    # tgt_delta_data: [len_frame, 3, 3] * [len_frame, 3] -> [len_frame, 3, 1] -> [len_frame, 3]
+    tgt_delta_rot_mat = np.matmul(trf, src_delta_data)
+    tgt_delta_data = []
+    for delta in tgt_delta_rot_mat:
         euler = R_to_E(delta)
-        # print("{} -> {} -> {}".format(delta, rot_mat, euler))
-        tgt_delta_datas.append(euler)
-    tgt_delta_data = tgt_delta_datas
-    # frame = 300
-    # print("src_delta_data:", src_delta_data[frame])
-    # print("tgt_delta_data:", tgt_delta_data[frame])
+        tgt_delta_data.append(euler)
 
     # add Tpose value -> get tgt rotation 
     target_data = copy.deepcopy(tgt_delta_data)
@@ -324,7 +324,6 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
     for fid in range(len_frame):
         for attr_idx in range(3):
             target_data[fid][attr_idx] += tgt_Tpose[tgt_index][attr_idx]
-    # print("target_data:", target_data[frame])
 
     # target의 Tpose 데이터를 알아야
     set_rotation_keyframe(tgt_joint, target_data, rot_attr)
