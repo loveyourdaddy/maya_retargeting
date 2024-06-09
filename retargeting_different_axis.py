@@ -5,6 +5,7 @@ import maya.mel as mel
 import argparse
 import os 
 import copy
+import numpy as np 
 
 """
 usage
@@ -60,17 +61,65 @@ def refine_joint_name(joints):
         ret_joints.append(joint)
     return ret_joints
 
-def get_keyframe_data(joint):
-    keyframe_data = {'rotateX': [], 'rotateY': [], 'rotateZ': [],
-                    'translateX': [], 'translateY': [], 'translateZ': []}
-    for attr in keyframe_data.keys():
+# def get_keyframe_data(joint):
+#     keyframe_data = {'rotateX': [], 'rotateY': [], 'rotateZ': [],
+#                     'translateX': [], 'translateY': [], 'translateZ': []}
+#     for attr in keyframe_data.keys():
+#         keyframe_count = cmds.keyframe(f'{joint}.{attr}', query=True, keyframeCount=True)
+#         if keyframe_count > 0:
+#             times = cmds.keyframe(f'{joint}.{attr}', query=True, timeChange=True)
+#             values = cmds.keyframe(f'{joint}.{attr}', query=True, valueChange=True)
+#             keyframe_data[attr] = list(zip(times, values))
+    
+#     return keyframe_data
+
+def get_uniform_keyframe_data(joint):
+    # keyframe 
+    trans_data = {'translateX': [], 'translateY': [], 'translateZ': []}
+    for attr in trans_data.keys():
         keyframe_count = cmds.keyframe(f'{joint}.{attr}', query=True, keyframeCount=True)
         if keyframe_count > 0:
             times = cmds.keyframe(f'{joint}.{attr}', query=True, timeChange=True)
             values = cmds.keyframe(f'{joint}.{attr}', query=True, valueChange=True)
-            keyframe_data[attr] = list(zip(times, values))
+            trans_data[attr] = list(zip(times, values))
     
-    return keyframe_data
+    # rot 
+    rot_data = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
+    # get common values 
+    for attr in rot_data.keys():
+        times = cmds.keyframe(f'{joint}.{attr}', query=True, timeChange=True)
+        if attr=="rotateX":
+            times_x = times
+        elif attr=="rotateY":
+            times_y = times
+        elif attr=="rotateZ":
+            times_z = times
+    times_x = np.array(times_x)
+    times_y = np.array(times_y)
+    times_z = np.array(times_z)
+    times_x_y = np.intersect1d(times_x, times_y)
+    common_times = np.intersect1d(times_x_y, times_z)
+
+    for attr in rot_data.keys():
+        keyframe_count = cmds.keyframe(f'{joint}.{attr}', query=True, keyframeCount=True)
+        if keyframe_count > 0:
+            times = cmds.keyframe(f'{joint}.{attr}', query=True, timeChange=True)
+            values = cmds.keyframe(f'{joint}.{attr}', query=True, valueChange=True)
+            
+            # select common times and values 
+            refined_times = []
+            refined_values = []
+            for common_t in common_times:
+                if common_t not in times:
+                    continue
+                index = times.index(common_t)
+                refined_times.append(times[index])
+                refined_values.append(values[index])
+
+            # set attribute 
+            rot_data[attr] = list(zip(refined_times, refined_values))
+    
+    return trans_data, rot_data
 
 def get_Tpose_data(keyframe_data):
     Tpose_data = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
@@ -100,10 +149,8 @@ def set_translate_keyframe(joint, keyframe_data):
             cmds.setKeyframe(joint, attribute=attr, time=time, value=value)
 
 def set_rotation_keyframe(joint, keyframe_data, src_keyframe):
+    print("keyframe_data:", keyframe_data[:,0])
     for attr, keyframes in src_keyframe.items():
-        if attr=="translateX" or attr=="translateY" or attr=="translateZ":
-            continue
-        
         if attr=="rotateX":
             attr_idx=0
         elif attr=="rotateY":
@@ -111,8 +158,12 @@ def set_rotation_keyframe(joint, keyframe_data, src_keyframe):
         elif attr=="rotateZ":
             attr_idx=2
         
+        print("attr_idx:", attr_idx)
         for tid, (time, _) in enumerate(keyframes):
             value = keyframe_data[attr_idx][tid]
+            print("{}: {}: {}".format(tid, time, value))
+            # if tid==0:
+            #     print("{}: {}, {}".format(attr_idx, time, value))
             cmds.setKeyframe(joint, attribute=attr, time=time, value=value)
 
 def get_parser():
@@ -207,43 +258,49 @@ cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
 
 # joints 
 for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
-    print("{} {} {}".format(j, src_joint, tgt_joint))
-    keyframe_data = get_keyframe_data(src_joint)
+    if j!=0:
+        continue
+    src_joint, tgt_joint = src_joint_hierarchy[j], tgt_joint_hierarchy[j]
+    # print("{} {} {}".format(j, src_joint, tgt_joint))
 
-    # root update 
+    # keyframe_data
+    trans_data, keyframe_data = get_uniform_keyframe_data(src_joint) # [attr, frames, (frame, value)]
+
+    # root update
     if j==0:
-        set_translate_keyframe(tgt_joint, keyframe_data)
+        set_translate_keyframe(tgt_joint, trans_data)
 
     # get src delta rotation 
     """ assumption: first frame is Tpose  """
     src_Tpose = get_Tpose_data(keyframe_data)
     # Tuple -> list 
-    src_delta_data = get_delta_rotation(keyframe_data, src_Tpose)
+    src_delta_data = get_delta_rotation(keyframe_data, src_Tpose) # (attr 3, len_rot)
+    src_delta_data = np.array(src_delta_data)
+    src_delta_data = np.transpose(src_delta_data)
 
-    # get tgt delta rotation TODO: 이 매핑을 구할수있는방법?
+    # get tgt delta rotation 
     # change order
-    tgt_delta_data = copy.deepcopy(src_delta_data)
-    tgt_delta_data[0] = src_delta_data[2]
-    tgt_delta_data[2] = src_delta_data[0]
-    # print("{}:{}".format(tgt_delta_data[2][:10], src_delta_data[0][:10]))
-    for data_perframe in tgt_delta_data[2]:
-        data_perframe *= -1
+    trf = np.array([[0,0,1],[0,1,0],[-1,0,0]])
+    trf = np.repeat(trf[None, :], len(src_delta_data), axis=0)
+    # src_delta_data
+    tgt_delta_data = np.matmul(trf, src_delta_data[..., None])[..., 0]
+    # print("tgt_delta_data", tgt_delta_data)
 
     # tgt keyframe foramt 
     tgt_keyframe_form = copy.deepcopy(keyframe_data)
     tgt_keyframe_form["rotateX"] = keyframe_data["rotateZ"]
     tgt_keyframe_form["rotateZ"] = keyframe_data["rotateX"]
 
-    # get tgt rotation 
-    target_data = copy.deepcopy(tgt_delta_data)
+    # add Tpose value -> get tgt rotation 
+    target_data = copy.deepcopy(np.transpose(tgt_delta_data))
     tgt_index = tgt_joint_index[j]
     for attr_idx in range(3):
         for fid in range(len(target_data[attr_idx])):
             target_data[attr_idx][fid] += tgt_Tpose[tgt_index][attr_idx]
-            # if fid==0 or fid==1:
-            # print("{} {}:{}".format(attr_idx, fid, target_data[attr_idx][fid]))
 
     # target의 Tpose 데이터를 알아야
+    # print(target_data.shape)
+    # print(target_data[:,0])
     set_rotation_keyframe(tgt_joint, target_data, tgt_keyframe_form)
 
 # freeze
