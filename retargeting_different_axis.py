@@ -163,7 +163,7 @@ def R_to_E(R):
     # return alpha, beta, gamma
     return np.array([alpha, beta, gamma])
 
-def E_to_R(E, order="zyx", radians=False):
+def E_to_R(E, order="xyz", radians=False):
     """
     Args:
         E: (..., 3)
@@ -308,22 +308,23 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
     src_delta_data = get_delta_rotation(rot_data)
     
     # delta rot mat 
+    f=300
     len_frame = src_delta_data.shape[0]
     for i in range(0, 3):
         rot_euler = np.zeros((len_frame, 3))
         if i==0: # forward: -x
             rot_euler[:, i] = -src_delta_data[:, i] 
             left_rot_mat = E_to_R(rot_euler)
-            # print("left_rot_mat:", left_rot_mat)
+            print("{} left_rot_mat: {}".format(rot_euler[f], left_rot_mat[f]))
         elif i==1: # up y
             rot_euler[:, i] = src_delta_data[:, i]
             up_rot_mat = E_to_R(rot_euler)
             # up_rot_mat = np.array([[0,0,-1],[0,1,0],[1,0,0]]) @ up_rot_mat
-            # print("up_rot_mat:", up_rot_mat)
+            print("{} up_rot_mat: {}".format(rot_euler[f], up_rot_mat[f]))
         elif i==2: # left z 
             rot_euler[:, i] = src_delta_data[:, i]
             forward_rot_mat = E_to_R(rot_euler)
-            # print("forward_rot_mat:", forward_rot_mat)
+            print("{} forward_rot_mat: {}".format(rot_euler[f], forward_rot_mat[f]))
     # src_delta_mat = up_rot_mat @ left_rot_mat
     # src_delta_mat = forward_rot_mat @ src_delta_mat 
 
