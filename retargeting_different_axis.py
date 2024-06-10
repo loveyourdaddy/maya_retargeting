@@ -318,26 +318,26 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
         elif i==1: # up y
             rot_euler[:, i] = src_delta_data[:, i]
             up_rot_mat = E_to_R(rot_euler)
+            # up_rot_mat = np.array([[0,0,-1],[0,1,0],[1,0,0]]) @ up_rot_mat
             # print("up_rot_mat:", up_rot_mat)
         elif i==2: # left z 
             rot_euler[:, i] = src_delta_data[:, i]
             forward_rot_mat = E_to_R(rot_euler)
             # print("forward_rot_mat:", forward_rot_mat)
-    src_delta_mat = up_rot_mat @ left_rot_mat # no. 
-    src_delta_mat = forward_rot_mat @ src_delta_mat 
-    # src_rot = R_to_E_seq(src_rot_mat)
-    # print(src_rot[0])
+    # src_delta_mat = up_rot_mat @ left_rot_mat
+    # src_delta_mat = forward_rot_mat @ src_delta_mat 
 
     # trf ([len_frame, 3, 3])
-    trf = np.array([[1,0,0],[0,1,0],[0,0,1]])
-    trf = np.repeat(trf[None, :], len(src_delta_data), axis=0)
+    # trf = np.array([[1,0,0],[0,1,0],[0,0,1]])
+    # trf = np.repeat(trf[None, :], len(src_delta_data), axis=0)
 
     # tgt_delta_data: [len_frame, 3, 3] * [len_frame, 3] -> [len_frame, 3, 1] -> [len_frame, 3]
-    tgt_delta_mat = np.matmul(trf, src_delta_mat)
-    tgt_delta_rot = R_to_E_seq(tgt_delta_mat)
-    # tgt_delta_data[:, 1] += -90
-    # tgt_delta_rot = forward(z) @ up(y) @ left(x)
-    # tgt_delta_rot = R_to_E_seq(tgt_delta_rot)
+    # tgt_delta_mat = np.matmul(trf, src_delta_mat)
+    # tgt_delta_rot = R_to_E_seq(tgt_delta_mat) # tgt_delta_data[:, 1] += -90
+    # tgt_delta_rot = forward_rot_mat(z) @ up_rot_mat(y) @ left_rot_mat(x)
+    tgt_delta_rot = up_rot_mat @ left_rot_mat
+    tgt_delta_rot = forward_rot_mat @ tgt_delta_rot
+    tgt_delta_rot = R_to_E_seq(tgt_delta_rot)
 
     # add Tpose value -> get tgt rotation 
     target_data = tgt_delta_rot #copy.deepcopy(tgt_delta_rot)
