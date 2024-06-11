@@ -11,7 +11,7 @@ import numpy as np
 usage
 - mayapy retargeting_different_axis.py --src_motion_path "" --tgt_char_path "" --tgt_motion_path ""
 """
-# mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/animation/0055_Freestyle002_03_RT0214.fbx" --targetChar "./models/Dancstruct/SKM_ADORI_0229.fbx"
+# D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/animation/0055_Freestyle002_03_RT0214.fbx" --targetChar "./models/Dancstruct/SKM_Asooni_1207.fbx"
 # D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy
 
 def get_joint_hierarchy(root_joint):
@@ -308,23 +308,29 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
     src_delta_data = get_delta_rotation(rot_data)
     
     # delta rot mat 
-    f=300
+    start_f=565
+    end_f=570
+
     len_frame = src_delta_data.shape[0]
     for i in range(0, 3):
         rot_euler = np.zeros((len_frame, 3))
         if i==0: # forward: -x
-            rot_euler[:, i] = -src_delta_data[:, i] 
-            left_rot_mat = E_to_R(rot_euler)
-            print("{} left_rot_mat: {}".format(rot_euler[f], left_rot_mat[f]))
+            rot_euler[:, i] = src_delta_data[:, i] 
+            forward_rot_mat = E_to_R(rot_euler)
+            # for f in range(start_f, end_f):
+            #     print("{} {} left_rot_mat: \n{}".format(f, rot_euler[f], left_rot_mat[f]))
+
         elif i==1: # up y
             rot_euler[:, i] = src_delta_data[:, i]
             up_rot_mat = E_to_R(rot_euler)
-            # up_rot_mat = np.array([[0,0,-1],[0,1,0],[1,0,0]]) @ up_rot_mat
-            print("{} up_rot_mat: {}".format(rot_euler[f], up_rot_mat[f]))
+            # for f in range(start_f, end_f):
+            #     print("{} {} up_rot_mat: \n{}".format(f, rot_euler[f], up_rot_mat[f]))
+        
         elif i==2: # left z 
             rot_euler[:, i] = src_delta_data[:, i]
-            forward_rot_mat = E_to_R(rot_euler)
-            print("{} forward_rot_mat: {}".format(rot_euler[f], forward_rot_mat[f]))
+            left_rot_mat = E_to_R(rot_euler)
+            # for f in range(start_f, end_f):
+            #     print("{} {} forward_rot_mat: \n{}".format(f, rot_euler[f], forward_rot_mat[f]))
     # src_delta_mat = up_rot_mat @ left_rot_mat
     # src_delta_mat = forward_rot_mat @ src_delta_mat 
 
