@@ -6,6 +6,7 @@ import argparse
 import os 
 import copy
 import numpy as np 
+import maya.api.OpenMaya as om
 
 """
 usage
@@ -307,47 +308,41 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
     rot_data = get_array_from_keyframe_data(keyframe_data, rot_attr)
     src_delta_data = get_delta_rotation(rot_data)
     
-    # delta rot mat 
-    start_f=565
-    end_f=570
+    # delta rot mat
+    # start_f=568
+    # end_f=569
+    debug_f = [500, 530]
 
+    print("src_delta_data shape: ", src_delta_data.shape)
+    # Rotation order: forward(x) up(y) left(y)
     len_frame = src_delta_data.shape[0]
     for i in range(0, 3):
         rot_euler = np.zeros((len_frame, 3))
-        if i==0: # forward: -x
-            rot_euler[:, i] = src_delta_data[:, i] 
+        if i==0: # forward -x
+            rot_euler[:, i] = -src_delta_data[:, i]
             forward_rot_mat = E_to_R(rot_euler)
-            # for f in range(start_f, end_f):
-            #     print("{} {} left_rot_mat: \n{}".format(f, rot_euler[f], left_rot_mat[f]))
 
         elif i==1: # up y
             rot_euler[:, i] = src_delta_data[:, i]
             up_rot_mat = E_to_R(rot_euler)
-            # for f in range(start_f, end_f):
-            #     print("{} {} up_rot_mat: \n{}".format(f, rot_euler[f], up_rot_mat[f]))
         
         elif i==2: # left z 
             rot_euler[:, i] = src_delta_data[:, i]
             left_rot_mat = E_to_R(rot_euler)
-            # for f in range(start_f, end_f):
-            #     print("{} {} forward_rot_mat: \n{}".format(f, rot_euler[f], forward_rot_mat[f]))
-    # src_delta_mat = up_rot_mat @ left_rot_mat
-    # src_delta_mat = forward_rot_mat @ src_delta_mat 
+        
+        else:
+            raise ValueError("")
 
-    # trf ([len_frame, 3, 3])
-    # trf = np.array([[1,0,0],[0,1,0],[0,0,1]])
-    # trf = np.repeat(trf[None, :], len(src_delta_data), axis=0)
-
-    # tgt_delta_data: [len_frame, 3, 3] * [len_frame, 3] -> [len_frame, 3, 1] -> [len_frame, 3]
-    # tgt_delta_mat = np.matmul(trf, src_delta_mat)
-    # tgt_delta_rot = R_to_E_seq(tgt_delta_mat) # tgt_delta_data[:, 1] += -90
-    # tgt_delta_rot = forward_rot_mat(z) @ up_rot_mat(y) @ left_rot_mat(x)
-    tgt_delta_rot = up_rot_mat @ left_rot_mat
-    tgt_delta_rot = forward_rot_mat @ tgt_delta_rot
+    # forward_rot_mat(z) @ up_rot_mat(y) @ left_rot_mat(x) # 동일하려나? 순서가 영향을 주나?
+    tgt_delta_rot = forward_rot_mat @ up_rot_mat @ left_rot_mat
     tgt_delta_rot = R_to_E_seq(tgt_delta_rot)
 
     # add Tpose value -> get tgt rotation 
-    target_data = tgt_delta_rot #copy.deepcopy(tgt_delta_rot)
+    for i in range(0, 3):
+        for f in debug_f: # range(start_f, end_f+1):
+            print("{} forward_rot: \n{}".format(f, tgt_delta_rot[f]))
+    
+    target_data = tgt_delta_rot
     tgt_index = tgt_joint_index[j]
     len_frame = len(target_data)
     for fid in range(len_frame):
@@ -373,7 +368,5 @@ output_dir = args.tgt_motion_path + target_char
 os.makedirs(output_dir, exist_ok=True)
 export_file = output_dir+'/'+target_motion+'.fbx'
 mel.eval('FBXExport -f"{}"'.format(export_file))
-
 maya.standalone.uninitialize()
-
 print("File export to ", export_file)
