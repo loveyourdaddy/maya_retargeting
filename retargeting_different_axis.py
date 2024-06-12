@@ -289,8 +289,8 @@ cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
 
 # joints
 for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
-    if j!=0:
-        continue
+    # if j!=0:
+    #     continue
     src_joint, tgt_joint = src_joint_hierarchy[j], tgt_joint_hierarchy[j]
 
     # keyframe_data [attr, frames, (frame, value)]
@@ -304,82 +304,62 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
 
     # get src delta rotation 
     # assumption: first frame is Tpose
-    # 프레임을 바꿔가면서 rotation matrix을 구하기. 
-    matrix = cmds.xform(src_joint, query=True, matrix=True, worldSpace=True)
-    mMatrix = om.MMatrix(matrix)
-    # rotation_matrix = om.MMatrix([mMatrix(i,j) for i in range(3) for j in range(3)])
-
-    rotation_matrix = om.MMatrix()
-    for i in range(3):
-        for j in range(3):
-            rotation_matrix[i*4 + j] = mMatrix[i*4 + j]
-    print(rotation_matrix)
-
-    # direction
-    left_vector = om.MVector(rotation_matrix[0], rotation_matrix[4], rotation_matrix[8])
-    up_vector = om.MVector(rotation_matrix[1], rotation_matrix[5], rotation_matrix[9])
-    forward_vector = om.MVector(rotation_matrix[2], rotation_matrix[6], rotation_matrix[10])
-    left_vector = np.array(left_vector)
-    up_vector = np.array(up_vector)
-    forward_vector = np.array(forward_vector)
-
-    left_mat = E_to_R(left_vector)
-    up_mat = E_to_R(up_vector)
-    forward_mat = E_to_R(forward_vector)
-
-    print("Left: {} \n{}".format(left_vector, left_mat))
-    print("Up: {} \n{}".format(up_vector, up_mat))
-    print("forward:{} \n{}".format(forward_vector, forward_mat))
+    # 프레임을 바꿔가면서 rotation matrix을 구하기
+    # check same
+    rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
+    rot_data = get_array_from_keyframe_data(keyframe_data, rot_attr)
+    src_delta_data = get_delta_rotation(rot_data)
 
     # print("src_delta_data shape: ", src_delta_data.shape)
-    # # Rotation order: forward(x) up(y) left(y)
-    # len_frame = src_delta_data.shape[0]
-    # for i in range(0, 3):
-    #     rot_euler = np.zeros((len_frame, 3))
-    #     if i==0: # forward -x
-    #         rot_euler[:, i] = -src_delta_data[:, i]
-    #         forward_rot_mat = E_to_R(rot_euler)
+    # Rotation order: forward(x) up(y) left(y)
+    len_frame = src_delta_data.shape[0]
+    for i in range(0, 3):
+        rot_euler = np.zeros((len_frame, 3))
+        if i==0: # forward -x
+            rot_euler[:, i] = -src_delta_data[:, i]
+            forward_rot_mat = E_to_R(rot_euler)
 
-    #     elif i==1: # up y
-    #         rot_euler[:, i] = src_delta_data[:, i]
-    #         up_rot_mat = E_to_R(rot_euler)
+        elif i==1: # up y
+            rot_euler[:, i] = src_delta_data[:, i]
+            up_rot_mat = E_to_R(rot_euler)
     
-    #     elif i==2: # left z 
-    #         rot_euler[:, i] = src_delta_data[:, i]
-    #         left_rot_mat = E_to_R(rot_euler)
+        elif i==2: # left z
+            rot_euler[:, i] = src_delta_data[:, i]
+            left_rot_mat = E_to_R(rot_euler)
     
-    #     else:
-    #         raise ValueError("")
+        else:
+            raise ValueError("")
 
     # forward_rot_mat(z) @ up_rot_mat(y) @ left_rot_mat(x) # 동일하려나? 순서가 영향을 주나?
     # tgt_delta_rot = forward_rot_mat @ up_rot_mat @ left_rot_mat
-    # tgt_delta_rot = R_to_E_seq(tgt_delta_rot)
+    tgt_delta_rot = left_rot_mat @ up_rot_mat @ forward_rot_mat
+    tgt_delta_rot = R_to_E_seq(tgt_delta_rot)
 
-    # target_data = tgt_delta_rot
-    # tgt_index = tgt_joint_index[j]
-    # len_frame = len(target_data)
-    # for fid in range(len_frame):
-    #     for attr_idx in range(3):
-    #         target_data[fid][attr_idx] += tgt_Tpose[tgt_index][attr_idx]
+    target_data = tgt_delta_rot
+    tgt_index = tgt_joint_index[j]
+    len_frame = len(target_data)
+    for fid in range(len_frame):
+        for attr_idx in range(3):
+            target_data[fid][attr_idx] += tgt_Tpose[tgt_index][attr_idx]
 
-    # # target의 Tpose 데이터를 알아야
-    # set_rotation_keyframe(tgt_joint, target_data, rot_attr)
+    # target의 Tpose 데이터를 알아야
+    set_rotation_keyframe(tgt_joint, target_data, rot_attr)
 
-# # freeze
-# incoming_connections = {}
-# for attr in ['rotateX', 'rotateY', 'rotateZ']:
-#     full_attr = f"Armature.{attr}"
-#     connections = cmds.listConnections(full_attr, s=True, d=False, p=True)
-#     if connections:
-#         incoming_connections[attr] = connections[0]
-#         cmds.disconnectAttr(connections[0], full_attr)
-# # bake 
-# cmds.bakeResults("Armature", simulation=True, t=(cmds.playbackOptions(q=True, min=True), cmds.playbackOptions(q=True, max=True)), sampleBy=1, oversamplingRate=1, disableImplicitControl=True, preserveOutsideKeys=True, sparseAnimCurveBake=False, removeBakedAnimFromLayer=False, bakeOnOverrideLayer=False, minimizeRotation=True, controlPoints=False, shape=True)
+# freeze
+incoming_connections = {}
+for attr in ['rotateX', 'rotateY', 'rotateZ']:
+    full_attr = f"Armature.{attr}"
+    connections = cmds.listConnections(full_attr, s=True, d=False, p=True)
+    if connections:
+        incoming_connections[attr] = connections[0]
+        cmds.disconnectAttr(connections[0], full_attr)
+# bake 
+cmds.bakeResults("Armature", simulation=True, t=(cmds.playbackOptions(q=True, min=True), cmds.playbackOptions(q=True, max=True)), sampleBy=1, oversamplingRate=1, disableImplicitControl=True, preserveOutsideKeys=True, sparseAnimCurveBake=False, removeBakedAnimFromLayer=False, bakeOnOverrideLayer=False, minimizeRotation=True, controlPoints=False, shape=True)
 
-# # export 
-# output_dir = args.tgt_motion_path + target_char
-# os.makedirs(output_dir, exist_ok=True)
-# export_file = output_dir+'/'+target_motion+'.fbx'
-# mel.eval('FBXExport -f"{}"'.format(export_file))
-# maya.standalone.uninitialize()
-# print("File export to ", export_file)
+# export 
+output_dir = args.tgt_motion_path + target_char
+os.makedirs(output_dir, exist_ok=True)
+export_file = output_dir+'/'+target_motion+'.fbx'
+mel.eval('FBXExport -f"{}"'.format(export_file))
+maya.standalone.uninitialize()
+print("File export to ", export_file)
