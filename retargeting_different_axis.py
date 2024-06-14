@@ -252,7 +252,7 @@ src_locator = cmds.ls(type='locator')
 src_locator = list(set(src_locator) - set(tgt_locator))
 src_locator = src_locator[0].replace("Shape","")
 src_locator_translation = cmds.xform(src_locator, q=True, ws=True, ro=True)
-# print("{} src_locator_translation {}".format(src_locator, src_locator_translation))
+print("{} src_locator_translation {}".format(src_locator, src_locator_translation))
 # hip joint: inverse of locator rotation 
 for i in range(3):
     tgt_Tpose[0][i] = -src_locator_translation[i]
@@ -288,24 +288,16 @@ tgt_joint_hierarchy = tgt_select_hierarchy
 
 """ set to target char """
 # locator
-# cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
+cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
 
 # joints
 for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
     # if j!=0: #  and j!=1 and j!=2
     #     continue
+    print("{} {} {}".format(j, src_joint, tgt_joint))
 
     # keyframe_data [attr, frames, (frame, value)]
     trans_data, keyframe_data = get_keyframe_data(src_joint)
-
-    # src_joint_rot = cmds.xform(src_joint, query=True, ws=True, ro=True)
-    # print("src_joint_rot:", src_joint_rot)
-    print("{}:{}".format(j, tgt_joint))
-    src_joint_rot = cmds.xform(src_joint, query=True, objectSpace=True, matrix=True) # ws=False
-    src_joint_rot = np.transpose(np.array(src_joint_rot).reshape(4,4)[:3, :3])
-    tgt_joint_rot = cmds.xform(tgt_joint, query=True, objectSpace=True, matrix=True) # ws=False
-    tgt_joint_rot = np.transpose(np.array(tgt_joint_rot).reshape(4,4)[:3, :3])
-    trf = tgt_joint_rot @ np.linalg.inv(src_joint_rot)
     
     # root update
     if j==0:
@@ -317,32 +309,27 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
     rot_data = get_array_from_keyframe_data(keyframe_data, rot_attr)
     len_frame = rot_data.shape[0]
-    # src_delta_data = get_delta_rotation(rot_data)
     src_rot_mat = E_to_R(rot_data)
+    
+    # trf from src to tgt
+    # src_joint_rot = cmds.xform(src_joint, query=True, objectSpace=True, matrix=True) # ws=False
+    # src_joint_rot = np.transpose(np.array(src_joint_rot).reshape(4,4)[:3, :3])
+    src_joint_rot = src_rot_mat[0]
+    tgt_joint_rot = cmds.xform(tgt_joint, query=True, objectSpace=True, matrix=True) # ws=False
+    tgt_joint_rot = np.transpose(np.array(tgt_joint_rot).reshape(4,4)[:3, :3])
     if j==0:
-        # print(rot_data[0])
+        tgt_joint_rot = np.array([[1,0,0],[0,0,-1],[0,1,0]]) @ tgt_joint_rot
+    trf = tgt_joint_rot @ np.linalg.inv(src_joint_rot)
+    trf = trf[None, ...].repeat(len_frame, axis=0)
+    if True:
+        # print(src_rot_mat.shape)
         print(src_joint_rot)
-        print(src_rot_mat[0])
-        print("trf:", trf)
-    # Tpose_inv = np.linalg.inv(src_rot_mat[0][None, ...].repeat(len_frame, axis=0))
-    # src_delta_rot_mat = src_rot_mat @ Tpose_inv # src_rot_mat = src_delta_rot_mat @ Tpose
 
     # Rotation matrix for each direction 
-    # Rotation order: forward(x) up(y) left(y)
-    
     # (1503, 3,3) x (1503, 3)
-    trf = trf[None, ...].repeat(len_frame, axis=0)
+    # print(trf.shape)
     tgt_rot_mat = trf @ src_rot_mat # np.matmul(trf, src_rot_mat) # tgt_delta_data
     target_data = R_to_E_seq(tgt_rot_mat)
-    if j==0:
-        print(tgt_joint_rot)
-        print(tgt_rot_mat[0])
-        print(target_data[0])
-
-    # tgt_index = tgt_joint_index[j]
-    # for fid in range(len_frame):
-    #     for attr_idx in range(3):
-    #         target_data[fid][attr_idx] += tgt_Tpose[tgt_index][attr_idx]
 
     # target의 Tpose 데이터를 알아야
     set_rotation_keyframe(tgt_joint, target_data, rot_attr)
