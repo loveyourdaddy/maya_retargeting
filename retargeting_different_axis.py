@@ -221,7 +221,7 @@ if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
 
 args = get_args()
 
-""" load target """
+""" load tgt character """
 targetChar = args.targetChar
 mel.eval('FBXImport -f"{}"'.format(targetChar))
 target_char = targetChar.split('/')[-1].split('.')[0]
@@ -238,10 +238,11 @@ tgt_locator = tgt_locator[0].replace("Shape","")
 tgt_Tpose = [[0,0,0] for _ in range(len(tgt_joint_hierarchy))] # [num_joint, attr 3]
 # other joint: tgt load할때 얻기
 for i, joint in enumerate(tgt_joint_hierarchy):
-    tgt_Tpose[i] = cmds.xform(joint, q=True,ws=False, ro=True)
+    tgt_Tpose[i] = cmds.xform(joint, q=True, ws=False, ro=True)
 tgt_Tpose = np.array(tgt_Tpose)
 
-""" load motion """
+
+""" load src motion """
 sourceMotion = args.sourceMotion
 mel.eval('FBXImport -f"{}"'.format(sourceMotion))
 target_motion = sourceMotion.split('/')[-1].split('.')[0]
@@ -250,11 +251,12 @@ target_motion = sourceMotion.split('/')[-1].split('.')[0]
 src_locator = cmds.ls(type='locator')
 src_locator = list(set(src_locator) - set(tgt_locator))
 src_locator = src_locator[0].replace("Shape","")
-src_locator_translation = cmds.xform(src_locator, q=True, ws =True, ro=True)
-print("src_locator_translation ",src_locator_translation)
+src_locator_translation = cmds.xform(src_locator, q=True, ws=True, ro=True)
+# print("{} src_locator_translation {}".format(src_locator, src_locator_translation))
 # hip joint: inverse of locator rotation 
 for i in range(3):
     tgt_Tpose[0][i] = -src_locator_translation[i]
+
 
 """ refine joint """
 # src joint hierarchy
@@ -283,18 +285,35 @@ for i in range(len(src_joint_index)):
 src_joint_hierarchy = src_select_hierarchy
 tgt_joint_hierarchy = tgt_select_hierarchy
 
+
 """ set to target char """
 # locator
-cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
+# cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
 
 # joints
 for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
-    # if j!=0:
+    # if j!=0: #  and j!=1 and j!=2
     #     continue
-    src_joint, tgt_joint = src_joint_hierarchy[j], tgt_joint_hierarchy[j]
 
     # keyframe_data [attr, frames, (frame, value)]
     trans_data, keyframe_data = get_keyframe_data(src_joint)
+
+    # src_joint_rot = cmds.xform(src_joint, query=True, ws=True, ro=True)
+    # print("src_joint_rot:", src_joint_rot)
+    print("{}:{}".format(j, tgt_joint))
+    src_joint_rot = cmds.xform(src_joint, query=True, objectSpace=True, matrix=True) # ws=False
+    src_joint_rot = np.transpose(np.array(src_joint_rot).reshape(4,4)[:3, :3])
+    tgt_joint_rot = cmds.xform(tgt_joint, query=True, objectSpace=True, matrix=True) # ws=False
+    tgt_joint_rot = np.transpose(np.array(tgt_joint_rot).reshape(4,4)[:3, :3])
+    if j==0:
+        additional_mat = np.array([[1,0,0],[0,0,-1],[0,1,0]])
+        tgt_joint_rot = additional_mat @ tgt_joint_rot
+    trf = tgt_joint_rot @ np.linalg.inv(src_joint_rot)
+    
+    print(src_joint_rot)
+    print(np.linalg.inv(src_joint_rot))
+    print(tgt_joint_rot)
+    print(trf)
 
     # root update
     if j==0:
@@ -302,42 +321,23 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
         trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
         set_rotation_keyframe(tgt_joint, trans_data, trans_attr)
 
-    # get src delta rotation 
-    # assumption: first frame is Tpose
-    # 프레임을 바꿔가면서 rotation matrix을 구하기
-    # check same
+    # get src delta rotation (assumption: first frame is Tpose)
     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
     rot_data = get_array_from_keyframe_data(keyframe_data, rot_attr)
     src_delta_data = get_delta_rotation(rot_data)
 
-    # print("src_delta_data shape: ", src_delta_data.shape)
+    # Rotation matrix for each direction 
     # Rotation order: forward(x) up(y) left(y)
     len_frame = src_delta_data.shape[0]
-    for i in range(0, 3):
-        rot_euler = np.zeros((len_frame, 3))
-        if i==0: # forward -x
-            rot_euler[:, i] = -src_delta_data[:, i]
-            forward_rot_mat = E_to_R(rot_euler)
-
-        elif i==1: # up y
-            rot_euler[:, i] = src_delta_data[:, i]
-            up_rot_mat = E_to_R(rot_euler)
+    trf = trf[None, ...].repeat(len_frame, axis=0)
     
-        elif i==2: # left z
-            rot_euler[:, i] = src_delta_data[:, i]
-            left_rot_mat = E_to_R(rot_euler)
-    
-        else:
-            raise ValueError("")
-
-    # forward_rot_mat(z) @ up_rot_mat(y) @ left_rot_mat(x) # 동일하려나? 순서가 영향을 주나?
-    # tgt_delta_rot = forward_rot_mat @ up_rot_mat @ left_rot_mat
-    tgt_delta_rot = left_rot_mat @ up_rot_mat @ forward_rot_mat
-    tgt_delta_rot = R_to_E_seq(tgt_delta_rot)
-
-    target_data = tgt_delta_rot
+    # (1503, 3,3) x (1503, 3)
+    target_data = np.matmul(trf, src_delta_data[..., None])[..., 0] # tgt_delta_data
+    if j==0:
+        f=100
+        print(src_delta_data[f])
+        print(target_data[f])
     tgt_index = tgt_joint_index[j]
-    len_frame = len(target_data)
     for fid in range(len_frame):
         for attr_idx in range(3):
             target_data[fid][attr_idx] += tgt_Tpose[tgt_index][attr_idx]
