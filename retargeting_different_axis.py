@@ -164,7 +164,7 @@ def R_to_E(R):
     # return alpha, beta, gamma
     return np.array([alpha, beta, gamma])
 
-def E_to_R(E, order="xyz", radians=False):
+def E_to_R(E, order="zyx", radians=False):
     """
     Args:
         E: (..., 3)
@@ -305,16 +305,8 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
     src_joint_rot = np.transpose(np.array(src_joint_rot).reshape(4,4)[:3, :3])
     tgt_joint_rot = cmds.xform(tgt_joint, query=True, objectSpace=True, matrix=True) # ws=False
     tgt_joint_rot = np.transpose(np.array(tgt_joint_rot).reshape(4,4)[:3, :3])
-    if j==0:
-        additional_mat = np.array([[1,0,0],[0,0,-1],[0,1,0]])
-        tgt_joint_rot = additional_mat @ tgt_joint_rot
     trf = tgt_joint_rot @ np.linalg.inv(src_joint_rot)
     
-    print(src_joint_rot)
-    print(np.linalg.inv(src_joint_rot))
-    print(tgt_joint_rot)
-    print(trf)
-
     # root update
     if j==0:
         trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
@@ -324,23 +316,33 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
     # get src delta rotation (assumption: first frame is Tpose)
     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
     rot_data = get_array_from_keyframe_data(keyframe_data, rot_attr)
-    src_delta_data = get_delta_rotation(rot_data)
+    len_frame = rot_data.shape[0]
+    # src_delta_data = get_delta_rotation(rot_data)
+    src_rot_mat = E_to_R(rot_data)
+    if j==0:
+        # print(rot_data[0])
+        print(src_joint_rot)
+        print(src_rot_mat[0])
+        print("trf:", trf)
+    # Tpose_inv = np.linalg.inv(src_rot_mat[0][None, ...].repeat(len_frame, axis=0))
+    # src_delta_rot_mat = src_rot_mat @ Tpose_inv # src_rot_mat = src_delta_rot_mat @ Tpose
 
     # Rotation matrix for each direction 
     # Rotation order: forward(x) up(y) left(y)
-    len_frame = src_delta_data.shape[0]
-    trf = trf[None, ...].repeat(len_frame, axis=0)
     
     # (1503, 3,3) x (1503, 3)
-    target_data = np.matmul(trf, src_delta_data[..., None])[..., 0] # tgt_delta_data
+    trf = trf[None, ...].repeat(len_frame, axis=0)
+    tgt_rot_mat = trf @ src_rot_mat # np.matmul(trf, src_rot_mat) # tgt_delta_data
+    target_data = R_to_E_seq(tgt_rot_mat)
     if j==0:
-        f=100
-        print(src_delta_data[f])
-        print(target_data[f])
-    tgt_index = tgt_joint_index[j]
-    for fid in range(len_frame):
-        for attr_idx in range(3):
-            target_data[fid][attr_idx] += tgt_Tpose[tgt_index][attr_idx]
+        print(tgt_joint_rot)
+        print(tgt_rot_mat[0])
+        print(target_data[0])
+
+    # tgt_index = tgt_joint_index[j]
+    # for fid in range(len_frame):
+    #     for attr_idx in range(3):
+    #         target_data[fid][attr_idx] += tgt_Tpose[tgt_index][attr_idx]
 
     # target의 Tpose 데이터를 알아야
     set_rotation_keyframe(tgt_joint, target_data, rot_attr)
