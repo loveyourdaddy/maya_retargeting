@@ -146,9 +146,9 @@ def R_to_E_seq(R):
     return euler_angles
 
 def R_to_E(R):
-    beta = np.arcsin(-R[2, 0])
+    beta = np.arcsin(-R[2, 0]) # beta (y axis)
     
-    # Calculate alpha and gamma based on the value of cos(beta)
+    # Calculate alpha(z axis) and gamma (x axis) based on the value of cos(beta)
     if np.cos(beta) != 0:
         alpha = np.arctan2(R[2, 1], R[2, 2])
         gamma = np.arctan2(R[1, 0], R[0, 0])
@@ -161,7 +161,6 @@ def R_to_E(R):
     beta = np.degrees(beta)
     gamma = np.degrees(gamma)
 
-    # return alpha, beta, gamma
     return np.array([alpha, beta, gamma])
 
 def E_to_R(E, order="zyx", radians=False):
@@ -194,7 +193,12 @@ def E_to_R(E, order="zyx", radians=False):
         return np.stack(R_flat, axis=-1).reshape(angle.shape + (3, 3))
 
     R = [_euler_axis_to_R(E[..., i], order[i]) for i in range(3)]
-    return np.matmul(np.matmul(R[0], R[1]), R[2])
+    
+    # order=="zyx" 
+    # R = np.matmul(R[2], np.matmul(R[1], R[0]))
+    R = np.matmul(np.matmul(R[0], R[1]), R[2])
+    
+    return R
 
 def get_parser():
     parser = argparse.ArgumentParser(description='Import an FBX file into Maya')
@@ -294,7 +298,7 @@ cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
 for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
     # if j!=0: #  and j!=1 and j!=2
     #     continue
-    print("{} {} {}".format(j, src_joint, tgt_joint))
+    # print("{} {} {}".format(j, src_joint, tgt_joint))
 
     # keyframe_data [attr, frames, (frame, value)]
     trans_data, keyframe_data = get_keyframe_data(src_joint)
@@ -308,31 +312,40 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
     # get src delta rotation (assumption: first frame is Tpose)
     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
     rot_data = get_array_from_keyframe_data(keyframe_data, rot_attr)
-    len_frame = rot_data.shape[0]
     src_rot_mat = E_to_R(rot_data)
     
     # trf from src to tgt
-    # src_joint_rot = cmds.xform(src_joint, query=True, objectSpace=True, matrix=True) # ws=False
-    # src_joint_rot = np.transpose(np.array(src_joint_rot).reshape(4,4)[:3, :3])
-    src_joint_rot = src_rot_mat[0]
-    tgt_joint_rot = cmds.xform(tgt_joint, query=True, objectSpace=True, matrix=True) # ws=False
-    tgt_joint_rot = np.transpose(np.array(tgt_joint_rot).reshape(4,4)[:3, :3])
+    src_Tpose_rot = src_rot_mat[0]
+    tgt_Tpose_rot = cmds.xform(tgt_joint, query=True, worldSpace=False, rotation=True) # ws=False
+    tgt_Tpose_rot = np.array(tgt_Tpose_rot)
+    tgt_Tpose_rot_mat = E_to_R(tgt_Tpose_rot)
+    # print("tgt_rot: {} \n {}".format(tgt_Tpose_rot, tgt_Tpose_rot_mat))
     if j==0:
-        tgt_joint_rot = np.array([[1,0,0],[0,0,-1],[0,1,0]]) @ tgt_joint_rot
-    trf = tgt_joint_rot @ np.linalg.inv(src_joint_rot)
+        tgt_Tpose_rot_mat = np.array([[1,0,0],[0,0,-1],[0,1,0]]) @ tgt_Tpose_rot_mat
+    trf = tgt_Tpose_rot_mat @ np.linalg.inv(src_Tpose_rot)
+    len_frame = rot_data.shape[0]
     trf = trf[None, ...].repeat(len_frame, axis=0)
-    if True:
-        # print(src_rot_mat.shape)
-        print(src_joint_rot)
+    print(trf)
 
-    # Rotation matrix for each direction 
-    # (1503, 3,3) x (1503, 3)
-    # print(trf.shape)
-    tgt_rot_mat = trf @ src_rot_mat # np.matmul(trf, src_rot_mat) # tgt_delta_data
+    # Rotation matrix for each direction
+    tgt_rot_mat = trf @ src_rot_mat # (1503, 3,3) x (1503, 3) # tgt_delta_data
     target_data = R_to_E_seq(tgt_rot_mat)
 
     # target의 Tpose 데이터를 알아야
     set_rotation_keyframe(tgt_joint, target_data, rot_attr)
+
+    if j==0:
+        f = 52 * 5 # 260: 24fps -> 120fps
+        # src 
+        # print("src_rot_angle:{} \n{}".format(rot_data[f], src_rot_mat[f]))
+
+        # # trf 
+        # print("trf:", trf[0])
+
+        # tgt 
+        xform = cmds.xform(tgt_joint, query=True, worldSpace=False, rotation=True) 
+        
+        # print("tgt_rot_angle: {} \n {}".format(target_data[f], tgt_rot_mat[f]))
 
 # freeze
 incoming_connections = {}
