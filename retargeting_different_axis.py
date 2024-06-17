@@ -296,8 +296,8 @@ cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
 
 # joints
 for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
-    # if j!=0: #  and j!=1 and j!=2
-    #     continue
+    if j!=0:
+        continue
     # print("{} {} {}".format(j, src_joint, tgt_joint))
 
     # keyframe_data [attr, frames, (frame, value)]
@@ -310,42 +310,15 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
         set_rotation_keyframe(tgt_joint, trans_data, trans_attr)
 
     # get src delta rotation (assumption: first frame is Tpose)
-    rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
-    rot_data = get_array_from_keyframe_data(keyframe_data, rot_attr)
-    src_rot_mat = E_to_R(rot_data)
+    joint_position = trans_data[0]
+    forward_vector = vector_from_points(joint_position, target_position)
     
-    # trf from src to tgt
-    src_Tpose_rot = src_rot_mat[0]
-    tgt_Tpose_rot = cmds.xform(tgt_joint, query=True, worldSpace=False, rotation=True) # ws=False
-    tgt_Tpose_rot = np.array(tgt_Tpose_rot)
-    tgt_Tpose_rot_mat = E_to_R(tgt_Tpose_rot)
-    # print("tgt_rot: {} \n {}".format(tgt_Tpose_rot, tgt_Tpose_rot_mat))
-    if j==0:
-        tgt_Tpose_rot_mat = np.array([[1,0,0],[0,0,-1],[0,1,0]]) @ tgt_Tpose_rot_mat
-    trf = tgt_Tpose_rot_mat @ np.linalg.inv(src_Tpose_rot)
-    len_frame = rot_data.shape[0]
-    trf = trf[None, ...].repeat(len_frame, axis=0)
-    print(trf)
 
-    # Rotation matrix for each direction
-    tgt_rot_mat = trf @ src_rot_mat # (1503, 3,3) x (1503, 3) # tgt_delta_data
+    # tgt 
     target_data = R_to_E_seq(tgt_rot_mat)
 
     # target의 Tpose 데이터를 알아야
     set_rotation_keyframe(tgt_joint, target_data, rot_attr)
-
-    if j==0:
-        f = 52 * 5 # 260: 24fps -> 120fps
-        # src 
-        # print("src_rot_angle:{} \n{}".format(rot_data[f], src_rot_mat[f]))
-
-        # # trf 
-        # print("trf:", trf[0])
-
-        # tgt 
-        xform = cmds.xform(tgt_joint, query=True, worldSpace=False, rotation=True) 
-        
-        # print("tgt_rot_angle: {} \n {}".format(target_data[f], tgt_rot_mat[f]))
 
 # freeze
 incoming_connections = {}
