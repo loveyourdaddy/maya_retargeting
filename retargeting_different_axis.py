@@ -7,6 +7,8 @@ import os
 import copy
 import numpy as np 
 import maya.api.OpenMaya as om
+# from scipy.spatial.transform import Rotation as R
+# r_z = R.from_euler('z', 90, degrees=True)
 
 """
 usage
@@ -310,15 +312,31 @@ for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hi
         set_rotation_keyframe(tgt_joint, trans_data, trans_attr)
 
     # get src delta rotation (assumption: first frame is Tpose)
-    joint_position = trans_data[0]
-    forward_vector = vector_from_points(joint_position, target_position)
+    # angle
+    tgt_Tpose_rot = cmds.xform(src_joint, query=True, worldSpace=False, rotation=True)
+    print(tgt_Tpose_rot)
+    tgt_Tpose_rot = np.array(tgt_Tpose_rot)
+
+    # E to R 
+    tgt_Tpose_rot = E_to_R(tgt_Tpose_rot)
+    print(tgt_Tpose_rot)
     
+    # matrix 
+    tgt_Tpose_rot_mat = cmds.xform(src_joint, query=True, worldSpace=False, matrix=True)
+    tgt_Tpose_rot_mat = np.transpose(np.array(tgt_Tpose_rot_mat).reshape(4,4)[:3,:3])
+    print(tgt_Tpose_rot_mat)
+
+    # data 
+    rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
+    rot_data = get_array_from_keyframe_data(keyframe_data, rot_attr)
+    src_rot_mat = E_to_R(rot_data)
+    print(src_rot_mat[0])
 
     # tgt 
-    target_data = R_to_E_seq(tgt_rot_mat)
+    # target_data = R_to_E_seq(tgt_rot_mat)
 
     # target의 Tpose 데이터를 알아야
-    set_rotation_keyframe(tgt_joint, target_data, rot_attr)
+    # set_rotation_keyframe(tgt_joint, target_data, rot_attr)
 
 # freeze
 incoming_connections = {}
