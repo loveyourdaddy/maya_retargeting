@@ -215,6 +215,13 @@ def get_args():
     parser = get_parser()
     return parser.parse_args()
 
+# get src delta rotation (assumption: first frame is Tpose)
+def get_rot_mat(src_joint, bool_worldSpace):
+    tgt_Tpose_rot = cmds.xform(src_joint, query=True, worldSpace=bool_worldSpace, rotation=True)
+    tgt_Tpose_rot = np.array(tgt_Tpose_rot)
+    tgt_Tpose_rot = E_to_R(tgt_Tpose_rot)
+    return tgt_Tpose_rot
+
 # dict
 # Asooni src 
 src_template_joints = \
@@ -243,7 +250,7 @@ def main():
 
     args = get_args()
 
-    """ load tgt character """
+    """ tgt character """
     targetChar = args.targetChar
     mel.eval('FBXImport -f"{}"'.format(targetChar))
     target_char = targetChar.split('/')[-1].split('.')[0]
@@ -251,7 +258,7 @@ def main():
     tgt_joints = cmds.ls(type='joint')
     root_joint = find_root_joints(tgt_joints)
     tgt_joint_hierarchy = get_joint_hierarchy(root_joint)
-    tgt_joint_hierarchy = refine_joints(tgt_joint_hierarchy, template_joints)
+    tgt_joint_hierarchy = refine_joints(tgt_joint_hierarchy, tgt_template_joints)
     # get locator rotation 
     tgt_locator = cmds.ls(type='locator')
     tgt_locator = tgt_locator[0].replace("Shape","")
@@ -264,7 +271,7 @@ def main():
     tgt_Tpose = np.array(tgt_Tpose)
 
 
-    """ load src motion """
+    """ src motion """
     sourceMotion = args.sourceMotion
     mel.eval('FBXImport -f"{}"'.format(sourceMotion))
     target_motion = sourceMotion.split('/')[-1].split('.')[0]
@@ -279,14 +286,12 @@ def main():
     for i in range(3):
         tgt_Tpose[0][i] = -src_locator_translation[i]
 
-
-    """ refine joint """
-    # src joint hierarchy
+    # refine joint hierarchy
     src_joints = cmds.ls(type='joint')
     src_joints = list(set(src_joints) - set(tgt_joints))
     root_joint = find_root_joints(src_joints)
     src_joint_hierarchy = get_joint_hierarchy(root_joint)
-    src_joint_hierarchy = refine_joints(src_joint_hierarchy, template_joints)
+    src_joint_hierarchy = refine_joints(src_joint_hierarchy, src_template_joints)
 
     # find common joints 
     tgt_joint_hierarchy_refined = refine_joint_name(tgt_joint_hierarchy)
@@ -308,14 +313,7 @@ def main():
     tgt_joint_hierarchy = tgt_select_hierarchy
 
 
-    # get src delta rotation (assumption: first frame is Tpose)
-    def get_rot_mat(src_joint, bool_worldSpace):
-        tgt_Tpose_rot = cmds.xform(src_joint, query=True, worldSpace=bool_worldSpace, rotation=True)
-        tgt_Tpose_rot = np.array(tgt_Tpose_rot)
-        tgt_Tpose_rot = E_to_R(tgt_Tpose_rot)
-        return tgt_Tpose_rot
-
-    """ set to target char """
+    """ retarget """
     # locator
     cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
 
@@ -323,65 +321,16 @@ def main():
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
         if j!=0:
             continue
-        # print("{} {} {}".format(j, src_joint, tgt_joint))
 
         # keyframe_data [attr, frames, (frame, value)]
         trans_data, keyframe_data = get_keyframe_data(src_joint)
         
-        # root update
+        # root translation
         if j==0:
             trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
             trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
             set_keyframe(tgt_joint, trans_data, trans_attr)
         
-        # local_to_world_trf
-        print("local")
-        print(cmds.xform(src_joint, query=True, worldSpace=False, rotation=True))
-        tgt_Tpose_rot = get_rot_mat(src_joint, False)
-        print(tgt_Tpose_rot)
-        
-        print("world")
-        print(cmds.xform(src_joint, query=True, worldSpace=True, rotation=True))
-        tgt_Tpose_world = get_rot_mat(src_joint, True)
-        print(tgt_Tpose_world)
-
-        # print("local to world")
-        # local_to_world_trf = np.linalg.inv(tgt_Tpose_rot) @ tgt_Tpose_world
-        # print(local_to_world_trf)
-
-
-        # 100 frame
-        # f = 100
-        # print("frame: ", f)
-        # cmds.currentTime(f, edit=True)
-        # # local
-        # print("local")
-        # print(cmds.xform(src_joint, query=True, worldSpace=False, rotation=True))
-        # tgt_local = get_rot_mat(src_joint, False)
-        # print(tgt_local)
-
-        # # world 
-        # print("world")
-        # print(cmds.xform(src_joint, query=True, worldSpace=True, rotation=True))
-        # tgt_world = get_rot_mat(src_joint, False)
-        # print(tgt_world)
-
-        # # world by update 
-        # updated_tgt_world = tgt_local @ local_to_world_trf
-        # print(updated_tgt_world)
-        # len_frame = rot_data.shape[0]
-        # trf = trf[None, ...].repeat(len_frame, axis=0)
-
-        # E to R 
-        # tgt_Tpose_rot = E_to_R(tgt_Tpose_rot)
-        # print(tgt_Tpose_rot)
-        
-
-        # # matrix 
-        # tgt_Tpose_rot_mat = cmds.xform(src_joint, query=True, worldSpace=False, matrix=True)
-        # tgt_Tpose_rot_mat = np.transpose(np.array(tgt_Tpose_rot_mat).reshape(4,4)[:3,:3])
-        # # print(tgt_Tpose_rot_mat)
-
         """ trf """
         # src data 
         rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
@@ -392,7 +341,7 @@ def main():
         # tgt Tpose
         tgt_Tpose_rot = get_rot_mat(tgt_joint, False)
         if j==0:
-            # rotatet x 90
+            # rotate (x 90)
             tgt_Tpose_rot = np.array([[1,0,0],[0,0,-1],[0,1,0]]) @ tgt_Tpose_rot
 
         # trf for Tpose
@@ -404,15 +353,8 @@ def main():
         tgt_rot_mat = trf @ src_rot_mat
         target_data = R_to_E_seq(tgt_rot_mat)
 
-        # # target의 Tpose 데이터를 알아야
+        # joint rotation
         set_keyframe(tgt_joint, target_data, rot_attr)
-        
-        print("tgt")
-        print(cmds.xform(tgt_joint, query=True, worldSpace=True, rotation=True))
-        tgt_Tpose_local = get_rot_mat(tgt_joint, False)
-        print(tgt_Tpose_local)
-        tgt_Tpose_world = get_rot_mat(tgt_joint, True)
-        print(tgt_Tpose_world)
 
 
     # freeze
