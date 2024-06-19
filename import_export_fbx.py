@@ -10,7 +10,7 @@ usage
 - mayapy import_export_fbx.py --src_motion_path "" --tgt_char_path "" --tgt_motion_path ""
 """
 # mayapy import_export_fbx.py --sourceMotion "./motions/Adori/animation/0055_Freestyle002_03_RT0214.fbx" --targetChar "./models/Dancstruct/SKM_ADORI_0229.fbx"
-# D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy
+# D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy mayapy import_export_fbx.py --sourceMotion "./motions/Adori/animation/0055_Freestyle002_03_RT0214.fbx" --targetChar "./models/Dancstruct/SKM_ADORI_0229.fbx"
 
 # dynamic dict 
 

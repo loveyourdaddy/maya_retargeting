@@ -42,8 +42,8 @@ def find_root_joints(all_joints):
 
 def refine_joints(joints, template_joints):
     refined_joints = []
-    for joint in joints:
-        for template_joint in template_joints:
+    for template_joint in template_joints:
+        for joint in joints:
             if template_joint in joint and \
                 "Thumb" not in joint and \
                 "Index" not in joint and \
@@ -52,14 +52,15 @@ def refine_joints(joints, template_joints):
                 "Pinky" not in joint:
                 refined_joints.append(joint)
                 break
-    
+        
     return refined_joints
 
 def refine_joint_name(joints):
     form = "ACHID:" # list로 바꾸기
+    form1 = "_bind" # list로 바꾸기
     ret_joints = [] 
     for joint in joints:
-        if form in joint:
+        if form in joint or form1 in joint :
             joint = joint.replace(form, "")
         ret_joints.append(joint)
     return ret_joints
@@ -91,6 +92,7 @@ def get_array_from_keyframe_data(keyframe_data, rot_attr):
     for attr in rot_attr:
         data = keyframe_data[attr]
         # last frame
+        # print(data)
         time = int(data[-1][0])
         if max_time < time:
             max_time = time
@@ -133,7 +135,7 @@ def set_translate_keyframe(joint, keyframe_data):
             # print("{}: {}".format(time, value))
             cmds.setKeyframe(joint, attribute=attr, time=time, value=value)
 
-def set_rotation_keyframe(joint, keyframe_data, rot_attr):
+def set_keyframe(joint, keyframe_data, rot_attr):
     for attr_idx, attr in enumerate(rot_attr.keys()):
         for tid, perframe_data in enumerate(keyframe_data):
             value = float(perframe_data[attr_idx])
@@ -213,146 +215,224 @@ def get_args():
     parser = get_parser()
     return parser.parse_args()
 
-# dict 
-template_joints = \
-    ["Hips","Spine","Spine1","Spine2","Neck","Head","HeadTop_End",
-    "LeftShoulder","LeftArm","LeftForeArm","LeftHand",
-    "RightShoulder","RightArm","RightForeArm","RightHand",
-    "LeftUpLeg","LeftLeg","LeftFoot","LeftToeBase", "LeftToe_End",
-    "RightUpLeg","RightLeg","RightFoot","RightToeBase", "RightToe_End"]
+# dict
+# Asooni src 
+src_template_joints = \
+    ["Hips","Spine","Spine1","Spine2", # 4
+     "Neck","Head", #"HeadTop_End", # 2
+     "LeftShoulder","LeftArm","LeftForeArm","LeftHand", # 4
+     "RightShoulder","RightArm","RightForeArm","RightHand", # 4
+     "LeftUpLeg","LeftLeg","LeftFoot","LeftToeBase", #"LeftToe_End", # 4
+     "RightUpLeg","RightLeg","RightFoot","RightToeBase"] # , "RightToe_End"  # 4
+    # 22
 
-# Load the FBX plugin
-if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
-    cmds.loadPlugin('fbxmaya')
+# adori
+tgt_template_joints = \
+    ['Hips', 'Spine', 'Spine1', 'Spine2', #'Spine3', 'Spine4',  # 4
+     'Neck', "Head", # 2 'Neck1', 
+     'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand',  # 4
+     'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', # 4
+     'RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', # 4
+     'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase'] # 4
+    # 22
 
-args = get_args()
+def main():
+    # Load the FBX plugin
+    if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
+        cmds.loadPlugin('fbxmaya')
 
-""" load tgt character """
-targetChar = args.targetChar
-mel.eval('FBXImport -f"{}"'.format(targetChar))
-target_char = targetChar.split('/')[-1].split('.')[0]
-# tgt joint hierarchy
-tgt_joints = cmds.ls(type='joint')
-root_joint = find_root_joints(tgt_joints)
-tgt_joint_hierarchy = get_joint_hierarchy(root_joint)
-tgt_joint_hierarchy = refine_joints(tgt_joint_hierarchy, template_joints)
-# get locator rotation 
-tgt_locator = cmds.ls(type='locator')
-tgt_locator = tgt_locator[0].replace("Shape","")
+    args = get_args()
 
-# Tpose of tgt (inital pose for updating delta)
-tgt_Tpose = [[0,0,0] for _ in range(len(tgt_joint_hierarchy))] # [num_joint, attr 3]
-# other joint: tgt load할때 얻기
-for i, joint in enumerate(tgt_joint_hierarchy):
-    tgt_Tpose[i] = cmds.xform(joint, q=True, ws=False, ro=True)
-tgt_Tpose = np.array(tgt_Tpose)
+    """ load tgt character """
+    targetChar = args.targetChar
+    mel.eval('FBXImport -f"{}"'.format(targetChar))
+    target_char = targetChar.split('/')[-1].split('.')[0]
+    # tgt joint hierarchy
+    tgt_joints = cmds.ls(type='joint')
+    root_joint = find_root_joints(tgt_joints)
+    tgt_joint_hierarchy = get_joint_hierarchy(root_joint)
+    tgt_joint_hierarchy = refine_joints(tgt_joint_hierarchy, template_joints)
+    # get locator rotation 
+    tgt_locator = cmds.ls(type='locator')
+    tgt_locator = tgt_locator[0].replace("Shape","")
 
-
-""" load src motion """
-sourceMotion = args.sourceMotion
-mel.eval('FBXImport -f"{}"'.format(sourceMotion))
-target_motion = sourceMotion.split('/')[-1].split('.')[0]
-
-# src locator 
-src_locator = cmds.ls(type='locator')
-src_locator = list(set(src_locator) - set(tgt_locator))
-src_locator = src_locator[0].replace("Shape","")
-src_locator_translation = cmds.xform(src_locator, q=True, ws=True, ro=True)
-print("{} src_locator_translation {}".format(src_locator, src_locator_translation))
-# hip joint: inverse of locator rotation 
-for i in range(3):
-    tgt_Tpose[0][i] = -src_locator_translation[i]
+    # Tpose of tgt (inital pose for updating delta)
+    tgt_Tpose = [[0,0,0] for _ in range(len(tgt_joint_hierarchy))] # [num_joint, attr 3]
+    # other joint: tgt load할때 얻기
+    for i, joint in enumerate(tgt_joint_hierarchy):
+        tgt_Tpose[i] = cmds.xform(joint, q=True, ws=False, ro=True)
+    tgt_Tpose = np.array(tgt_Tpose)
 
 
-""" refine joint """
-# src joint hierarchy
-src_joints = cmds.ls(type='joint')
-src_joints = list(set(src_joints) - set(tgt_joints))
-root_joint = find_root_joints(src_joints)
-src_joint_hierarchy = get_joint_hierarchy(root_joint)
-src_joint_hierarchy = refine_joints(src_joint_hierarchy, template_joints)
+    """ load src motion """
+    sourceMotion = args.sourceMotion
+    mel.eval('FBXImport -f"{}"'.format(sourceMotion))
+    target_motion = sourceMotion.split('/')[-1].split('.')[0]
 
-# find common joints 
-tgt_joint_hierarchy_refined = refine_joint_name(tgt_joint_hierarchy)
-joint_hierarchy = []
-for src_joint in src_joint_hierarchy:
-    if src_joint in tgt_joint_hierarchy_refined:
-        joint_hierarchy.append(src_joint)
-
-src_joint_index, tgt_joint_index = [], []
-for joint in joint_hierarchy:
-    src_joint_index.append(src_joint_hierarchy.index(joint))
-    tgt_joint_index.append(tgt_joint_hierarchy_refined.index(joint))
-
-src_select_hierarchy, tgt_select_hierarchy = [], []
-for i in range(len(src_joint_index)):
-    src_select_hierarchy.append(src_joint_hierarchy[src_joint_index[i]])
-    tgt_select_hierarchy.append(tgt_joint_hierarchy[tgt_joint_index[i]])
-src_joint_hierarchy = src_select_hierarchy
-tgt_joint_hierarchy = tgt_select_hierarchy
+    # src locator 
+    src_locator = cmds.ls(type='locator')
+    src_locator = list(set(src_locator) - set(tgt_locator))
+    src_locator = src_locator[0].replace("Shape","")
+    src_locator_translation = cmds.xform(src_locator, q=True, ws=True, ro=True)
+    print("{} src_locator_translation {}".format(src_locator, src_locator_translation))
+    # hip joint: inverse of locator rotation 
+    for i in range(3):
+        tgt_Tpose[0][i] = -src_locator_translation[i]
 
 
-""" set to target char """
-# locator
-cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
+    """ refine joint """
+    # src joint hierarchy
+    src_joints = cmds.ls(type='joint')
+    src_joints = list(set(src_joints) - set(tgt_joints))
+    root_joint = find_root_joints(src_joints)
+    src_joint_hierarchy = get_joint_hierarchy(root_joint)
+    src_joint_hierarchy = refine_joints(src_joint_hierarchy, template_joints)
 
-# joints
-for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
-    if j!=0:
-        continue
-    # print("{} {} {}".format(j, src_joint, tgt_joint))
+    # find common joints 
+    tgt_joint_hierarchy_refined = refine_joint_name(tgt_joint_hierarchy)
+    joint_hierarchy = []
+    for src_joint in src_joint_hierarchy:
+        if src_joint in tgt_joint_hierarchy_refined:
+            joint_hierarchy.append(src_joint)
 
-    # keyframe_data [attr, frames, (frame, value)]
-    trans_data, keyframe_data = get_keyframe_data(src_joint)
-    
-    # root update
-    if j==0:
-        trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
-        trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
-        set_rotation_keyframe(tgt_joint, trans_data, trans_attr)
+    src_joint_index, tgt_joint_index = [], []
+    for joint in joint_hierarchy:
+        src_joint_index.append(src_joint_hierarchy.index(joint))
+        tgt_joint_index.append(tgt_joint_hierarchy_refined.index(joint))
+
+    src_select_hierarchy, tgt_select_hierarchy = [], []
+    for i in range(len(src_joint_index)):
+        src_select_hierarchy.append(src_joint_hierarchy[src_joint_index[i]])
+        tgt_select_hierarchy.append(tgt_joint_hierarchy[tgt_joint_index[i]])
+    src_joint_hierarchy = src_select_hierarchy
+    tgt_joint_hierarchy = tgt_select_hierarchy
+
 
     # get src delta rotation (assumption: first frame is Tpose)
-    # angle
-    tgt_Tpose_rot = cmds.xform(src_joint, query=True, worldSpace=False, rotation=True)
-    print(tgt_Tpose_rot)
-    tgt_Tpose_rot = np.array(tgt_Tpose_rot)
+    def get_rot_mat(src_joint, bool_worldSpace):
+        tgt_Tpose_rot = cmds.xform(src_joint, query=True, worldSpace=bool_worldSpace, rotation=True)
+        tgt_Tpose_rot = np.array(tgt_Tpose_rot)
+        tgt_Tpose_rot = E_to_R(tgt_Tpose_rot)
+        return tgt_Tpose_rot
 
-    # E to R 
-    tgt_Tpose_rot = E_to_R(tgt_Tpose_rot)
-    print(tgt_Tpose_rot)
-    
-    # matrix 
-    tgt_Tpose_rot_mat = cmds.xform(src_joint, query=True, worldSpace=False, matrix=True)
-    tgt_Tpose_rot_mat = np.transpose(np.array(tgt_Tpose_rot_mat).reshape(4,4)[:3,:3])
-    print(tgt_Tpose_rot_mat)
+    """ set to target char """
+    # locator
+    cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
 
-    # data 
-    rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
-    rot_data = get_array_from_keyframe_data(keyframe_data, rot_attr)
-    src_rot_mat = E_to_R(rot_data)
-    print(src_rot_mat[0])
+    # joints
+    for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
+        if j!=0:
+            continue
+        # print("{} {} {}".format(j, src_joint, tgt_joint))
 
-    # tgt 
-    # target_data = R_to_E_seq(tgt_rot_mat)
+        # keyframe_data [attr, frames, (frame, value)]
+        trans_data, keyframe_data = get_keyframe_data(src_joint)
+        
+        # root update
+        if j==0:
+            trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
+            trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
+            set_keyframe(tgt_joint, trans_data, trans_attr)
+        
+        # local_to_world_trf
+        print("local")
+        print(cmds.xform(src_joint, query=True, worldSpace=False, rotation=True))
+        tgt_Tpose_rot = get_rot_mat(src_joint, False)
+        print(tgt_Tpose_rot)
+        
+        print("world")
+        print(cmds.xform(src_joint, query=True, worldSpace=True, rotation=True))
+        tgt_Tpose_world = get_rot_mat(src_joint, True)
+        print(tgt_Tpose_world)
 
-    # target의 Tpose 데이터를 알아야
-    # set_rotation_keyframe(tgt_joint, target_data, rot_attr)
+        # print("local to world")
+        # local_to_world_trf = np.linalg.inv(tgt_Tpose_rot) @ tgt_Tpose_world
+        # print(local_to_world_trf)
 
-# freeze
-incoming_connections = {}
-for attr in ['rotateX', 'rotateY', 'rotateZ']:
-    full_attr = f"Armature.{attr}"
-    connections = cmds.listConnections(full_attr, s=True, d=False, p=True)
-    if connections:
-        incoming_connections[attr] = connections[0]
-        cmds.disconnectAttr(connections[0], full_attr)
-# bake 
-cmds.bakeResults("Armature", simulation=True, t=(cmds.playbackOptions(q=True, min=True), cmds.playbackOptions(q=True, max=True)), sampleBy=1, oversamplingRate=1, disableImplicitControl=True, preserveOutsideKeys=True, sparseAnimCurveBake=False, removeBakedAnimFromLayer=False, bakeOnOverrideLayer=False, minimizeRotation=True, controlPoints=False, shape=True)
 
-# export 
-output_dir = args.tgt_motion_path + target_char
-os.makedirs(output_dir, exist_ok=True)
-export_file = output_dir+'/'+target_motion+'.fbx'
-mel.eval('FBXExport -f"{}"'.format(export_file))
-maya.standalone.uninitialize()
-print("File export to ", export_file)
+        # 100 frame
+        # f = 100
+        # print("frame: ", f)
+        # cmds.currentTime(f, edit=True)
+        # # local
+        # print("local")
+        # print(cmds.xform(src_joint, query=True, worldSpace=False, rotation=True))
+        # tgt_local = get_rot_mat(src_joint, False)
+        # print(tgt_local)
+
+        # # world 
+        # print("world")
+        # print(cmds.xform(src_joint, query=True, worldSpace=True, rotation=True))
+        # tgt_world = get_rot_mat(src_joint, False)
+        # print(tgt_world)
+
+        # # world by update 
+        # updated_tgt_world = tgt_local @ local_to_world_trf
+        # print(updated_tgt_world)
+        # len_frame = rot_data.shape[0]
+        # trf = trf[None, ...].repeat(len_frame, axis=0)
+
+        # E to R 
+        # tgt_Tpose_rot = E_to_R(tgt_Tpose_rot)
+        # print(tgt_Tpose_rot)
+        
+
+        # # matrix 
+        # tgt_Tpose_rot_mat = cmds.xform(src_joint, query=True, worldSpace=False, matrix=True)
+        # tgt_Tpose_rot_mat = np.transpose(np.array(tgt_Tpose_rot_mat).reshape(4,4)[:3,:3])
+        # # print(tgt_Tpose_rot_mat)
+
+        """ trf """
+        # src data 
+        rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
+        rot_data = get_array_from_keyframe_data(keyframe_data, rot_attr)
+        src_rot_mat = E_to_R(rot_data)
+        src_Tpose_rot = src_rot_mat[0]
+
+        # tgt Tpose
+        tgt_Tpose_rot = get_rot_mat(tgt_joint, False)
+        if j==0:
+            # rotatet x 90
+            tgt_Tpose_rot = np.array([[1,0,0],[0,0,-1],[0,1,0]]) @ tgt_Tpose_rot
+
+        # trf for Tpose
+        trf = tgt_Tpose_rot @ np.linalg.inv(src_Tpose_rot)
+        len_frame = rot_data.shape[0]
+        trf = trf[None, ...].repeat(len_frame, axis=0)
+
+        # update tgt 
+        tgt_rot_mat = trf @ src_rot_mat
+        target_data = R_to_E_seq(tgt_rot_mat)
+
+        # # target의 Tpose 데이터를 알아야
+        set_keyframe(tgt_joint, target_data, rot_attr)
+        
+        print("tgt")
+        print(cmds.xform(tgt_joint, query=True, worldSpace=True, rotation=True))
+        tgt_Tpose_local = get_rot_mat(tgt_joint, False)
+        print(tgt_Tpose_local)
+        tgt_Tpose_world = get_rot_mat(tgt_joint, True)
+        print(tgt_Tpose_world)
+
+
+    # freeze
+    incoming_connections = {}
+    for attr in ['rotateX', 'rotateY', 'rotateZ']:
+        full_attr = f"Armature.{attr}"
+        connections = cmds.listConnections(full_attr, s=True, d=False, p=True)
+        if connections:
+            incoming_connections[attr] = connections[0]
+            cmds.disconnectAttr(connections[0], full_attr)
+    # bake 
+    cmds.bakeResults("Armature", simulation=True, t=(cmds.playbackOptions(q=True, min=True), cmds.playbackOptions(q=True, max=True)), sampleBy=1, oversamplingRate=1, disableImplicitControl=True, preserveOutsideKeys=True, sparseAnimCurveBake=False, removeBakedAnimFromLayer=False, bakeOnOverrideLayer=False, minimizeRotation=True, controlPoints=False, shape=True)
+
+    # export 
+    output_dir = args.tgt_motion_path + target_char
+    os.makedirs(output_dir, exist_ok=True)
+    export_file = output_dir+'/'+target_motion+'.fbx'
+    mel.eval('FBXExport -f"{}"'.format(export_file))
+    maya.standalone.uninitialize()
+    print("File export to ", export_file)
+
+if __name__=="__main__":
+    main()
