@@ -15,7 +15,6 @@ usage
 - mayapy retargeting_different_axis.py --src_motion_path "" --tgt_char_path "" --tgt_motion_path ""
 """
 # D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/animation/0055_Freestyle002_03_RT0214.fbx" --targetChar "./models/Dancstruct/SKM_Asooni_1207.fbx"
-# D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy
 
 def get_joint_hierarchy(root_joint):
     hierarchy = []
@@ -44,7 +43,7 @@ def refine_joints(joints, template_joints):
     refined_joints = []
     for template_joint in template_joints:
         for joint in joints:
-            if template_joint in joint and \
+            if template_joint.lower() in joint.lower() and \
                 "Thumb" not in joint and \
                 "Index" not in joint and \
                 "Middle" not in joint and \
