@@ -88,10 +88,11 @@ def get_keyframe_data(joint):
 def get_array_from_keyframe_data(keyframe_data, rot_attr):
     min_time = 0
     max_time = 0
-    for attr in rot_attr:
+    # first_data = np.array([None, None, None])
+    for attr_idx, attr in enumerate(rot_attr.keys()):
         data = keyframe_data[attr]
-        # last frame
-        # print(data)
+        
+        # time 
         time = int(data[-1][0])
         if max_time < time:
             max_time = time
@@ -99,7 +100,6 @@ def get_array_from_keyframe_data(keyframe_data, rot_attr):
             min_time = time
     rot_data = np.full((max_time+1-min_time, 3), None, dtype=np.float32)
     
-    # assume: time이 int 단위
     len_frame = len(rot_data)
     for attr_idx, attr in enumerate(rot_attr.keys()):
         for fid, data_perframe in enumerate(keyframe_data[attr]):
@@ -107,9 +107,13 @@ def get_array_from_keyframe_data(keyframe_data, rot_attr):
             data = data_perframe[1]
             rot_data[frame, attr_idx] = data
         
-        # first frame
-        if rot_data[0][attr_idx]==None:
-            rot_data[0][attr_idx] = 0
+        # if first first is nan
+        if np.isnan(rot_data[0][attr_idx]):
+            len_frame = len(rot_data)
+            for i in range(len_frame):
+                if np.isnan(rot_data[i][attr_idx])==False:
+                    rot_data[0][attr_idx] = rot_data[i][attr_idx]
+                    break
         
         # interpolation TODO: 뒤에 값과 함께 interpolation
         for fid in range(len_frame):
@@ -221,6 +225,64 @@ def get_rot_mat(src_joint, bool_worldSpace):
     tgt_Tpose_rot = E_to_R(tgt_Tpose_rot)
     return tgt_Tpose_rot
 
+def get_world_rot_data(joint_name):
+    # Get rotation keyframe data
+    rot_data = cmds.keyframe(joint_name, query=True, attribute='rotate', valueChange=True, timeChange=True)
+    
+    # Organize the data into arrays
+    rot_data_array = np.array(rot_data).reshape(-1, 2) # 6038 -> [3*3018, 2] 
+    max_time = int(np.max(rot_data_array[:, 0]))
+    min_time = 0
+    
+    rot_data = np.full((max_time+1-min_time, 3), None, dtype=np.float32)
+    attr_idx = 0
+    prev_time = -1
+    for data in rot_data_array:
+        time = int(data[0])
+        rot = data[1]
+        if prev_time > time:
+            attr_idx += 1
+        rot_data[time, attr_idx] = rot 
+        prev_time = time
+
+    # interpolation
+    len_frame = len(rot_data)
+    for attr_idx in range(3):
+        # if first first is nan
+        if np.isnan(rot_data[0][attr_idx]):
+            for f in range(len_frame):
+                if np.isnan(rot_data[f][attr_idx])==False:
+                    rot_data[0][attr_idx] = rot_data[f][attr_idx]
+                    break
+
+        # interpolation 
+        for fid in range(len_frame):
+            condition = np.isnan(rot_data[fid][attr_idx])
+            if condition:
+                rot_data[fid][attr_idx] = rot_data[fid-1][attr_idx]
+
+    return rot_data
+
+import math
+def get_forward_vectors_from_rot_data(rot_data):
+    forward_vectors = []
+
+    for i, frame_rot in enumerate(rot_data):
+        # Convert the rotation to a MTransformationMatrix
+        frame_rot = [math.radians(angle) for angle in frame_rot]
+
+        rotation = om.MEulerRotation(
+            om.MVector(frame_rot[0], frame_rot[1], frame_rot[2]), om.MEulerRotation.kZYX) # kZYX # TODO: check
+        transform_matrix = om.MTransformationMatrix()
+        transform_matrix.setRotation(rotation.asQuaternion())
+
+        # Get the forward vector (positive Z axis in local space)
+        forward_vector = om.MVector(0, 0, 1) * transform_matrix.asMatrix()
+        
+        forward_vectors.append([forward_vector.x, forward_vector.y, forward_vector.z])
+
+    return forward_vectors
+
 # dict
 # Asooni src 
 src_template_joints = \
@@ -294,14 +356,19 @@ def main():
 
     # find common joints 
     tgt_joint_hierarchy_refined = refine_joint_name(tgt_joint_hierarchy)
-    joint_hierarchy = []
+    src_common_joint = []
+    tgt_common_joint = []
     for src_joint in src_joint_hierarchy:
-        if src_joint in tgt_joint_hierarchy_refined:
-            joint_hierarchy.append(src_joint)
-
+        for tgt_joint in tgt_joint_hierarchy_refined:
+            if src_joint in tgt_joint or tgt_joint in src_joint:
+                src_common_joint.append(src_joint)
+                tgt_common_joint.append(tgt_joint)
+                break
+ 
     src_joint_index, tgt_joint_index = [], []
-    for joint in joint_hierarchy:
+    for joint in src_common_joint:
         src_joint_index.append(src_joint_hierarchy.index(joint))
+    for joint in tgt_common_joint:
         tgt_joint_index.append(tgt_joint_hierarchy_refined.index(joint))
 
     src_select_hierarchy, tgt_select_hierarchy = [], []
@@ -316,56 +383,73 @@ def main():
     # locator
     cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
 
+    # target position
     # joints
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
         if j!=0:
             continue
 
+        """ src """
         # keyframe_data [attr, frames, (frame, value)]
-        trans_data, keyframe_data = get_keyframe_data(src_joint)
-        
-        # root translation
-        if j==0:
-            trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
-            trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
-            set_keyframe(tgt_joint, trans_data, trans_attr)
-        
-        """ trf """
-        # src data 
+        trans_data, rot_data = get_keyframe_data(src_joint)
         rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
-        rot_data = get_array_from_keyframe_data(keyframe_data, rot_attr)
-        src_rot_mat = E_to_R(rot_data)
-        src_Tpose_rot = src_rot_mat[0]
+        rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
+        
+        # joint translation
+        trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
+        trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
 
-        # tgt Tpose
-        tgt_Tpose_rot = get_rot_mat(tgt_joint, False)
-        if j==0:
-            # rotate (x 90)
-            tgt_Tpose_rot = np.array([[1,0,0],[0,0,-1],[0,1,0]]) @ tgt_Tpose_rot
+        # world rotation 
+        world_rot_data = get_world_rot_data(src_joint)
+        print(world_rot_data[0])
+        forward_vectors = get_forward_vectors_from_rot_data(world_rot_data)
+        print(forward_vectors[0])
 
-        # trf for Tpose
-        trf = tgt_Tpose_rot @ np.linalg.inv(src_Tpose_rot)
-        len_frame = rot_data.shape[0]
-        trf = trf[None, ...].repeat(len_frame, axis=0)
+        
+        """ tgt """
+        # target position = src joint position + 0.1*joint forward 
 
-        # update tgt 
-        tgt_rot_mat = trf @ src_rot_mat
-        target_data = R_to_E_seq(tgt_rot_mat)
+        # tgt current position
+        # curr_position = cmds.getAttr(tgt_joint + ".translate")
 
-        # joint rotation
-        set_keyframe(tgt_joint, target_data, rot_attr)
 
+        # update position
+        set_keyframe(tgt_joint, trans_data, trans_attr)
+        
+        # # rotation
+        # if j==0:
+        #     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
+        #     rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
+        #     src_rot_mat = E_to_R(rot_data)
+        #     src_Tpose_rot = src_rot_mat[0]
+
+        #     # tgt Tpose
+        #     tgt_Tpose_rot = get_rot_mat(tgt_joint, False)
+        #     # rotate (x 90) for root joint 
+        #     tgt_Tpose_rot = np.array([[1,0,0],[0,0,-1],[0,1,0]]) @ tgt_Tpose_rot
+
+        #     # trf for Tpose
+        #     trf = tgt_Tpose_rot @ np.linalg.inv(src_Tpose_rot)
+        #     len_frame = rot_data.shape[0]
+        #     trf = trf[None, ...].repeat(len_frame, axis=0)
+
+        #     # update tgt 
+        #     tgt_rot_mat = trf @ src_rot_mat
+        #     target_data = R_to_E_seq(tgt_rot_mat)
+
+        #     # joint rotation
+        #     set_keyframe(tgt_joint, target_data, rot_attr)
 
     # freeze
     incoming_connections = {}
     for attr in ['rotateX', 'rotateY', 'rotateZ']:
-        full_attr = f"Armature.{attr}"
+        full_attr = f"{tgt_locator}.{attr}"
         connections = cmds.listConnections(full_attr, s=True, d=False, p=True)
         if connections:
             incoming_connections[attr] = connections[0]
             cmds.disconnectAttr(connections[0], full_attr)
     # bake 
-    cmds.bakeResults("Armature", simulation=True, t=(cmds.playbackOptions(q=True, min=True), cmds.playbackOptions(q=True, max=True)), sampleBy=1, oversamplingRate=1, disableImplicitControl=True, preserveOutsideKeys=True, sparseAnimCurveBake=False, removeBakedAnimFromLayer=False, bakeOnOverrideLayer=False, minimizeRotation=True, controlPoints=False, shape=True)
+    cmds.bakeResults("{}".format(tgt_locator), simulation=True, t=(cmds.playbackOptions(q=True, min=True), cmds.playbackOptions(q=True, max=True)), sampleBy=1, oversamplingRate=1, disableImplicitControl=True, preserveOutsideKeys=True, sparseAnimCurveBake=False, removeBakedAnimFromLayer=False, bakeOnOverrideLayer=False, minimizeRotation=True, controlPoints=False, shape=True)
 
     # export 
     output_dir = args.tgt_motion_path + target_char
