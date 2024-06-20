@@ -170,7 +170,7 @@ def R_to_E(R):
 
     return np.array([alpha, beta, gamma])
 
-def E_to_R(E, order="zyx", radians=False):
+def E_to_R(E, order="xyz", radians=False): # zyx
     """
     Args:
         E: (..., 3)
@@ -281,7 +281,7 @@ def get_forward_vectors_from_rot_data(rot_data):
         
         forward_vectors.append([forward_vector.x, forward_vector.y, forward_vector.z])
 
-    return forward_vectors
+    return np.array(forward_vectors)
 
 # dict
 # Asooni src 
@@ -330,6 +330,9 @@ def main():
     for i, joint in enumerate(tgt_joint_hierarchy):
         tgt_Tpose[i] = cmds.xform(joint, q=True, ws=False, ro=True)
     tgt_Tpose = np.array(tgt_Tpose)
+    
+    tgt_locator_rot = cmds.xform(tgt_locator, q=True, ws=True, ro=True)
+    # print("tgt_locator_translation:", tgt_locator_rot)
 
 
     """ src motion """
@@ -381,7 +384,7 @@ def main():
 
     """ retarget """
     # locator
-    cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
+    # cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
 
     # target position
     # joints
@@ -389,33 +392,40 @@ def main():
         if j!=0:
             continue
 
-        """ src """
         # keyframe_data [attr, frames, (frame, value)]
         trans_data, rot_data = get_keyframe_data(src_joint)
-        rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
-        rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
-        
+
+        """ translation """
         # joint translation
         trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
         trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
+        len_frame = len(trans_data)
 
+        tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot)) # 
+        tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0), trans_data)
+        # update position
+        set_keyframe(tgt_joint, tgt_trans_data, trans_attr)
+        
+
+        """ rotation """
+        rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
+        rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
+        
         # world rotation 
         world_rot_data = get_world_rot_data(src_joint)
-        print(world_rot_data[0])
         forward_vectors = get_forward_vectors_from_rot_data(world_rot_data)
+        print(trans_data.shape)
+        print(trans_data[0])
+        print(forward_vectors.shape)
         print(forward_vectors[0])
 
-        
-        """ tgt """
-        # target position = src joint position + 0.1*joint forward 
+        target_position = trans_data + forward_vectors # 0.1*
+        print(target_position[0])
 
         # tgt current position
         # curr_position = cmds.getAttr(tgt_joint + ".translate")
 
 
-        # update position
-        set_keyframe(tgt_joint, trans_data, trans_attr)
-        
         # # rotation
         # if j==0:
         #     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
