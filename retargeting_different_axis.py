@@ -264,10 +264,12 @@ def get_world_rot_data(joint_name):
     return rot_data
 
 import math
-def get_forward_vectors_from_rot_data(rot_data):
+def get_vectors_from_rot_data(rot_data, vector):
     forward_vectors = []
+    vector = om.MVector(vector[0], vector[1], vector[2]) # vector
 
     for i, frame_rot in enumerate(rot_data):
+        frame_rot_angle = frame_rot
         # Convert the rotation to a MTransformationMatrix
         frame_rot = [math.radians(angle) for angle in frame_rot]
 
@@ -277,7 +279,14 @@ def get_forward_vectors_from_rot_data(rot_data):
         transform_matrix.setRotation(rotation.asQuaternion())
 
         # Get the forward vector (positive Z axis in local space)
-        forward_vector = om.MVector(0, 0, 1) * transform_matrix.asMatrix()
+        forward_vector = vector * transform_matrix.asMatrix()
+        # forward_vector = transform_matrix.asMatrix() @ vector
+        # if i==0:
+        #     print(frame_rot_angle)
+        #     print(frame_rot)
+        #     print(vector)
+        #     print(transform_matrix.asMatrix())
+        #     print(forward_vector)
         
         forward_vectors.append([forward_vector.x, forward_vector.y, forward_vector.z])
 
@@ -401,7 +410,7 @@ def main():
         trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
         len_frame = len(trans_data)
 
-        tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot)) # 
+        tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
         tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0), trans_data)
         # update position
         set_keyframe(tgt_joint, tgt_trans_data, trans_attr)
@@ -413,14 +422,54 @@ def main():
         
         # world rotation 
         world_rot_data = get_world_rot_data(src_joint)
-        forward_vectors = get_forward_vectors_from_rot_data(world_rot_data)
-        print(trans_data.shape)
-        print(trans_data[0])
-        print(forward_vectors.shape)
-        print(forward_vectors[0])
+        forward_vectors = get_vectors_from_rot_data(world_rot_data, np.array([0,0,1])) # world 0,0,1 local -1,0,0
+        up_vectors = get_vectors_from_rot_data(world_rot_data, np.array([0,1,0])) 
 
-        target_position = trans_data + forward_vectors # 0.1*
-        print(target_position[0])
+        max_time = len(world_rot_data)
+        min_time = 0
+        desired_rot_data = np.full((max_time+1-min_time, 3), None, dtype=np.float32)
+        for i in range(len_frame):
+            aim_vector = om.MVector(forward_vectors[i])
+            up_vector = om.MVector(up_vectors[i])
+
+            # Create an aim matrix
+            aim_matrix = om.MMatrix([
+                [aim_vector.x, aim_vector.y, aim_vector.z, 0],
+                [up_vector.x, up_vector.y, up_vector.z, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]
+            ])
+
+            # Convert aim matrix to Euler rotation
+            euler_rotation = om.MTransformationMatrix(aim_matrix).rotation(asQuaternion=False) # .eulerRotation()
+
+            # change order
+            rotX, rotY, rotZ = euler_rotation.x, euler_rotation.y, euler_rotation.z
+            euler_rotation = om.MEulerRotation(rotZ, rotY, rotX, om.MEulerRotation.kZYX)
+
+            # order를 바꿀수잇나?
+            euler_rotation_rad = euler_rotation
+            euler_rotation = [math.degrees(angle) for angle in euler_rotation]
+            # euler_rotation = euler_rotation @ tgt_locator_rot_mat
+            desired_rot_data[i] = euler_rotation
+            if i==0:
+                print(aim_vector)
+                print(up_vector)
+                print("aim_matrix", aim_matrix)
+                print(euler_rotation_rad)
+                print(euler_rotation)
+                print(desired_rot_data[i])
+
+        set_keyframe(tgt_joint, desired_rot_data, rot_attr)
+
+
+        # target_position = trans_data + forward_vectors # 0.1* # trans_data
+
+        # cmds.aimConstraint(locator_name, tgt_joint, aim=forward_vectors, upVector=up_vector, worldUpType="scene")
+
+        # print(trans_data[0])
+        # print(tgt_trans_data[0])
+        # print(target_position[0])
 
         # tgt current position
         # curr_position = cmds.getAttr(tgt_joint + ".translate")
