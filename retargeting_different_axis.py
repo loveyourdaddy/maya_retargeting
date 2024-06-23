@@ -173,7 +173,7 @@ def R_to_E(R):
 
     return np.array([alpha, beta, gamma])
 
-def E_to_R(E, order="xyz", radians=False): # zyx
+def E_to_R(E, order="xyz", radians=False): # order: rotation값이 들어오는 순서.
     """
     Args:
         E: (..., 3)
@@ -201,12 +201,10 @@ def E_to_R(E, order="xyz", radians=False): # zyx
         else:
             raise ValueError(f"Invalid axis: {axis}")
         return np.stack(R_flat, axis=-1).reshape(angle.shape + (3, 3))
-
     R = [_euler_axis_to_R(E[..., i], order[i]) for i in range(3)]
-    
-    # order=="zyx" 
-    # R = np.matmul(R[2], np.matmul(R[1], R[0]))
-    R = np.matmul(np.matmul(R[0], R[1]), R[2])
+
+    # rotation multiplication order: Rz * Ry * Rx
+    R = np.matmul(R[0], np.matmul(R[1], R[2]))
     
     return R
 
@@ -308,6 +306,13 @@ tgt_template_joints = \
      'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase'] # 4
     # 22
 
+def get_parent_joint(joint):
+    parent = cmds.listRelatives(joint, parent=True)
+    if parent:
+        return parent[0]
+    else:
+        return None
+    
 def main():
     # Load the FBX plugin
     if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
@@ -389,6 +394,22 @@ def main():
     print("tgt_locator_translation: ", tgt_locator_rot)
     # print("src_locator_translation: ", src_locator_translation)
 
+    def rotation_matrix_to_euler_angles(R):
+        sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+        
+        singular = sy < 1e-6
+        
+        if not singular:
+            x = math.atan2(R[2, 1], R[2, 2])
+            y = math.atan2(-R[2, 0], sy)
+            z = math.atan2(R[1, 0], R[0, 0])
+        else:
+            x = math.atan2(-R[1, 2], R[1, 1])
+            y = math.atan2(-R[2, 0], sy)
+            z = 0
+        
+        return np.array([x, y, z])
+
     """ retarget """
     # locator
     # cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
@@ -396,72 +417,64 @@ def main():
     # target position
     # joints
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
-        if j!=0:
+        if j!=0 or j!=1:
             continue
 
         # keyframe_data [attr, frames, (frame, value)]
         trans_data, rot_data = get_keyframe_data(src_joint)
 
         """ translation """
-        # joint translation
-        trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
-        trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
-        len_frame = len(trans_data)
+        if j==0:
+            trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
+            trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
+            len_frame = len(trans_data)
 
-        tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
-        tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0), trans_data)
-        # update position
-        set_keyframe(tgt_joint, tgt_trans_data, trans_attr)
-        
+            tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
+            tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0), trans_data)
+            # update position
+            set_keyframe(tgt_joint, tgt_trans_data, trans_attr)
+            
 
-        """ rotation """
-        """ tgt target angle """
-        # target angle: to match source angle 
-        target_angle = np.array([0, 90, 0]) # TODO
-        target_mat = E_to_R(target_angle)
-        print("target_mat: \n", target_mat)
-
-        """ src """
+        """ tgt target angle from src """
+        # src: world rotation for tgt
         rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
         rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
-
-        def rotation_matrix_to_euler_angles(R):
-            sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
-            
-            singular = sy < 1e-6
-            
-            if not singular:
-                x = math.atan2(R[2, 1], R[2, 2])
-                y = math.atan2(-R[2, 0], sy)
-                z = math.atan2(R[1, 0], R[0, 0])
-            else:
-                x = math.atan2(-R[1, 2], R[1, 1])
-                y = math.atan2(-R[2, 0], sy)
-                z = 0
-            
-            return np.array([x, y, z])
 
         """ update data """
         max_time = len(rot_data)
         min_time = 0
         desired_rot_data = np.full((max_time+1-min_time, 3), None, dtype=np.float32)
         for i in range(len_frame):
-            
+            # src
+            src_world_angle = rot_data[i] # todo: 0 frame
+            # src_world_mat = E_to_R(src_world_angle)
+            # print("target_angle: {}, target_mat: \n{}".format(src_world_angle, src_world_mat))
+
+            # tgt: world rot 
+            tgt_world_angle = src_world_angle + np.array([0,90,0])
+            tgt_world_mat = E_to_R(np.array(tgt_world_angle))
+            # print("tgt world {} \n{}".format(tgt_world_angle, tgt_world_mat))
+
+            # tgt parent world rot
+            tgt_parent_joint = get_parent_joint(tgt_joint)
+            parent_world_angle = cmds.xform(tgt_parent_joint, q=True, ws=False, ro=True)
+            parent_world_mat = E_to_R(np.array(parent_world_angle))
+            # print("parent world {} {} \n{}".format(tgt_parent_joint, parent_world_angle, parent_world_mat))
+
+            # target_local_rot 
+            target_local_mat = np.linalg.inv(parent_world_mat) @ tgt_world_mat
+            target_local_angle = rotation_matrix_to_euler_angles(target_local_mat)
+            target_local_angle = [math.degrees(angle) for angle in target_local_angle]
+            # print("target {} \n{}".format(target_local_angle, target_local_mat))
+
             # delta angle 
             locator_rot_mat = E_to_R(np.array(tgt_locator_rot))
-            delta_matrix = np.linalg.inv(locator_rot_mat) @ target_mat
+            delta_matrix = np.linalg.inv(locator_rot_mat) @ tgt_world_mat
             delta_angle = rotation_matrix_to_euler_angles(delta_matrix[:3, :3]) # R_to_E
-            delta_angle_rad = delta_angle
             delta_angle = [math.degrees(angle) for angle in delta_angle]
-
-
-            """ update """
             desired_rot_data[i] = delta_angle
-            if i==0:
-                print("locator_rot_mat: \n", locator_rot_mat)
-                print("delta_matrix: \n", delta_matrix)
-                print(delta_angle_rad)
-                print(delta_angle)
+
+        """ update """
         set_keyframe(tgt_joint, desired_rot_data, rot_attr)
 
 
