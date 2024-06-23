@@ -387,7 +387,7 @@ def main():
         tgt_joint_hierarchy = tgt_select_hierarchy
 
     print("tgt_locator_translation: ", tgt_locator_rot)
-    print("src_locator_translation: ", src_locator_translation)
+    # print("src_locator_translation: ", src_locator_translation)
 
     """ retarget """
     # locator
@@ -415,44 +415,16 @@ def main():
         
 
         """ rotation """
-        """ tgt world rotation matrix in Tpose """
-        # set zero rotation
-        cmds.xform(tgt_joint, ws=False, ro=([0,0,0]))
-        tgt_rot_data = cmds.xform(tgt_joint, query=True, ws=True, ro=True)
-
-        tgt_rot_data = np.array(tgt_rot_data)[None, :]
-        up_vectors = get_world_vector_from_world_rot(tgt_rot_data, np.array([0,1,0]))
-        forward_vectors = get_world_vector_from_world_rot(tgt_rot_data, np.array([0,0,1])) # world 0,0,1 local -1,0,0
-    
-        i=0
-        forward_vector = om.MVector(forward_vectors[i]) # forward 
-        up_vector = om.MVector(up_vectors[i])
-        left_vector = np.cross(up_vectors[i], forward_vectors[i])
-        left_vector = om.MVector(left_vector)
-
-        # Create an aim matrix
-        tgt_matrix = om.MMatrix([
-            [left_vector.x, left_vector.y, left_vector.z, 0],
-            [up_vector.x, up_vector.y, up_vector.z, 0],
-            [forward_vector.x, forward_vector.y, forward_vector.z, 0],
-            [0, 0, 0, 1]
-        ])
-        tgt_matrix = np.array(tgt_matrix).reshape(4,4)
-        # print("tgt_matrix:", tgt_matrix)
-        print(left_vector)
-        print(up_vector)
-        print(forward_vector)
-
+        """ tgt target angle """
+        # target angle: to match source angle 
+        target_angle = np.array([0, 90, 0]) # TODO
+        target_mat = E_to_R(target_angle)
+        print("target_mat: \n", target_mat)
 
         """ src """
         rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
         rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
 
-        # world rotation 
-        world_rot_data = get_world_rot_data(src_joint)
-        forward_vectors = get_world_vector_from_world_rot(world_rot_data, np.array([0,0,1])) # world 0,0,1 local -1,0,0
-        up_vectors = get_world_vector_from_world_rot(world_rot_data, np.array([0,1,0])) 
-        
         def rotation_matrix_to_euler_angles(R):
             sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
             
@@ -470,28 +442,14 @@ def main():
             return np.array([x, y, z])
 
         """ update data """
-        max_time = len(world_rot_data)
+        max_time = len(rot_data)
         min_time = 0
         desired_rot_data = np.full((max_time+1-min_time, 3), None, dtype=np.float32)
         for i in range(len_frame):
             
-            """ src """
-            forward_vector = om.MVector(forward_vectors[i]) # forward 
-            up_vector = om.MVector(up_vectors[i])
-            left_vector = np.cross(up_vectors[i], forward_vectors[i])
-            left_vector = om.MVector(left_vector)
-
-            # Create an aim matrix
-            aim_matrix = om.MMatrix([
-                [left_vector.x, left_vector.y, left_vector.z, 0],
-                [up_vector.x, up_vector.y, up_vector.z, 0],
-                [forward_vector.x, forward_vector.y, forward_vector.z, 0],
-                [0, 0, 0, 1]
-            ])
-            aim_matrix = np.array(aim_matrix).reshape(4,4)
-
-            # inverse 관계
-            delta_matrix = np.linalg.inv(tgt_matrix) @ aim_matrix
+            # delta angle 
+            locator_rot_mat = E_to_R(np.array(tgt_locator_rot))
+            delta_matrix = np.linalg.inv(locator_rot_mat) @ target_mat
             delta_angle = rotation_matrix_to_euler_angles(delta_matrix[:3, :3]) # R_to_E
             delta_angle_rad = delta_angle
             delta_angle = [math.degrees(angle) for angle in delta_angle]
@@ -500,11 +458,8 @@ def main():
             """ update """
             desired_rot_data[i] = delta_angle
             if i==0:
-                # print("world_rot_data:", world_rot_data[i])
-                # print(left_vector)
-                # print(up_vector)
-                # print(forward_vector)
-                print("delta_matrix", delta_matrix)
+                print("locator_rot_mat: \n", locator_rot_mat)
+                print("delta_matrix: \n", delta_matrix)
                 print(delta_angle_rad)
                 print(delta_angle)
         set_keyframe(tgt_joint, desired_rot_data, rot_attr)
