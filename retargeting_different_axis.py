@@ -15,6 +15,7 @@ usage
 - mayapy retargeting_different_axis.py --src_motion_path "" --tgt_char_path "" --tgt_motion_path ""
 """
 # D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/animation/0055_Freestyle002_03_RT0214.fbx" --targetChar "./models/Dancstruct/SKM_Asooni_1207.fbx"
+# D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/animation/0048_Basic Roll_01_RT0104.fbx" --targetChar "./models/Dancstruct/SKM_ADORI_0229.fbx"
 
 def get_joint_hierarchy(root_joint):
     hierarchy = []
@@ -142,7 +143,7 @@ def set_keyframe(joint, keyframe_data, rot_attr):
     for attr_idx, attr in enumerate(rot_attr.keys()):
         for tid, perframe_data in enumerate(keyframe_data):
             value = float(perframe_data[attr_idx])
-            cmds.setKeyframe(joint, attribute=attr, time=tid, value=value)
+            cmds.setKeyframe(joint, attribute=attr, time=tid, value=value) # world 로 가능?
 
 def R_to_E_seq(R):
     n = len(R)
@@ -156,7 +157,9 @@ def R_to_E(R):
     beta = np.arcsin(-R[2, 0]) # beta (y axis)
     
     # Calculate alpha(z axis) and gamma (x axis) based on the value of cos(beta)
+    # print("{} {}".format(beta, np.cos(beta)))
     if np.cos(beta) != 0:
+        # print("{} / {}".format(R[2, 1], R[2, 2]))
         alpha = np.arctan2(R[2, 1], R[2, 2])
         gamma = np.arctan2(R[1, 0], R[0, 0])
     else:
@@ -264,31 +267,23 @@ def get_world_rot_data(joint_name):
     return rot_data
 
 import math
-def get_vectors_from_rot_data(rot_data, vector):
-    forward_vectors = []
-    vector = om.MVector(vector[0], vector[1], vector[2]) # vector
+def get_world_vector_from_world_rot(rot_data, vector): # world rot, vector
+    vector = np.array(vector)
 
+    forward_vectors = []
     for i, frame_rot in enumerate(rot_data):
-        frame_rot_angle = frame_rot
-        # Convert the rotation to a MTransformationMatrix
         frame_rot = [math.radians(angle) for angle in frame_rot]
 
-        rotation = om.MEulerRotation(
-            om.MVector(frame_rot[0], frame_rot[1], frame_rot[2]), om.MEulerRotation.kZYX) # kZYX # TODO: check
+        rotation = om.MEulerRotation(om.MVector(frame_rot[0], frame_rot[1], frame_rot[2]), om.MEulerRotation.kXYZ) # TODO
         transform_matrix = om.MTransformationMatrix()
         transform_matrix.setRotation(rotation.asQuaternion())
+        transform_matrix = np.array(transform_matrix.asMatrix()).reshape(4,4)[:3, :3]
+        transform_matrix = np.transpose(transform_matrix) # Transpose 
 
         # Get the forward vector (positive Z axis in local space)
-        forward_vector = vector * transform_matrix.asMatrix()
-        # forward_vector = transform_matrix.asMatrix() @ vector
-        # if i==0:
-        #     print(frame_rot_angle)
-        #     print(frame_rot)
-        #     print(vector)
-        #     print(transform_matrix.asMatrix())
-        #     print(forward_vector)
-        
-        forward_vectors.append([forward_vector.x, forward_vector.y, forward_vector.z])
+        forward_vector = vector @ transform_matrix
+        forward_vectors.append(forward_vector)
+    # print(transform_matrix)
 
     return np.array(forward_vectors)
 
@@ -321,75 +316,78 @@ def main():
     args = get_args()
 
     """ tgt character """
-    targetChar = args.targetChar
-    mel.eval('FBXImport -f"{}"'.format(targetChar))
-    target_char = targetChar.split('/')[-1].split('.')[0]
-    # tgt joint hierarchy
-    tgt_joints = cmds.ls(type='joint')
-    root_joint = find_root_joints(tgt_joints)
-    tgt_joint_hierarchy = get_joint_hierarchy(root_joint)
-    tgt_joint_hierarchy = refine_joints(tgt_joint_hierarchy, tgt_template_joints)
-    # get locator rotation 
-    tgt_locator = cmds.ls(type='locator')
-    tgt_locator = tgt_locator[0].replace("Shape","")
+    if True:
+        targetChar = args.targetChar
+        mel.eval('FBXImport -f"{}"'.format(targetChar))
+        target_char = targetChar.split('/')[-1].split('.')[0]
+        # tgt joint hierarchy
+        tgt_joints = cmds.ls(type='joint')
+        root_joint = find_root_joints(tgt_joints)
+        tgt_joint_hierarchy = get_joint_hierarchy(root_joint)
+        tgt_joint_hierarchy = refine_joints(tgt_joint_hierarchy, tgt_template_joints)
+        # get locator rotation 
+        tgt_locator = cmds.ls(type='locator')
+        tgt_locator = tgt_locator[0].replace("Shape","")
 
-    # Tpose of tgt (inital pose for updating delta)
-    tgt_Tpose = [[0,0,0] for _ in range(len(tgt_joint_hierarchy))] # [num_joint, attr 3]
-    # other joint: tgt load할때 얻기
-    for i, joint in enumerate(tgt_joint_hierarchy):
-        tgt_Tpose[i] = cmds.xform(joint, q=True, ws=False, ro=True)
-    tgt_Tpose = np.array(tgt_Tpose)
-    
-    tgt_locator_rot = cmds.xform(tgt_locator, q=True, ws=True, ro=True)
-    # print("tgt_locator_translation:", tgt_locator_rot)
-
+        # Tpose of tgt (inital pose for updating delta)
+        tgt_Tpose = [[0,0,0] for _ in range(len(tgt_joint_hierarchy))] # [num_joint, attr 3]
+        # other joint: tgt load할때 얻기
+        for i, joint in enumerate(tgt_joint_hierarchy):
+            tgt_Tpose[i] = cmds.xform(joint, q=True, ws=False, ro=True)
+        tgt_Tpose = np.array(tgt_Tpose)
+        
+        tgt_locator_rot = cmds.xform(tgt_locator, q=True, ws=True, ro=True)
+        
 
     """ src motion """
-    sourceMotion = args.sourceMotion
-    mel.eval('FBXImport -f"{}"'.format(sourceMotion))
-    target_motion = sourceMotion.split('/')[-1].split('.')[0]
+    if True:
+        sourceMotion = args.sourceMotion
+        mel.eval('FBXImport -f"{}"'.format(sourceMotion))
+        target_motion = sourceMotion.split('/')[-1].split('.')[0]
 
-    # src locator 
-    src_locator = cmds.ls(type='locator')
-    src_locator = list(set(src_locator) - set(tgt_locator))
-    src_locator = src_locator[0].replace("Shape","")
-    src_locator_translation = cmds.xform(src_locator, q=True, ws=True, ro=True)
-    print("{} src_locator_translation {}".format(src_locator, src_locator_translation))
-    # hip joint: inverse of locator rotation 
-    for i in range(3):
-        tgt_Tpose[0][i] = -src_locator_translation[i]
+        # src locator 
+        src_locator = cmds.ls(type='locator')
+        src_locator = list(set(src_locator) - set(tgt_locator))
+        src_locator = src_locator[0].replace("Shape","")
+        src_locator_translation = cmds.xform(src_locator, q=True, ws=True, ro=True)
 
-    # refine joint hierarchy
-    src_joints = cmds.ls(type='joint')
-    src_joints = list(set(src_joints) - set(tgt_joints))
-    root_joint = find_root_joints(src_joints)
-    src_joint_hierarchy = get_joint_hierarchy(root_joint)
-    src_joint_hierarchy = refine_joints(src_joint_hierarchy, src_template_joints)
+        # hip joint: inverse of locator rotation 
+        for i in range(3):
+            tgt_Tpose[0][i] = -src_locator_translation[i]
 
-    # find common joints 
-    tgt_joint_hierarchy_refined = refine_joint_name(tgt_joint_hierarchy)
-    src_common_joint = []
-    tgt_common_joint = []
-    for src_joint in src_joint_hierarchy:
-        for tgt_joint in tgt_joint_hierarchy_refined:
-            if src_joint in tgt_joint or tgt_joint in src_joint:
-                src_common_joint.append(src_joint)
-                tgt_common_joint.append(tgt_joint)
-                break
- 
-    src_joint_index, tgt_joint_index = [], []
-    for joint in src_common_joint:
-        src_joint_index.append(src_joint_hierarchy.index(joint))
-    for joint in tgt_common_joint:
-        tgt_joint_index.append(tgt_joint_hierarchy_refined.index(joint))
+        # refine joint hierarchy
+        src_joints = cmds.ls(type='joint')
+        src_joints = list(set(src_joints) - set(tgt_joints))
+        root_joint = find_root_joints(src_joints)
+        src_joint_hierarchy = get_joint_hierarchy(root_joint)
+        src_joint_hierarchy = refine_joints(src_joint_hierarchy, src_template_joints)
 
-    src_select_hierarchy, tgt_select_hierarchy = [], []
-    for i in range(len(src_joint_index)):
-        src_select_hierarchy.append(src_joint_hierarchy[src_joint_index[i]])
-        tgt_select_hierarchy.append(tgt_joint_hierarchy[tgt_joint_index[i]])
-    src_joint_hierarchy = src_select_hierarchy
-    tgt_joint_hierarchy = tgt_select_hierarchy
+        # find common joints 
+        tgt_joint_hierarchy_refined = refine_joint_name(tgt_joint_hierarchy)
+        src_common_joint = []
+        tgt_common_joint = []
+        for src_joint in src_joint_hierarchy:
+            for tgt_joint in tgt_joint_hierarchy_refined:
+                if src_joint in tgt_joint or tgt_joint in src_joint:
+                    src_common_joint.append(src_joint)
+                    tgt_common_joint.append(tgt_joint)
+                    break
+    
+        src_joint_index, tgt_joint_index = [], []
+        for joint in src_common_joint:
+            src_joint_index.append(src_joint_hierarchy.index(joint))
+        for joint in tgt_common_joint:
+            tgt_joint_index.append(tgt_joint_hierarchy_refined.index(joint))
 
+        src_select_hierarchy, tgt_select_hierarchy = [], []
+        for i in range(len(src_joint_index)):
+            src_select_hierarchy.append(src_joint_hierarchy[src_joint_index[i]])
+            tgt_select_hierarchy.append(tgt_joint_hierarchy[tgt_joint_index[i]])
+        src_joint_hierarchy = src_select_hierarchy
+        tgt_joint_hierarchy = tgt_select_hierarchy
+
+    print("tgt_locator_translation: ", tgt_locator_rot)
+    print("src_locator_translation: ", src_locator_translation)
 
     """ retarget """
     # locator
@@ -417,87 +415,100 @@ def main():
         
 
         """ rotation """
+        """ tgt world rotation matrix in Tpose """
+        # set zero rotation
+        cmds.xform(tgt_joint, ws=False, ro=([0,0,0]))
+        tgt_rot_data = cmds.xform(tgt_joint, query=True, ws=True, ro=True)
+
+        tgt_rot_data = np.array(tgt_rot_data)[None, :]
+        up_vectors = get_world_vector_from_world_rot(tgt_rot_data, np.array([0,1,0]))
+        forward_vectors = get_world_vector_from_world_rot(tgt_rot_data, np.array([0,0,1])) # world 0,0,1 local -1,0,0
+    
+        i=0
+        forward_vector = om.MVector(forward_vectors[i]) # forward 
+        up_vector = om.MVector(up_vectors[i])
+        left_vector = np.cross(up_vectors[i], forward_vectors[i])
+        left_vector = om.MVector(left_vector)
+
+        # Create an aim matrix
+        tgt_matrix = om.MMatrix([
+            [left_vector.x, left_vector.y, left_vector.z, 0],
+            [up_vector.x, up_vector.y, up_vector.z, 0],
+            [forward_vector.x, forward_vector.y, forward_vector.z, 0],
+            [0, 0, 0, 1]
+        ])
+        tgt_matrix = np.array(tgt_matrix).reshape(4,4)
+        # print("tgt_matrix:", tgt_matrix)
+        print(left_vector)
+        print(up_vector)
+        print(forward_vector)
+
+
+        """ src """
         rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
         rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
-        
+
         # world rotation 
         world_rot_data = get_world_rot_data(src_joint)
-        forward_vectors = get_vectors_from_rot_data(world_rot_data, np.array([0,0,1])) # world 0,0,1 local -1,0,0
-        up_vectors = get_vectors_from_rot_data(world_rot_data, np.array([0,1,0])) 
+        forward_vectors = get_world_vector_from_world_rot(world_rot_data, np.array([0,0,1])) # world 0,0,1 local -1,0,0
+        up_vectors = get_world_vector_from_world_rot(world_rot_data, np.array([0,1,0])) 
+        
+        def rotation_matrix_to_euler_angles(R):
+            sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+            
+            singular = sy < 1e-6
+            
+            if not singular:
+                x = math.atan2(R[2, 1], R[2, 2])
+                y = math.atan2(-R[2, 0], sy)
+                z = math.atan2(R[1, 0], R[0, 0])
+            else:
+                x = math.atan2(-R[1, 2], R[1, 1])
+                y = math.atan2(-R[2, 0], sy)
+                z = 0
+            
+            return np.array([x, y, z])
 
+        """ update data """
         max_time = len(world_rot_data)
         min_time = 0
         desired_rot_data = np.full((max_time+1-min_time, 3), None, dtype=np.float32)
         for i in range(len_frame):
-            aim_vector = om.MVector(forward_vectors[i])
+            
+            """ src """
+            forward_vector = om.MVector(forward_vectors[i]) # forward 
             up_vector = om.MVector(up_vectors[i])
+            left_vector = np.cross(up_vectors[i], forward_vectors[i])
+            left_vector = om.MVector(left_vector)
 
             # Create an aim matrix
             aim_matrix = om.MMatrix([
-                [aim_vector.x, aim_vector.y, aim_vector.z, 0],
+                [left_vector.x, left_vector.y, left_vector.z, 0],
                 [up_vector.x, up_vector.y, up_vector.z, 0],
-                [0, 0, 1, 0],
+                [forward_vector.x, forward_vector.y, forward_vector.z, 0],
                 [0, 0, 0, 1]
             ])
+            aim_matrix = np.array(aim_matrix).reshape(4,4)
 
-            # Convert aim matrix to Euler rotation
-            euler_rotation = om.MTransformationMatrix(aim_matrix).rotation(asQuaternion=False) # .eulerRotation()
+            # inverse 관계
+            delta_matrix = np.linalg.inv(tgt_matrix) @ aim_matrix
+            delta_angle = rotation_matrix_to_euler_angles(delta_matrix[:3, :3]) # R_to_E
+            delta_angle_rad = delta_angle
+            delta_angle = [math.degrees(angle) for angle in delta_angle]
 
-            # change order
-            rotX, rotY, rotZ = euler_rotation.x, euler_rotation.y, euler_rotation.z
-            euler_rotation = om.MEulerRotation(rotZ, rotY, rotX, om.MEulerRotation.kZYX)
 
-            # order를 바꿀수잇나?
-            euler_rotation_rad = euler_rotation
-            euler_rotation = [math.degrees(angle) for angle in euler_rotation]
-            # euler_rotation = euler_rotation @ tgt_locator_rot_mat
-            desired_rot_data[i] = euler_rotation
+            """ update """
+            desired_rot_data[i] = delta_angle
             if i==0:
-                print(aim_vector)
-                print(up_vector)
-                print("aim_matrix", aim_matrix)
-                print(euler_rotation_rad)
-                print(euler_rotation)
-                print(desired_rot_data[i])
-
+                # print("world_rot_data:", world_rot_data[i])
+                # print(left_vector)
+                # print(up_vector)
+                # print(forward_vector)
+                print("delta_matrix", delta_matrix)
+                print(delta_angle_rad)
+                print(delta_angle)
         set_keyframe(tgt_joint, desired_rot_data, rot_attr)
 
-
-        # target_position = trans_data + forward_vectors # 0.1* # trans_data
-
-        # cmds.aimConstraint(locator_name, tgt_joint, aim=forward_vectors, upVector=up_vector, worldUpType="scene")
-
-        # print(trans_data[0])
-        # print(tgt_trans_data[0])
-        # print(target_position[0])
-
-        # tgt current position
-        # curr_position = cmds.getAttr(tgt_joint + ".translate")
-
-
-        # # rotation
-        # if j==0:
-        #     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
-        #     rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
-        #     src_rot_mat = E_to_R(rot_data)
-        #     src_Tpose_rot = src_rot_mat[0]
-
-        #     # tgt Tpose
-        #     tgt_Tpose_rot = get_rot_mat(tgt_joint, False)
-        #     # rotate (x 90) for root joint 
-        #     tgt_Tpose_rot = np.array([[1,0,0],[0,0,-1],[0,1,0]]) @ tgt_Tpose_rot
-
-        #     # trf for Tpose
-        #     trf = tgt_Tpose_rot @ np.linalg.inv(src_Tpose_rot)
-        #     len_frame = rot_data.shape[0]
-        #     trf = trf[None, ...].repeat(len_frame, axis=0)
-
-        #     # update tgt 
-        #     tgt_rot_mat = trf @ src_rot_mat
-        #     target_data = R_to_E_seq(tgt_rot_mat)
-
-        #     # joint rotation
-        #     set_keyframe(tgt_joint, target_data, rot_attr)
 
     # freeze
     incoming_connections = {}
