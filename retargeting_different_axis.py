@@ -313,6 +313,25 @@ def get_parent_joint(joint):
     else:
         return None
     
+def rotation_matrix_to_euler_angles(R):
+    sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+    
+    singular = sy < 1e-6
+    
+    if not singular:
+        x = math.atan2(R[2, 1], R[2, 2])
+        y = math.atan2(-R[2, 0], sy)
+        z = math.atan2(R[1, 0], R[0, 0])
+    else:
+        x = math.atan2(-R[1, 2], R[1, 1])
+        y = math.atan2(-R[2, 0], sy)
+        z = 0
+    
+    return np.array([x, y, z])
+
+def get_top_level_nodes():
+    return cmds.ls(assemblies=True)
+
 def main():
     # Load the FBX plugin
     if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
@@ -344,21 +363,15 @@ def main():
         tgt_locator_rot = cmds.xform(tgt_locator, q=True, ws=True, ro=True)
         
 
-    """ src motion """
+    """ joint hierarchy """
     if True:
+        # nodes_before_import = set(get_top_level_nodes())
+
+        # import Tpose
         sourceMotion = args.sourceMotion
-        mel.eval('FBXImport -f"{}"'.format(sourceMotion))
-        target_motion = sourceMotion.split('/')[-1].split('.')[0]
-
-        # src locator 
-        src_locator = cmds.ls(type='locator')
-        src_locator = list(set(src_locator) - set(tgt_locator))
-        src_locator = src_locator[0].replace("Shape","")
-        src_locator_translation = cmds.xform(src_locator, q=True, ws=True, ro=True)
-
-        # hip joint: inverse of locator rotation 
-        for i in range(3):
-            tgt_Tpose[0][i] = -src_locator_translation[i]
+        sourceChar = sourceMotion.split('/')[2]
+        Tpose = "./motions/"+sourceChar+"/animation/T-Pose.fbx"
+        mel.eval('FBXImport -f"{}"'.format(Tpose))
 
         # refine joint hierarchy
         src_joints = cmds.ls(type='joint')
@@ -390,39 +403,62 @@ def main():
             tgt_select_hierarchy.append(tgt_joint_hierarchy[tgt_joint_index[i]])
         src_joint_hierarchy = src_select_hierarchy
         tgt_joint_hierarchy = tgt_select_hierarchy
+        
+        # remove Tpose motion
+        # nodes_after_import = set(get_top_level_nodes())
+        # imported_nodes = nodes_after_import - nodes_before_import
+        # Delete the imported nodes
+        # print(imported_nodes)
+        # if imported_nodes:
+        #     cmds.delete(imported_nodes)
 
-    # print("tgt_locator_translation: ", tgt_locator_rot)
-    # print("src_locator_translation: ", src_locator_translation)
+    """ src Tpose """
+    if True:
+        Tpose_rots = []
+        for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
+            """ src """
+            # keyframe_data [attr, frames, (frame, value)]
+            _, rot_data = get_keyframe_data(src_joint) # world 
+            rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
+            rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
+            Tpose_rots.append(rot_data[0])
+        Tpose_rots = np.array(Tpose_rots)
+    
+    """ src motion """
+    if True:
+        sourceMotion = args.sourceMotion
+        mel.eval('FBXImport -f"{}"'.format(sourceMotion))
+        target_motion = sourceMotion.split('/')[-1].split('.')[0]
 
-    def rotation_matrix_to_euler_angles(R):
-        sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
-        
-        singular = sy < 1e-6
-        
-        if not singular:
-            x = math.atan2(R[2, 1], R[2, 2])
-            y = math.atan2(-R[2, 0], sy)
-            z = math.atan2(R[1, 0], R[0, 0])
-        else:
-            x = math.atan2(-R[1, 2], R[1, 1])
-            y = math.atan2(-R[2, 0], sy)
-            z = 0
-        
-        return np.array([x, y, z])
+        # src locator 
+        src_locator = cmds.ls(type='locator')
+        src_locator = list(set(src_locator) - set(tgt_locator))
+        src_locator = src_locator[0].replace("Shape","")
+        src_locator_translation = cmds.xform(src_locator, q=True, ws=True, ro=True)
+
+        # hip joint: inverse of locator rotation 
+        for i in range(3):
+            tgt_Tpose[0][i] = -src_locator_translation[i]
+        # print("tgt_locator_translation: ", tgt_locator_rot)
+        # print("src_locator_translation: ", src_locator_translation)
 
     """ retarget """
     # locator
     # cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
 
     # target position
-    # joints
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
-        # if j!=0 and j!=1:
-        #     continue
-
+        """ src """
         # keyframe_data [attr, frames, (frame, value)]
         trans_data, rot_data = get_keyframe_data(src_joint) # world 
 
+        # Tpose difference
+        Tpose_rot = Tpose_rots[j]
+        cmds.xform(src_joint, ws=True, ro=(float(Tpose_rot[0]), float(Tpose_rot[1]), float(Tpose_rot[2])))
+        source_mat = np.transpose(np.array(cmds.xform(src_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
+        target_mat = np.transpose(np.array(cmds.xform(tgt_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
+        Tpose_diff = target_mat @ np.linalg.inv(source_mat)
+    
         """ translation """
         if j==0:
             trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
@@ -445,14 +481,8 @@ def main():
         min_time = 0
         desired_rot_data = np.full((max_time+1-min_time, 3), None, dtype=np.float32)
         for i in range(len_frame):
-            # src world angle 
+            # src world angle
             src_world_angle = rot_data[i]
-
-            # Tpose difference: this should be outside for loop
-            cmds.xform(src_joint, ws=True, ro=[0,0,0]) # Tpose motion을 불러와서 Tpose의 value을 알아야함.
-            source_mat = np.transpose(np.array(cmds.xform(src_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
-            target_mat = np.transpose(np.array(cmds.xform(tgt_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
-            Tpose_diff = target_mat @ np.linalg.inv(source_mat)
 
             # target world angle 
             tgt_world_mat = E_to_R(np.array(src_world_angle)) @ Tpose_diff
@@ -465,20 +495,19 @@ def main():
                 # tgt parent world rot
                 tgt_parent_joint = get_parent_joint(tgt_joint)
                 parent_rot_mat = np.transpose(np.array(cmds.xform(tgt_parent_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3] 
-                # cmds.xform(tgt_parent_joint, q=True, ws=True, ro=True) # False
-                # parent_rot_mat = E_to_R(np.array(parent_world_angle))
 
             delta_matrix = np.linalg.inv(parent_rot_mat) @ tgt_world_mat
             delta_angle = R_to_E(delta_matrix[:3, :3]) # R_to_E
             desired_rot_data[i] = delta_angle
             
-            if i==0 and j==1:
-                # print("src_world_angle:", src_world_angle)
-                # print("Tpose_diff:", Tpose_diff)
-                print("parent_rot_mat: {} \n {}".format(R_to_E(parent_rot_mat), parent_rot_mat))
-                print("tgt_world_mat:", tgt_world_mat)
-                print("tgt_locator_rot:", tgt_locator_rot)
-                print("delta_angle:{} \n {}".format(delta_angle, delta_matrix))
+            # if i==0 and tgt_joint=="LeftUpLeg":
+            #     print("src_world_angle:", src_world_angle)
+            #     print("Tpose_diff:\n", Tpose_diff)
+            #     print("tgt_world_mat:\n", tgt_world_mat)
+
+            #     print("tgt_locator_rot:", tgt_locator_rot)
+            #     print("parent_rot_mat: {} \n {}".format(R_to_E(parent_rot_mat), parent_rot_mat))
+            #     print("delta_angle:{} \n {}".format(delta_angle, delta_matrix))
                 
         """ update """
         set_keyframe(tgt_joint, desired_rot_data, rot_attr)
