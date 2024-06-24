@@ -14,8 +14,12 @@ import maya.api.OpenMaya as om
 usage
 - mayapy retargeting_different_axis.py --src_motion_path "" --tgt_char_path "" --tgt_motion_path ""
 """
+# after align
 # D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/animation/0055_Freestyle002_03_RT0214.fbx" --targetChar "./models/Dancstruct/SKM_Asooni_1207.fbx"
 # D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/animation/0048_Basic Roll_01_RT0104.fbx" --targetChar "./models/Dancstruct/SKM_ADORI_0229.fbx"
+
+# before align 
+# D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/animation_before_edit/0048_Basic Roll_01_RT0104.fbx" --targetChar "./models/Dancstruct/SKM_ADORI_0229.fbx"
 
 def get_joint_hierarchy(root_joint):
     hierarchy = []
@@ -173,6 +177,26 @@ def R_to_E(R):
 
     return np.array([alpha, beta, gamma])
 
+def rotation_matrix_to_euler_angles(R):
+    sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+    
+    singular = sy < 1e-6
+    
+    if not singular:
+        x = math.atan2(R[2, 1], R[2, 2])
+        y = math.atan2(-R[2, 0], sy)
+        z = math.atan2(R[1, 0], R[0, 0])
+    else:
+        x = math.atan2(-R[1, 2], R[1, 1])
+        y = math.atan2(-R[2, 0], sy)
+        z = 0
+    
+    x = np.degrees(x)
+    y = np.degrees(y)
+    z = np.degrees(z)
+
+    return np.array([x, y, z])
+
 def E_to_R(E, order="xyz", radians=False): # order: rotation값이 들어오는 순서.
     """
     Args:
@@ -313,22 +337,6 @@ def get_parent_joint(joint):
     else:
         return None
     
-def rotation_matrix_to_euler_angles(R):
-    sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
-    
-    singular = sy < 1e-6
-    
-    if not singular:
-        x = math.atan2(R[2, 1], R[2, 2])
-        y = math.atan2(-R[2, 0], sy)
-        z = math.atan2(R[1, 0], R[0, 0])
-    else:
-        x = math.atan2(-R[1, 2], R[1, 1])
-        y = math.atan2(-R[2, 0], sy)
-        z = 0
-    
-    return np.array([x, y, z])
-
 def get_top_level_nodes():
     return cmds.ls(assemblies=True)
 
@@ -361,7 +369,6 @@ def main():
         tgt_Tpose = np.array(tgt_Tpose)
         
         tgt_locator_rot = cmds.xform(tgt_locator, q=True, ws=True, ro=True)
-        
 
     """ joint hierarchy """
     if True:
@@ -370,7 +377,7 @@ def main():
         # import Tpose
         sourceMotion = args.sourceMotion
         sourceChar = sourceMotion.split('/')[2]
-        Tpose = "./motions/"+sourceChar+"/animation/T-Pose.fbx"
+        Tpose = "./motions/"+sourceChar+"/animation_before_edit/T-Pose.fbx"
         mel.eval('FBXImport -f"{}"'.format(Tpose))
 
         # refine joint hierarchy
@@ -448,6 +455,7 @@ def main():
 
     # target position
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
+        print("{} {} {}".format(j, src_joint, tgt_joint))
         """ src """
         # keyframe_data [attr, frames, (frame, value)]
         trans_data, rot_data = get_keyframe_data(src_joint) # world 
@@ -457,7 +465,8 @@ def main():
         cmds.xform(src_joint, ws=True, ro=(float(Tpose_rot[0]), float(Tpose_rot[1]), float(Tpose_rot[2])))
         source_mat = np.transpose(np.array(cmds.xform(src_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
         target_mat = np.transpose(np.array(cmds.xform(tgt_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
-        Tpose_diff = target_mat @ np.linalg.inv(source_mat)
+        Tpose_diff = np.linalg.inv(source_mat) @ target_mat
+        # Tpose_diff = target_mat @ np.linalg.inv(source_mat)
     
         """ translation """
         if j==0:
@@ -486,6 +495,7 @@ def main():
 
             # target world angle 
             tgt_world_mat = E_to_R(np.array(src_world_angle)) @ Tpose_diff
+            # tgt_world_mat = Tpose_diff @ E_to_R(np.array(src_world_angle)) 
 
             # delta angle 
             if j==0:
@@ -496,18 +506,20 @@ def main():
                 tgt_parent_joint = get_parent_joint(tgt_joint)
                 parent_rot_mat = np.transpose(np.array(cmds.xform(tgt_parent_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3] 
 
-            delta_matrix = np.linalg.inv(parent_rot_mat) @ tgt_world_mat
-            delta_angle = R_to_E(delta_matrix[:3, :3]) # R_to_E
-            desired_rot_data[i] = delta_angle
+            tgt_local_mat = np.linalg.inv(parent_rot_mat) @ tgt_world_mat
+            # tgt_local_mat = tgt_world_mat @ np.linalg.inv(parent_rot_mat)
+            tgt_local_angle = rotation_matrix_to_euler_angles(tgt_local_mat[:3, :3]) # R_to_E
+            desired_rot_data[i] = tgt_local_angle
             
-            # if i==0 and tgt_joint=="LeftUpLeg":
-            #     print("src_world_angle:", src_world_angle)
-            #     print("Tpose_diff:\n", Tpose_diff)
-            #     print("tgt_world_mat:\n", tgt_world_mat)
+            if i==0 and tgt_joint=="LeftShoulder":
+                print("Tpose_diff:\n", Tpose_diff)
+                
+                print("src_world_angle:{} \n {}".format(src_world_angle, E_to_R(np.array(src_world_angle))))
+                print("tgt_world_mat:\n", tgt_world_mat)
 
-            #     print("tgt_locator_rot:", tgt_locator_rot)
-            #     print("parent_rot_mat: {} \n {}".format(R_to_E(parent_rot_mat), parent_rot_mat))
-            #     print("delta_angle:{} \n {}".format(delta_angle, delta_matrix))
+                print("tgt_locator_rot:", tgt_locator_rot)
+                print("parent_rot_mat: {} \n {}\n{}".format(rotation_matrix_to_euler_angles(parent_rot_mat), parent_rot_mat, np.linalg.inv(parent_rot_mat)))
+                print("tgt_local_angle:{} \n {}".format(tgt_local_angle, tgt_local_mat))
                 
         """ update """
         set_keyframe(tgt_joint, desired_rot_data, rot_attr)
