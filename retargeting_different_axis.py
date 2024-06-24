@@ -417,8 +417,8 @@ def main():
     # target position
     # joints
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
-        if j!=0 : # and j!=1
-            continue
+        # if j!=0 and j!=1:
+        #     continue
 
         # keyframe_data [attr, frames, (frame, value)]
         trans_data, rot_data = get_keyframe_data(src_joint) # world 
@@ -464,13 +464,22 @@ def main():
             else:
                 # tgt parent world rot
                 tgt_parent_joint = get_parent_joint(tgt_joint)
-                parent_world_angle = cmds.xform(tgt_parent_joint, q=True, ws=True, ro=True) # False
-                parent_rot_mat = E_to_R(np.array(parent_world_angle))
+                parent_rot_mat = np.transpose(np.array(cmds.xform(tgt_parent_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3] 
+                # cmds.xform(tgt_parent_joint, q=True, ws=True, ro=True) # False
+                # parent_rot_mat = E_to_R(np.array(parent_world_angle))
 
             delta_matrix = np.linalg.inv(parent_rot_mat) @ tgt_world_mat
             delta_angle = R_to_E(delta_matrix[:3, :3]) # R_to_E
             desired_rot_data[i] = delta_angle
             
+            if i==0 and j==1:
+                # print("src_world_angle:", src_world_angle)
+                # print("Tpose_diff:", Tpose_diff)
+                print("parent_rot_mat: {} \n {}".format(R_to_E(parent_rot_mat), parent_rot_mat))
+                print("tgt_world_mat:", tgt_world_mat)
+                print("tgt_locator_rot:", tgt_locator_rot)
+                print("delta_angle:{} \n {}".format(delta_angle, delta_matrix))
+                
         """ update """
         set_keyframe(tgt_joint, desired_rot_data, rot_attr)
 
