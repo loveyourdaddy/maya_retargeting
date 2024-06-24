@@ -391,7 +391,7 @@ def main():
         src_joint_hierarchy = src_select_hierarchy
         tgt_joint_hierarchy = tgt_select_hierarchy
 
-    print("tgt_locator_translation: ", tgt_locator_rot)
+    # print("tgt_locator_translation: ", tgt_locator_rot)
     # print("src_locator_translation: ", src_locator_translation)
 
     def rotation_matrix_to_euler_angles(R):
@@ -417,11 +417,11 @@ def main():
     # target position
     # joints
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
-        if j!=0 and j!=1:
+        if j!=0 : # and j!=1
             continue
 
         # keyframe_data [attr, frames, (frame, value)]
-        trans_data, rot_data = get_keyframe_data(src_joint)
+        trans_data, rot_data = get_keyframe_data(src_joint) # world 
 
         """ translation """
         if j==0:
@@ -445,20 +445,21 @@ def main():
         min_time = 0
         desired_rot_data = np.full((max_time+1-min_time, 3), None, dtype=np.float32)
         for i in range(len_frame):
-            # src
+            # src world angle 
             src_world_angle = rot_data[i]
-            # src_world_mat = E_to_R(src_world_angle)
-            # print("target_angle: {}, target_mat: \n{}".format(src_world_angle, src_world_mat))
 
-            # tgt: world rot 
-            # if j==0:
-            tgt_world_angle = src_world_angle + np.array([0,90,0]) # 90도: src와 tgt의 Tpose default rot 차이. 어떻게 얻을수잇을까?
-            # else:
-            #     tgt_world_angle = src_world_angle
-            tgt_world_mat = E_to_R(np.array(tgt_world_angle))
+            # Tpose difference: this should be outside for loop
+            cmds.xform(src_joint, ws=True, ro=[0,0,0]) # Tpose motion을 불러와서 Tpose의 value을 알아야함.
+            source_mat = np.transpose(np.array(cmds.xform(src_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
+            target_mat = np.transpose(np.array(cmds.xform(tgt_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
+            Tpose_diff = target_mat @ np.linalg.inv(source_mat)
+
+            # target world angle 
+            tgt_world_mat = E_to_R(np.array(src_world_angle)) @ Tpose_diff
 
             # delta angle 
             if j==0:
+                # locator
                 parent_rot_mat = E_to_R(np.array(tgt_locator_rot))
             else:
                 # tgt parent world rot
@@ -467,21 +468,9 @@ def main():
                 parent_rot_mat = E_to_R(np.array(parent_world_angle))
 
             delta_matrix = np.linalg.inv(parent_rot_mat) @ tgt_world_mat
-            delta_angle = rotation_matrix_to_euler_angles(delta_matrix[:3, :3]) # R_to_E
-            delta_angle = [math.degrees(angle) for angle in delta_angle]
+            delta_angle = R_to_E(delta_matrix[:3, :3]) # R_to_E
             desired_rot_data[i] = delta_angle
-
-            if j==0 and i==0 :
-                print("tgt world {} \n{}".format(tgt_world_angle, tgt_world_mat))
-                print("parent world \n{}".format(parent_rot_mat)) # -90 0 0
-                print("delta_angle {} \n {}".format(delta_angle, delta_matrix))
-
-            if j==1 and i==0 :
-                print("tgt world {} \n{}".format(tgt_world_angle, tgt_world_mat))
-                print("parent world {} \n{}".format(parent_world_angle, parent_rot_mat))
-                # print("target {} \n{}".format(target_local_angle, target_local_mat))
-                print("delta_angle {} \n {}".format(delta_angle, delta_matrix))
-
+            
         """ update """
         set_keyframe(tgt_joint, desired_rot_data, rot_attr)
 
