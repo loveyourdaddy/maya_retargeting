@@ -417,7 +417,7 @@ def main():
     # target position
     # joints
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
-        if j!=0 or j!=1:
+        if j!=0 and j!=1:
             continue
 
         # keyframe_data [attr, frames, (frame, value)]
@@ -446,33 +446,41 @@ def main():
         desired_rot_data = np.full((max_time+1-min_time, 3), None, dtype=np.float32)
         for i in range(len_frame):
             # src
-            src_world_angle = rot_data[i] # todo: 0 frame
+            src_world_angle = rot_data[i]
             # src_world_mat = E_to_R(src_world_angle)
             # print("target_angle: {}, target_mat: \n{}".format(src_world_angle, src_world_mat))
 
             # tgt: world rot 
-            tgt_world_angle = src_world_angle + np.array([0,90,0])
+            # if j==0:
+            tgt_world_angle = src_world_angle + np.array([0,90,0]) # 90도: src와 tgt의 Tpose default rot 차이. 어떻게 얻을수잇을까?
+            # else:
+            #     tgt_world_angle = src_world_angle
             tgt_world_mat = E_to_R(np.array(tgt_world_angle))
-            # print("tgt world {} \n{}".format(tgt_world_angle, tgt_world_mat))
-
-            # tgt parent world rot
-            tgt_parent_joint = get_parent_joint(tgt_joint)
-            parent_world_angle = cmds.xform(tgt_parent_joint, q=True, ws=False, ro=True)
-            parent_world_mat = E_to_R(np.array(parent_world_angle))
-            # print("parent world {} {} \n{}".format(tgt_parent_joint, parent_world_angle, parent_world_mat))
-
-            # target_local_rot 
-            target_local_mat = np.linalg.inv(parent_world_mat) @ tgt_world_mat
-            target_local_angle = rotation_matrix_to_euler_angles(target_local_mat)
-            target_local_angle = [math.degrees(angle) for angle in target_local_angle]
-            # print("target {} \n{}".format(target_local_angle, target_local_mat))
 
             # delta angle 
-            locator_rot_mat = E_to_R(np.array(tgt_locator_rot))
-            delta_matrix = np.linalg.inv(locator_rot_mat) @ tgt_world_mat
+            if j==0:
+                parent_rot_mat = E_to_R(np.array(tgt_locator_rot))
+            else:
+                # tgt parent world rot
+                tgt_parent_joint = get_parent_joint(tgt_joint)
+                parent_world_angle = cmds.xform(tgt_parent_joint, q=True, ws=True, ro=True) # False
+                parent_rot_mat = E_to_R(np.array(parent_world_angle))
+
+            delta_matrix = np.linalg.inv(parent_rot_mat) @ tgt_world_mat
             delta_angle = rotation_matrix_to_euler_angles(delta_matrix[:3, :3]) # R_to_E
             delta_angle = [math.degrees(angle) for angle in delta_angle]
             desired_rot_data[i] = delta_angle
+
+            if j==0 and i==0 :
+                print("tgt world {} \n{}".format(tgt_world_angle, tgt_world_mat))
+                print("parent world \n{}".format(parent_rot_mat)) # -90 0 0
+                print("delta_angle {} \n {}".format(delta_angle, delta_matrix))
+
+            if j==1 and i==0 :
+                print("tgt world {} \n{}".format(tgt_world_angle, tgt_world_mat))
+                print("parent world {} \n{}".format(parent_world_angle, parent_rot_mat))
+                # print("target {} \n{}".format(target_local_angle, target_local_mat))
+                print("delta_angle {} \n {}".format(delta_angle, delta_matrix))
 
         """ update """
         set_keyframe(tgt_joint, desired_rot_data, rot_attr)
