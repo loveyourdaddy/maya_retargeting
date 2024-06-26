@@ -98,6 +98,9 @@ def get_array_from_keyframe_data(keyframe_data, rot_attr):
         data = keyframe_data[attr]
         
         # time 
+        if len(data)==0:
+            print("no data for", attr)
+            continue
         time = int(data[-1][0])
         if max_time < time:
             max_time = time
@@ -284,7 +287,6 @@ def get_world_vector_from_world_rot(rot_data, vector): # world rot, vector
         # Get the forward vector (positive Z axis in local space)
         forward_vector = vector @ transform_matrix
         forward_vectors.append(forward_vector)
-    # print(transform_matrix)
 
     return np.array(forward_vectors)
 
@@ -401,16 +403,15 @@ def main():
     """ src Tpose """
     if True:
         Tpose_rots = []
-        for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
+        for j, src_joint in enumerate(src_joint_hierarchy):
             """ src """
-            # keyframe_data [attr, frames, (frame, value)]
-            _, rot_data = get_keyframe_data(src_joint) # world 
-            rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
-            rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
-            Tpose_rots.append(rot_data[0])
+            # world 
+            rot_data = cmds.xform(src_joint, q=True, ws=True, matrix=True)
+            rot_data = np.transpose(np.array(rot_data).reshape(4,4))[:3,:3]
+            Tpose_rots.append(rot_data)
         Tpose_rots = np.array(Tpose_rots)
     
-    """ src motion """
+    """ import src motion """
     if True:
         sourceMotion = args.sourceMotion
         mel.eval('FBXImport -f"{}"'.format(sourceMotion))
@@ -425,8 +426,6 @@ def main():
         # hip joint: inverse of locator rotation 
         for i in range(3):
             tgt_Tpose[0][i] = -src_locator_translation[i]
-        # print("tgt_locator_translation: ", tgt_locator_rot)
-        # print("src_locator_translation: ", src_locator_translation)
 
     """ retarget """
     # locator
@@ -439,11 +438,10 @@ def main():
         trans_data, rot_data = get_keyframe_data(src_joint) # world 
 
         # Tpose difference
-        source_mat = E_to_R(Tpose_rots[j])
+        source_mat = Tpose_rots[j] #np.transpose(np.array().reshape(4,4))[:3,:3] # E_to_R
         target_mat = np.transpose(np.array(cmds.xform(tgt_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
-        Tpose_diff = target_mat @ np.linalg.inv(source_mat)
+        Tpose_diff = np.linalg.inv(source_mat) @ target_mat
         
-    
         """ translation """
         if j==0:
             trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
@@ -454,7 +452,6 @@ def main():
             tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0), trans_data)
             # update position
             set_keyframe(tgt_joint, tgt_trans_data, trans_attr)
-            
 
         """ tgt target angle from src """
         # src: world rotation for tgt
@@ -470,7 +467,7 @@ def main():
             src_world_angle = rot_data[i]
 
             # target world angle 
-            tgt_world_mat = Tpose_diff @ E_to_R(np.array(src_world_angle)) 
+            tgt_world_mat = E_to_R(np.array(src_world_angle)) @ Tpose_diff
 
             # delta angle 
             if j==0:
@@ -479,27 +476,15 @@ def main():
             else:
                 # tgt parent world rot
                 tgt_parent_joint = get_parent_joint(tgt_joint)
-                angle = cmds.xform(tgt_parent_joint, q=True, ws=True, matrix=True)
-                parent_rot_mat = np.transpose(np.array(angle).reshape(4,4))[:3,:3] 
+                parent_rot_mat = np.transpose(np.array(cmds.xform(tgt_parent_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
 
+            # update by frame
             tgt_local_mat = np.linalg.inv(parent_rot_mat) @ tgt_world_mat
-            # tgt_local_mat = tgt_world_mat @ np.linalg.inv(parent_rot_mat)
-            tgt_local_angle = R_to_E(tgt_local_mat[:3, :3])
+            tgt_local_angle = R_to_E(tgt_local_mat)
             desired_rot_data[i] = tgt_local_angle
-        
-            # if i==0 and tgt_joint=="LeftArm":
-            #     print(tgt_parent_joint)
-            #     print("Tpose_diff:\n", Tpose_diff)
-                
-            #     print("src_world_angle:{} \n {}".format(src_world_angle, E_to_R(np.array(src_world_angle))))
-            #     print("tgt_world_mat: {} \n {}".format(R_to_E(tgt_world_mat), tgt_world_mat))
 
-            #     print("parent_rot_mat: {} {}\n {}".format(angle, R_to_E(parent_rot_mat), parent_rot_mat)) # \n{} , np.linalg.inv(parent_rot_mat)
-            #     print("tgt_local_angle:{} \n {}".format(tgt_local_angle, tgt_local_mat))
-                
-        # """ update """
+        # update by joint
         set_keyframe(tgt_joint, desired_rot_data, rot_attr)
-
 
     # freeze
     incoming_connections = {}
