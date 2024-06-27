@@ -15,11 +15,44 @@ usage
 - mayapy retargeting_different_axis.py --src_motion_path "" --tgt_char_path "" --tgt_motion_path ""
 """
 # after align
-# D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/animation/0055_Freestyle002_03_RT0214.fbx" --targetChar "./models/Dancstruct/SKM_Asooni_1207.fbx"
 # D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/animation/0048_Basic Roll_01_RT0104.fbx" --targetChar "./models/Dancstruct/SKM_ADORI_0229.fbx"
-
 # before align 
 # D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/animation_before_edit/0048_Basic Roll_01_RT0104.fbx" --targetChar "./models/Dancstruct/SKM_ADORI_0229.fbx"
+
+
+# joints
+template_joints = \
+    ["Hips","Spine","Spine1","Spine2",
+     "Neck","Head", 
+     "LeftShoulder","LeftArm","LeftForeArm","LeftHand", 
+     "RightShoulder","RightArm","RightForeArm","RightHand", 
+     "LeftUpLeg","LeftLeg","LeftFoot","LeftToeBase",
+     "RightUpLeg","RightLeg","RightFoot","RightToeBase"]
+    # 22 = 4+2+4+4+4+4
+
+alter_joint_name = {
+     "Hips":["Pelvis"], 
+
+     "LeftShoulder": ["LFBXASC032Clavicle"], 
+     "LeftArm":["LFBXASC032UpperArm"], 
+     "LeftForeArm":["LFBXASC032Forearm"], 
+     "LeftHand": ["LFBXASC032Hand"],
+
+     "RightShoulder":["RFBXASC032Clavicle"], 
+     "RightArm":["RFBXASC032UpperArm"], 
+     "RightForeArm":["RFBXASC032Forearm"], 
+     "RightHand":["RFBXASC032Hand"], 
+
+     "LeftUpLeg":['LFBXASC032Thigh'], 
+     "LeftLeg":['LFBXASC032Calf'], 
+     "LeftFoot":['LFBXASC032Foot'], 
+     "LeftToeBase":['LFBXASC032Toe0'], 
+
+     "RightUpLeg":['RFBXASC032Thigh'], 
+     "RightLeg":['RFBXASC032Calf'], 
+     "RightFoot":['RFBXASC032Foot'], 
+     "RightToeBase":['RFBXASC032Toe0'], 
+    }
 
 def get_joint_hierarchy(root_joint):
     hierarchy = []
@@ -44,29 +77,47 @@ def find_root_joints(all_joints):
     
     return root_joints[0] # should be one 
 
-def refine_joints(joints, template_joints):
+def select_joints(joints, template_joints):
     refined_joints = []
     for template_joint in template_joints:
         for joint in joints:
-            if template_joint.lower() in joint.lower() and \
+            # find alternative name 
+            alter_joint = joint
+            for temp_name, alter_names in alter_joint_name.items():
+                changed = False
+                for alter_name in alter_names:
+                    if joint in alter_name or alter_name in joint:
+                        # print("{} -> {}".format(joint, temp_name))
+                        alter_joint = temp_name
+                        changed = True
+                        break
+                if changed:
+                    break
+
+            # joint in template joint, not finger  
+            if (template_joint.lower() in joint.lower() or joint.lower() in template_joint.lower() or \
+                template_joint.lower() in alter_joint.lower() or alter_joint.lower() in template_joint.lower()) and \
                 "Thumb" not in joint and \
                 "Index" not in joint and \
                 "Middle" not in joint and \
                 "Ring" not in joint and \
                 "Pinky" not in joint:
                 refined_joints.append(joint)
+                # print(joint)
                 break
         
     return refined_joints
 
 def refine_joint_name(joints):
-    form = "ACHID:" # list로 바꾸기
-    form1 = "_bind" # list로 바꾸기
     ret_joints = [] 
     for joint in joints:
-        if form in joint or form1 in joint :
-            joint = joint.replace(form, "")
+        # replace joint name as template name
+        for temp_joint, alter_joints in alter_joint_name.items():
+            for alter_joint in alter_joints:
+                if joint in alter_joint or alter_joint in joint:
+                    joint = temp_joint
         ret_joints.append(joint)
+
     return ret_joints
 
 def get_keyframe_data(joint):
@@ -290,27 +341,6 @@ def get_world_vector_from_world_rot(rot_data, vector): # world rot, vector
 
     return np.array(forward_vectors)
 
-# dict
-# Asooni src 
-src_template_joints = \
-    ["Hips","Spine","Spine1","Spine2", # 4
-     "Neck","Head", #"HeadTop_End", # 2
-     "LeftShoulder","LeftArm","LeftForeArm","LeftHand", # 4
-     "RightShoulder","RightArm","RightForeArm","RightHand", # 4
-     "LeftUpLeg","LeftLeg","LeftFoot","LeftToeBase", #"LeftToe_End", # 4
-     "RightUpLeg","RightLeg","RightFoot","RightToeBase"] # , "RightToe_End"  # 4
-    # 22
-
-# adori
-tgt_template_joints = \
-    ['Hips', 'Spine', 'Spine1', 'Spine2', #'Spine3', 'Spine4',  # 4
-     'Neck', "Head", # 2 'Neck1', 
-     'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand',  # 4
-     'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', # 4
-     'RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', # 4
-     'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase'] # 4
-    # 22
-
 def get_parent_joint(joint):
     parent = cmds.listRelatives(joint, parent=True)
     if parent:
@@ -337,7 +367,8 @@ def main():
         tgt_joints = cmds.ls(type='joint')
         root_joint = find_root_joints(tgt_joints)
         tgt_joint_hierarchy = get_joint_hierarchy(root_joint)
-        tgt_joint_hierarchy = refine_joints(tgt_joint_hierarchy, tgt_template_joints)
+        # print(tgt_joint_hierarchy)
+        tgt_joint_hierarchy = select_joints(tgt_joint_hierarchy, template_joints)
         # get locator rotation 
         tgt_locator = cmds.ls(type='locator')
         tgt_locator = tgt_locator[0].replace("Shape","")
@@ -366,25 +397,36 @@ def main():
         src_joints = list(set(src_joints) - set(tgt_joints))
         root_joint = find_root_joints(src_joints)
         src_joint_hierarchy = get_joint_hierarchy(root_joint)
-        src_joint_hierarchy = refine_joints(src_joint_hierarchy, src_template_joints)
+        src_joint_hierarchy = select_joints(src_joint_hierarchy, template_joints)
 
         # find common joints 
-        tgt_joint_hierarchy_refined = refine_joint_name(tgt_joint_hierarchy)
         src_common_joint = []
         tgt_common_joint = []
+        tgt_joint_hierarchy_refined = refine_joint_name(tgt_joint_hierarchy)
+        print("{} {}".format(len(tgt_joint_hierarchy_refined), tgt_joint_hierarchy_refined))
         for src_joint in src_joint_hierarchy:
+            check = False
             for tgt_joint in tgt_joint_hierarchy_refined:
+                src_joint_ori = copy.deepcopy(src_joint)
+                tgt_joint_ori = copy.deepcopy(tgt_joint)
+
+                # find common joint 
                 if src_joint in tgt_joint or tgt_joint in src_joint:
-                    src_common_joint.append(src_joint)
-                    tgt_common_joint.append(tgt_joint)
+                    src_common_joint.append(src_joint_ori)
+                    tgt_common_joint.append(tgt_joint_ori)
+                    check = True 
                     break
-    
+            if check:
+                continue
+
+        # joint index 
         src_joint_index, tgt_joint_index = [], []
         for joint in src_common_joint:
             src_joint_index.append(src_joint_hierarchy.index(joint))
         for joint in tgt_common_joint:
             tgt_joint_index.append(tgt_joint_hierarchy_refined.index(joint))
 
+        # selected joint hierarchy
         src_select_hierarchy, tgt_select_hierarchy = [], []
         for i in range(len(src_joint_index)):
             src_select_hierarchy.append(src_joint_hierarchy[src_joint_index[i]])
@@ -402,16 +444,9 @@ def main():
 
     """ Tpose """
     if True:
-        # src_Tpose_rots = []
-        # tgt_Tpose_rots = []
         Tpose_trfs = []
         for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
-            """ src """
             # world 
-            # rot_data = cmds.xform(src_joint, q=True, ws=True, matrix=True)
-            # rot_data = np.transpose(np.array(rot_data).reshape(4,4))[:3,:3]
-            # Tpose_rots.append(rot_data)
-
             # src 
             src_rot_data = np.transpose(np.array(cmds.xform(src_joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3]) # ws=False
             # tgt 
@@ -419,11 +454,6 @@ def main():
             # trf 
             trf = np.linalg.inv(src_rot_data) @ tgt_rot_data
             Tpose_trfs.append(trf)
-            # print(j)
-            # print("src_rot_data\n",src_rot_data)
-            # print("tgt_rot_data\n",tgt_rot_data)
-            # print("trf\n",trf)
-        # Tpose_rots = np.array(Tpose_rots)
     
     """ import src motion """
     if True:
@@ -441,9 +471,9 @@ def main():
         for i in range(3):
             tgt_Tpose[0][i] = -src_locator_translation[i]
 
-    # """ retarget """
-    # # locator
-    # # cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
+    """ retarget """
+    # locator
+    # cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
 
     # target position
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
@@ -495,7 +525,6 @@ def main():
 
             # target world angle 
             tgt_world_mat = src_world_mat @ Tpose_trfs[j]
-            # tgt_world_mat = Tpose_trfs[j] @ E_to_R(np.array(src_world_angle))
 
             # update by frame
             if j==0:
@@ -507,18 +536,8 @@ def main():
                 tgt_parent_rot_mat = np.transpose(np.array(cmds.xform(tgt_parent_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3] 
                 # TODO: parent rot amt 
             tgt_local_mat = np.linalg.inv(tgt_parent_rot_mat) @ tgt_world_mat
-            # print(tgt_parent_rot_mat.shape)
-            # print(tgt_local_mat.shape)
-            # print(tgt_parent_rot_mat)
-            # print(tgt_world_mat)
             tgt_local_angle = R_to_E(tgt_local_mat)
             desired_rot_data[i] = tgt_local_angle
-
-            if (i==0) and j==0: #  or i==200
-                print("{} {} {}".format(i,j,src_joint))
-                print("src \n{}".format(src_world_mat))
-                print("TPose \n", Tpose_trfs[j])
-                print("tgt_local_mat {} \n{}".format(tgt_local_angle, tgt_local_mat))
 
         # update by joint
         set_keyframe(tgt_joint, desired_rot_data, rot_attr)
