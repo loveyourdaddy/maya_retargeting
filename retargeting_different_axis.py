@@ -10,13 +10,9 @@ import maya.api.OpenMaya as om
 
 """
 usage
-- mayapy retargeting_different_axis.py --src_motion_path "" --tgt_char_path "" --tgt_motion_path ""
-"""
-# after align
-# D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/animation/0048_Basic Roll_01_RT0104.fbx" --targetChar "./models/Dancstruct/SKM_ADORI_0229.fbx"
-# before align 
-# D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/animation_before_edit/0048_Basic Roll_01_RT0104.fbx" --targetChar "./models/Dancstruct/SKM_ADORI_0229.fbx"
+- mayapy retargeting_different_axis.py --src_motion_path "" --tgt_char_path ""
 # D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/animation_before_edit/Go Hard - TWICE_002_RT0118.fbx" --targetChar "./models/Dancstruct/SKM_ADORI_0229.fbx"
+"""
 
 # joints
 template_joints = [
