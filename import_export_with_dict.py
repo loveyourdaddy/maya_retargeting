@@ -22,35 +22,33 @@ usage
 if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
     cmds.loadPlugin('fbxmaya')
 
-# load source
+# Order: load target char -> load motion 
 args = get_args()
 
-""" load target char -> load motion """
 """ load target char """
 targetChar = args.targetChar
 mel.eval('FBXImport -f "{}"'.format(targetChar))
 target_char = targetChar.split('/')[-1].split('.')[0]
  
-# tgt joint hierarchy 
+# joint hierarchy 
 tgt_joints = cmds.ls(type='joint')
 root_joint = find_root_joints(tgt_joints)
 tgt_joint_hierarchy = get_joint_hierarchy(root_joint)
 tgt_joint_hierarchy = refine_joints(tgt_joint_hierarchy, tgt_template_joints)
-print("{}".format(len(tgt_joint_hierarchy))) # , tgt_joint_hierarchy
 
 """ load source motion """
 sourceMotion = args.sourceMotion
 mel.eval('FBXImport -f"{}"'.format(sourceMotion))
 target_motion = sourceMotion.split('/')[-1].split('.')[0]
 
-# src joint hierarchy
+# joint hierarchy
 src_joints = cmds.ls(type='joint')
 src_joints = list(set(src_joints) - set(tgt_joints))
 root_joint = find_root_joints(src_joints)
 src_joint_hierarchy = get_joint_hierarchy(root_joint)
 src_joint_hierarchy = refine_joints(src_joint_hierarchy, src_template_joints)
-print("{}".format(len(src_joint_hierarchy))) # src_joint_hierarchy
 
+""" retarget """
 for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
     trans_data, keyframe_data = get_keyframe_data(src_joint)
     
