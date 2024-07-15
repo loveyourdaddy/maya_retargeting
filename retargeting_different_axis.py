@@ -199,14 +199,6 @@ def set_keyframe(joint, keyframe_data, rot_attr):
                 continue
             cmds.setKeyframe(joint, attribute=attr, time=tid, value=value) # world 로 가능?
 
-# def R_to_E_seq(R):
-#     n = len(R)
-#     euler_angles = np.zeros((n, 3))
-#     for i in range(n):
-#         euler_angles[i] = R_to_E(R[i])
-
-#     return euler_angles
-
 def R_to_E(R):
     beta = np.arcsin(-R[2, 0]) # beta (y axis)
     # print("{} {}".format(-R[2, 0], beta))
@@ -443,6 +435,7 @@ def main():
             tgt_rot_data = np.transpose(np.array(cmds.xform(tgt_joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
             # trf 
             trf = np.linalg.inv(src_rot_data) @ tgt_rot_data
+            print("{}\n {}\n {}\n".format(trf, np.linalg.inv(src_rot_data), tgt_rot_data))
             Tpose_trfs.append(trf)
     
     """ import src motion """
@@ -502,6 +495,7 @@ def main():
         max_time = len(rot_data)
         min_time = 0
         desired_rot_data = np.full((max_time+1-min_time, 3), None, dtype=np.float32)
+        print(tgt_joint)
         for i in range(len_frame):
             """ src """
             # src world angle
@@ -530,6 +524,7 @@ def main():
                 tgt_parent_joint = get_parent_joint(tgt_joint)
                 tgt_parent_rot_mat = np.transpose(np.array(cmds.xform(tgt_parent_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3] 
             tgt_local_mat = np.linalg.inv(tgt_parent_rot_mat) @ tgt_world_mat
+            # print("{} \n{} \n{} \n{} \n{}\n".format(-tgt_local_mat[2, 0], tgt_local_mat, tgt_world_mat, src_world_mat, Tpose_trfs[j])) # np.linalg.inv(tgt_parent_rot_mat), 
             tgt_local_angle = R_to_E(tgt_local_mat)
             desired_rot_data[i] = tgt_local_angle
 
@@ -561,4 +556,5 @@ def main():
     print("File export to ", export_file)
 
 if __name__=="__main__":
+
     main()
