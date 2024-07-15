@@ -202,18 +202,13 @@ def set_keyframe(joint, keyframe_data, rot_attr):
     for attr_idx, attr in enumerate(rot_attr.keys()):
         for tid, perframe_data in enumerate(keyframe_data):
             value = float(perframe_data[attr_idx])
+            if np.isnan(value):
+                continue
             cmds.setKeyframe(joint, attribute=attr, time=tid, value=value) # world 로 가능?
-
-def R_to_E_seq(R):
-    n = len(R)
-    euler_angles = np.zeros((n, 3))
-    for i in range(n):
-        euler_angles[i] = R_to_E(R[i])
-
-    return euler_angles
 
 def R_to_E(R):
     beta = np.arcsin(-R[2, 0]) # beta (y axis)
+    # print("{} {}".format(-R[2, 0], beta))
     
     # Calculate alpha(z axis) and gamma (x axis) based on the value of cos(beta)
     if np.cos(beta) != 0:
@@ -229,7 +224,7 @@ def R_to_E(R):
     gamma = np.degrees(gamma)
 
     return np.array([alpha, beta, gamma])
- 
+
 def E_to_R(E, order="xyz", radians=False): # order: rotation값이 들어오는 순서
     """
     Args:
@@ -376,19 +371,21 @@ def main():
             tgt_Tpose[i] = cmds.xform(joint, q=True, ws=False, ro=True)
         tgt_Tpose = np.array(tgt_Tpose)
 
-        # get locator rotation 
+        # get locator 
         tgt_locator = cmds.ls(type='locator')
         if len(tgt_locator)!=0:
             tgt_locator = tgt_locator[0].replace("Shape","")
+            # rotation 
             tgt_locator_rot = cmds.xform(tgt_locator, q=True, ws=True, ro=True)
-            tgt_locator_pos = cmds.xform(tgt_locator, q=True, ws=True, translation=True)
-            # tgt_locator_pos[0] = 200 # translate
-            cmds.xform(tgt_locator, q=False, ws=True, translation=tgt_locator_pos)
+            # position
+            # tgt_locator_pos = cmds.xform(tgt_locator, q=True, ws=True, translation=True)
+            # scale 
+            tgt_locator_scale = cmds.xform(tgt_locator, q=True, ws=True, scale=True)
+            # set locator 
+            # cmds.xform(tgt_locator, q=False, ws=True, translation=tgt_locator_pos)
 
     """ joint hierarchy """
     if True:
-        # nodes_before_import = set(get_top_level_nodes())
-
         # import Tpose
         sourceMotion = args.sourceMotion
         sourceChar = sourceMotion.split('/')[2]
@@ -406,25 +403,17 @@ def main():
         src_common_joint = []
         tgt_common_joint = []
         tgt_joint_hierarchy_refined = refine_joint_name(tgt_joint_hierarchy)
-        print(tgt_joint_hierarchy)
-        print("tgt: ", tgt_joint_hierarchy_refined)
-        print("src: ", src_joint_hierarchy)
         for src_joint in src_joint_hierarchy:
             check = False
             for tgt_joint in tgt_joint_hierarchy_refined:
-                # src_joint_ori = copy.deepcopy(src_joint)
-                # tgt_joint_ori = copy.deepcopy(tgt_joint)
-
                 # find common joint 
                 if src_joint.lower() in tgt_joint.lower() or tgt_joint.lower() in src_joint.lower():
-                    src_common_joint.append(src_joint) # _ori
-                    tgt_common_joint.append(tgt_joint) # _ori
+                    src_common_joint.append(src_joint)
+                    tgt_common_joint.append(tgt_joint)
                     check = True 
                     break
             if check:
                 continue
-        print(src_common_joint)
-        print(tgt_common_joint)
 
         # joint index 
         src_joint_index, tgt_joint_index = [], []
@@ -440,15 +429,7 @@ def main():
             tgt_select_hierarchy.append(tgt_joint_hierarchy[tgt_joint_index[i]])
         src_joint_hierarchy = src_select_hierarchy
         tgt_joint_hierarchy = tgt_select_hierarchy
-    # print(tgt_joint_hierarchy)
         
-        # remove Tpose motion
-        # nodes_after_import = set(get_top_level_nodes())
-        # imported_nodes = nodes_after_import - nodes_before_import
-        # Delete the imported nodes
-        # print(imported_nodes)
-        # if imported_nodes:
-        #     cmds.delete(imported_nodes)
 
     """ Tpose """
     if True:
@@ -461,6 +442,7 @@ def main():
             tgt_rot_data = np.transpose(np.array(cmds.xform(tgt_joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
             # trf 
             trf = np.linalg.inv(src_rot_data) @ tgt_rot_data
+            print("{}\n {}\n {}\n".format(trf, np.linalg.inv(src_rot_data), tgt_rot_data))
             Tpose_trfs.append(trf)
     
     """ import src motion """
@@ -489,13 +471,8 @@ def main():
     # target position
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
         """ src """
-        # keyframe_data [attr, frames, (frame, value)]
-        trans_data, rot_data = get_keyframe_data(src_joint) # world 
-
-        # Tpose difference
-        # source_mat = Tpose_rots[j] #np.transpose(np.array().reshape(4,4))[:3,:3] # E_to_R
-        # target_mat = np.transpose(np.array(cmds.xform(tgt_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
-        # Tpose_diff = np.linalg.inv(source_mat) @ target_mat
+        # keyframe_data [attr, frames, (frame, value)]: (trans, world rot)
+        trans_data, rot_data = get_keyframe_data(src_joint) 
 
         """ translation """
         if j==0:
@@ -508,6 +485,11 @@ def main():
                 else:
                     tgt_locator_rot_mat = np.identity()
                 tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0), trans_data)
+                
+                # scale translation
+                for i in range(3): # x, y, z
+                    tgt_trans_data[:, i] /= tgt_locator_scale[i]
+                
                 # update position
                 set_keyframe(tgt_joint, tgt_trans_data, trans_attr)
 
@@ -520,6 +502,7 @@ def main():
         max_time = len(rot_data)
         min_time = 0
         desired_rot_data = np.full((max_time+1-min_time, 3), None, dtype=np.float32)
+        print(tgt_joint)
         for i in range(len_frame):
             """ src """
             # src world angle
@@ -548,6 +531,7 @@ def main():
                 tgt_parent_joint = get_parent_joint(tgt_joint)
                 tgt_parent_rot_mat = np.transpose(np.array(cmds.xform(tgt_parent_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3] 
             tgt_local_mat = np.linalg.inv(tgt_parent_rot_mat) @ tgt_world_mat
+            # print("{} \n{} \n{} \n{} \n{}\n".format(-tgt_local_mat[2, 0], tgt_local_mat, tgt_world_mat, src_world_mat, Tpose_trfs[j])) # np.linalg.inv(tgt_parent_rot_mat), 
             tgt_local_angle = R_to_E(tgt_local_mat)
             desired_rot_data[i] = tgt_local_angle
 
@@ -579,4 +563,5 @@ def main():
     print("File export to ", export_file)
 
 if __name__=="__main__":
+
     main()
