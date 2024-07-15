@@ -1,6 +1,7 @@
 *.fbx
 *.gltf
 *.jpg
+*.DS_Store
 /videos/*
 /ppts/*
 /output/*
