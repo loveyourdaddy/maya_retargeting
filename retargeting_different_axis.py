@@ -15,12 +15,10 @@ usage
 Window 
 D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py 
 --sourceMotion "./motions/Asooni/animation_before_edit/Go Hard - TWICE_002_RT0118.fbx" 
---targetChar "./models/Dancstruct/SKM_ADORI_0229.fbx"
+--targetChar "./models/_General/1.Adori/SKM_ADORI_0424.fbx"
 
-Mac 
-/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy retargeting_different_axis.py 
---sourceMotion './motions/Asooni/animation_before_edit/Go Hard - TWICE_002_RT0118.fbx' 
---targetChar './models/Dancstruct/SKM_ADORI_0229.fbx'
+Mac
+/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy retargeting_different_axis.py --sourceMotion './motions/Asooni/animation_before_edit/Go Hard - TWICE_002_RT0118.fbx' --targetChar './models/_General/1.Adori/SKM_ADORI2.0_0424.fbx'
 """
 
 # joints
@@ -32,6 +30,10 @@ template_joints = [
      "LeftUpLeg","LeftLeg","LeftFoot","LeftToeBase",
      "RightUpLeg","RightLeg","RightFoot","RightToeBase"]
     # 22 = 4+2+4+4+4+4
+
+ee_joints = [
+    "LeftHand", "RightHand", "LeftToeBase", "RightToeBase"
+]
 
 alter_joint_name = {
      "Hips":["Pelvis", "LowerTorso"], 
@@ -98,8 +100,7 @@ def select_joints(joints, template_joints):
                     break
 
             # joint in template joint, not finger  
-            if (template_joint.lower() in joint.lower() or joint.lower() in template_joint.lower() or \
-                template_joint.lower() in alter_joint.lower() or alter_joint.lower() in template_joint.lower()) and \
+            if (template_joint.lower() in alter_joint.lower() or alter_joint.lower() in template_joint.lower()) and \
                 "Thumb" not in joint and \
                 "Index" not in joint and \
                 "Middle" not in joint and \
@@ -362,14 +363,16 @@ def main():
         tgt_joints = cmds.ls(type='joint')
         tgt_root_joint = find_root_joints(tgt_joints)
         tgt_joint_hierarchy = get_joint_hierarchy(tgt_root_joint)
+        print("tgt_joint_hierarchy: ", tgt_joint_hierarchy)
         tgt_joint_hierarchy = select_joints(tgt_joint_hierarchy, template_joints)
+        print("tgt_joint_hierarchy: ", tgt_joint_hierarchy)
 
         # Tpose of tgt (inital pose for updating delta)
-        tgt_Tpose = [[0,0,0] for _ in range(len(tgt_joint_hierarchy))] # [num_joint, attr 3]
-        # other joint: tgt load할때 얻기
-        for i, joint in enumerate(tgt_joint_hierarchy):
-            tgt_Tpose[i] = cmds.xform(joint, q=True, ws=False, ro=True)
-        tgt_Tpose = np.array(tgt_Tpose)
+        # tgt_Tpose = [[0,0,0] for _ in range(len(tgt_joint_hierarchy))] # [num_joint, attr 3]
+        # # other joint: tgt load할때 얻기
+        # for i, joint in enumerate(tgt_joint_hierarchy):
+        #     tgt_Tpose[i] = cmds.xform(joint, q=True, ws=False, ro=True)
+        # tgt_Tpose = np.array(tgt_Tpose)
 
         # get locator 
         tgt_locator = cmds.ls(type='locator')
@@ -389,7 +392,12 @@ def main():
         # import Tpose
         sourceMotion = args.sourceMotion
         sourceChar = sourceMotion.split('/')[2]
-        Tpose = "./motions/"+sourceChar+"/animation_before_edit/T-Pose.fbx"
+        Tpose = "./motions/"+sourceChar+"/animation/T-Pose.fbx"
+        print(Tpose)
+        mel.eval('FBXImport -f"{}"'.format(Tpose))
+
+        Tpose = "./motions/"+"Adori"+"/animation/T-Pose.fbx"
+        print(Tpose)
         mel.eval('FBXImport -f"{}"'.format(Tpose))
 
         # refine joint hierarchy
@@ -415,7 +423,7 @@ def main():
             if check:
                 continue
 
-        # joint index 
+        # joint index
         src_joint_index, tgt_joint_index = [], []
         for joint in src_common_joint:
             src_joint_index.append(src_joint_hierarchy.index(joint))
@@ -424,74 +432,112 @@ def main():
 
         # selected joint hierarchy
         src_select_hierarchy, tgt_select_hierarchy = [], []
+        name2index = {} 
+        index2name = {}
         for i in range(len(src_joint_index)):
-            src_select_hierarchy.append(src_joint_hierarchy[src_joint_index[i]])
+            name = src_joint_hierarchy[src_joint_index[i]]
+            src_select_hierarchy.append(name)
             tgt_select_hierarchy.append(tgt_joint_hierarchy[tgt_joint_index[i]])
+            name2index[name] = i
+            index2name[i] = name
         src_joint_hierarchy = src_select_hierarchy
         tgt_joint_hierarchy = tgt_select_hierarchy
-        
+        print(src_joint_hierarchy)
+        print(name2index)
 
-    """ Tpose """
+        # parent index
+        parent_indices = [] 
+        division = []
+        child_of_divisions = []
+        for i in range(len(src_joint_index)):
+            # if num child>0, parent joint 
+            joint_name = src_joint_hierarchy[src_joint_index[i]]
+            children = cmds.listRelatives(joint_name, children=True, type='joint')
+            children_index = []
+            for child in children:
+                if child not in name2index:
+                    continue
+                children_index.append(name2index[child])
+
+            # parent index 
+            # root 
+            if len(parent_indices)==0:
+                parent_j = -1
+            else:
+                # parent가 division이라면, division을 parent index로 
+                # for child_j in children_index:
+                check = False 
+                # print(child_j)
+                for division_idx, child_of_division in enumerate(child_of_divisions):
+                    print("{} in {} ".format(i, child_of_division))
+                    if i in child_of_division:
+                        parent_j = division[division_idx]
+                        # print(parent_j)
+                        check = True 
+                        break
+
+                # 해당 없다면 
+                if check==False:
+                    parent_j = i-1
+            parent_indices.append(parent_j)
+
+            # divider
+            if len(children)>1 and tgt_joint_hierarchy_refined[i] not in ee_joints: # joint name is not in end effector 
+                division_j = copy.deepcopy(i)
+                division.append(division_j)
+                child_of_divisions.append(children_index)
+            
+            # print("{} {} {}\n".format(i, joint_name, parent_j))
+    print(parent_indices)
+
+
+    """ Tpose trf """
     if True:
         Tpose_trfs = []
+        # world rotation
         for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
-            # world 
-            # src 
-            src_rot_data = np.transpose(np.array(cmds.xform(src_joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3]) # ws=False
-            # tgt 
+            src_rot_data = np.transpose(np.array(cmds.xform(src_joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
             tgt_rot_data = np.transpose(np.array(cmds.xform(tgt_joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
-            # trf 
             trf = np.linalg.inv(src_rot_data) @ tgt_rot_data
-            print("{}\n {}\n {}\n".format(trf, np.linalg.inv(src_rot_data), tgt_rot_data))
             Tpose_trfs.append(trf)
     
+
     """ import src motion """
     if True:
         sourceMotion = args.sourceMotion
         mel.eval('FBXImport -f"{}"'.format(sourceMotion))
         target_motion = sourceMotion.split('/')[-1].split('.')[0]
 
-        # src locator 
-        src_locator = cmds.ls(type='locator')
-        if len(tgt_locator) != 0:
-            src_locator = list(set(src_locator) - set(tgt_locator))
-        else:
-            src_locator = list(set(src_locator))
-        src_locator = src_locator[0].replace("Shape","")
-        src_locator_translation = cmds.xform(src_locator, q=True, ws=True, ro=True)
-
-        # hip joint: inverse of locator rotation 
-        for i in range(3):
-            tgt_Tpose[0][i] = -src_locator_translation[i]
 
     """ retarget """
-    # locator
-    # cmds.xform(tgt_locator, ws=False, ro=src_locator_translation)
+    # translation
+    src_joint, tgt_joint = src_joint_hierarchy[0], tgt_joint_hierarchy[0]
+    trans_data, _ = get_keyframe_data(src_joint) 
+    trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
+    trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
+    len_frame = len(trans_data)
+    if len_frame != 0:
+        if len(tgt_locator)!=0:
+            tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
+        else:
+            tgt_locator_rot_mat = np.identity()
+        tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0), trans_data)
+        
+        # scale translation
+        for i in range(3): # x, y, z
+            tgt_trans_data[:, i] /= tgt_locator_scale[i]
+        
+        # update position
+        set_keyframe(tgt_joint, tgt_trans_data, trans_attr)
 
-    # target position
+    # rotation
+    tgt_world_mats = np.full((len_frame, len(tgt_joint_hierarchy), 3, 3), None, dtype=np.float32)
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
+        # print("{} {} {}".format(j, src_joint, tgt_joint))
+
         """ src """
         # keyframe_data [attr, frames, (frame, value)]: (trans, world rot)
-        trans_data, rot_data = get_keyframe_data(src_joint) 
-
-        """ translation """
-        if j==0:
-            trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
-            trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
-            len_frame = len(trans_data)
-            if len_frame!=0:
-                if len(tgt_locator)!=0:
-                    tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
-                else:
-                    tgt_locator_rot_mat = np.identity()
-                tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0), trans_data)
-                
-                # scale translation
-                for i in range(3): # x, y, z
-                    tgt_trans_data[:, i] /= tgt_locator_scale[i]
-                
-                # update position
-                set_keyframe(tgt_joint, tgt_trans_data, trans_attr)
+        _, rot_data = get_keyframe_data(src_joint)
 
         """ tgt target angle from src """
         # src: world rotation for tgt
@@ -499,10 +545,7 @@ def main():
         rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
 
         """ update data """
-        max_time = len(rot_data)
-        min_time = 0
-        desired_rot_data = np.full((max_time+1-min_time, 3), None, dtype=np.float32)
-        print(tgt_joint)
+        desired_rot_data = np.full((len_frame+1, 3), None, dtype=np.float32)
         for i in range(len_frame):
             """ src """
             # src world angle
@@ -521,6 +564,9 @@ def main():
 
             # target world angle 
             tgt_world_mat = src_world_mat @ Tpose_trfs[j]
+            tgt_world_mats[i, j] = tgt_world_mat
+            # if i==0:
+            #     print("tgt_world_mat: \n", tgt_world_mat)
 
             # update by frame
             if j==0:
@@ -528,10 +574,11 @@ def main():
                 tgt_parent_rot_mat = E_to_R(np.array(tgt_locator_rot))
             else:
                 # tgt parent world rot
-                tgt_parent_joint = get_parent_joint(tgt_joint)
-                tgt_parent_rot_mat = np.transpose(np.array(cmds.xform(tgt_parent_joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3] 
+                parent_j = parent_indices[j]
+                tgt_parent_rot_mat = tgt_world_mats[i, parent_j]
+                # if i==0:
+                #     print("tgt_parent_rot_mat {}: \n{}".format(parent_j, tgt_parent_rot_mat))
             tgt_local_mat = np.linalg.inv(tgt_parent_rot_mat) @ tgt_world_mat
-            # print("{} \n{} \n{} \n{} \n{}\n".format(-tgt_local_mat[2, 0], tgt_local_mat, tgt_world_mat, src_world_mat, Tpose_trfs[j])) # np.linalg.inv(tgt_parent_rot_mat), 
             tgt_local_angle = R_to_E(tgt_local_mat)
             desired_rot_data[i] = tgt_local_angle
 
@@ -563,5 +610,4 @@ def main():
     print("File export to ", export_file)
 
 if __name__=="__main__":
-
     main()
