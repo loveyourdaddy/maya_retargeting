@@ -2,6 +2,7 @@
 *.gltf
 *.jpg
 *.DS_Store
+*.pyc
 /videos/*
 /ppts/*
 /output/*
