@@ -1,6 +1,5 @@
 import copy
 import maya.cmds as cmds
-import maya.mel as mel
 
 from functions.joints import *
 from functions.keyframe import *
@@ -15,30 +14,21 @@ def get_tgt_joints():
 
     return tgt_joints, tgt_root_joint
 
-def get_locator():
+def get_locator(tgt_locator):
     # get locator 
-    tgt_locator = cmds.ls(type='locator')
-    if len(tgt_locator)!=0:
-        tgt_locator = tgt_locator[0].replace("Shape","")
-        # rotation 
-        tgt_locator_rot = cmds.xform(tgt_locator, q=True, ws=True, ro=True)
-        # position
-        # tgt_locator_pos = cmds.xform(tgt_locator, q=True, ws=True, translation=True)
-        # scale 
-        tgt_locator_scale = cmds.xform(tgt_locator, q=True, ws=True, scale=True)
-        # set locator 
-        # cmds.xform(tgt_locator, q=False, ws=True, translation=tgt_locator_pos)
+    tgt_locator = tgt_locator[0].replace("Shape","")
 
-        return tgt_locator, tgt_locator_rot, tgt_locator_scale
+    # rotation 
+    tgt_locator_rot = cmds.xform(tgt_locator, q=True, ws=True, ro=True)
+    # position
+    # tgt_locator_pos = cmds.xform(tgt_locator, q=True, ws=True, translation=True)
+    # scale 
+    tgt_locator_scale = cmds.xform(tgt_locator, q=True, ws=True, scale=True)
+    # set locator 
+    # cmds.xform(tgt_locator, q=False, ws=True, translation=tgt_locator_pos)
 
-def import_Tpose(sourceChar):
-    Tpose = "./motions/"+sourceChar+"/animation/T-Pose.fbx"
-    print(Tpose)
-    mel.eval('FBXImport -f"{}"'.format(Tpose))
+    return tgt_locator, tgt_locator_rot, tgt_locator_scale
 
-    Tpose = "./motions/"+"Adori"+"/animation/T-Pose.fbx" # TODO
-    print(Tpose)
-    mel.eval('FBXImport -f"{}"'.format(Tpose))
 
 def get_src_joints(tgt_joints):
     # refine joint hierarchy
@@ -51,54 +41,54 @@ def get_src_joints(tgt_joints):
     return src_joint_hierarchy
 
 def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy):
+    # Original name
+
     # find common joints 
     src_common_joint = []
     tgt_common_joint = []
-    for src_joint in src_joint_hierarchy:
+    src_indices = []
+    tgt_indices = []
+    for src_idx, src_joint in enumerate(src_joint_hierarchy):
         check = False
-        for tgt_joint in tgt_joint_hierarchy:
+        for tgt_idx, tgt_joint in enumerate(tgt_joint_hierarchy):
             # find common joint 
             if src_joint.lower() in tgt_joint.lower() or tgt_joint.lower() in src_joint.lower():
                 src_common_joint.append(src_joint)
                 tgt_common_joint.append(tgt_joint)
+                src_indices.append(src_idx)
+                tgt_indices.append(tgt_idx)
                 check = True 
                 break
         if check:
             continue
 
-    # joint index
-    src_joint_index, tgt_joint_index = [], []
-    for joint in src_common_joint:
-        src_joint_index.append(src_joint_hierarchy.index(joint))
-    for joint in tgt_common_joint:
-        tgt_joint_index.append(tgt_joint_hierarchy.index(joint))
-
     # selected joint hierarchy
     src_select_hierarchy, tgt_select_hierarchy = [], []
-    name2index = {} 
+    name2index = {}
     index2name = {}
-    for i in range(len(src_joint_index)):
-        name = src_joint_hierarchy[src_joint_index[i]]
+    for i in range(len(src_indices)):
+        name = src_joint_hierarchy[src_indices[i]]
         src_select_hierarchy.append(name)
-        tgt_select_hierarchy.append(tgt_joint_hierarchy[tgt_joint_index[i]])
+        tgt_select_hierarchy.append(tgt_joint_hierarchy[tgt_indices[i]])
         name2index[name] = i
         index2name[i] = name
     src_joint_hierarchy = src_select_hierarchy
     tgt_joint_hierarchy = tgt_select_hierarchy
 
     # parent index
-    parent_indices = [] 
+    parent_indices = []
     division = []
     child_of_divisions = []
-    for i in range(len(src_joint_index)):
+    for i in range(len(src_indices)):
         # if num child>0, parent joint 
-        joint_name = src_joint_hierarchy[src_joint_index[i]]
+        joint_name = src_joint_hierarchy[src_indices[i]]
         children = cmds.listRelatives(joint_name, children=True, type='joint')
-        children_index = []
-        for child in children:
-            if child not in name2index:
-                continue
-            children_index.append(name2index[child])
+        if children is not None:
+            children_index = []
+            for child in children:
+                if child not in name2index:
+                    continue
+                children_index.append(name2index[child])
 
         # get parent index 
         if len(parent_indices)==0:
@@ -119,12 +109,12 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy):
         parent_indices.append(parent_j)
 
         # divider
-        if len(children)>1 and tgt_joint_hierarchy[i] not in ee_joints: # joint name is not in end effector 
+        if children is not None and len(children)>1 and tgt_joint_hierarchy[i] not in ee_joints: # joint name is not in end effector 
             division_j = copy.deepcopy(i)
             division.append(division_j)
             child_of_divisions.append(children_index)
         
-    return src_joint_hierarchy, tgt_joint_hierarchy, parent_indices
+    return src_joint_hierarchy, tgt_joint_hierarchy, parent_indices, src_indices, tgt_indices
 
 def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy):
     # world rotation

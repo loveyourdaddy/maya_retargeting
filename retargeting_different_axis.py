@@ -17,31 +17,48 @@ def main():
     sourceMotion = args.sourceMotion
     sourceChar = sourceMotion.split('/')[2]
     targetMotion = sourceMotion.split('/')[-1].split('.')[0]
-    targetChar = args.targetChar.split('/')[-1].split('.')[0]
+    targetChar = args.targetChar.split('/')[3].split('.')[0]
 
     # tgt character
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
 
+
     # joints 
     # tgt 
     tgt_joints, tgt_root_joint = get_tgt_joints()
-    tgt_locator, tgt_locator_rot, tgt_locator_scale = get_locator()
-    # src 
-    import_Tpose(sourceChar)
+    # tgt locator
+    tgt_locator = cmds.ls(type='locator')
+    if len(tgt_locator)!=0:
+        tgt_locator, tgt_locator_rot, tgt_locator_scale = get_locator(tgt_locator)
+
+
+    # src
+    import_Tpose(sourceChar, targetChar)
     src_joints = get_src_joints(tgt_joints)
-    # refine 
-    tgt_joints = refine_joint_name(tgt_joints)
-    src_joints, tgt_joints, parent_indices = refine_joints(src_joints, tgt_joints) 
+    # refine name 
+    tgt_joints_refined = refine_joint_name(tgt_joints)
+    src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = refine_joints(src_joints, tgt_joints_refined) # common joints # ori도 업데이트해야한다. 
+
+    # tgt_joints: refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기.  
+    tgt_joints = [tgt_joints[i] for i in tgt_indices]
 
     # Tpose trf
     Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
     
+
     # import src motion
     mel.eval('FBXImport -f"{}"'.format(sourceMotion))
 
+
     # retarget 
-    trans_data = retarget_translation(src_joints[0], tgt_joints[0], tgt_locator, tgt_locator_rot, tgt_locator_scale)
-    retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, tgt_locator_rot, len(trans_data))
+    if tgt_locator is not None and len(tgt_locator)!=0:
+        print("retarget with locator")
+        trans_data = retarget_translation(src_joints[0], tgt_joints[0], tgt_locator, tgt_locator_rot, tgt_locator_scale)
+        retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data), tgt_locator_rot)
+    else:
+        print("retarget without locator")
+        trans_data = retarget_translation(src_joints[0], tgt_joints[0])
+        retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data))
 
     # free
     if len(tgt_locator)!=0:

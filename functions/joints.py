@@ -52,9 +52,9 @@ def select_joints(joints, template_joints):
     return refined_joints
 
 def refine_joint_name(joints):
+    # replace joint name as template name
     ret_joints = [] 
     for joint in joints:
-        # replace joint name as template name
         for temp_joint, alter_joints in alter_joint_name.items():
             for alter_joint in alter_joints:
                 if joint in alter_joint or alter_joint in joint:
@@ -69,7 +69,7 @@ def get_parent_joint(joint):
         return parent[0]
     else:
         return None
-    
+
 def get_top_level_nodes():
     return cmds.ls(assemblies=True)
 
@@ -80,35 +80,36 @@ template_joints = [
      "LeftShoulder","LeftArm","LeftForeArm","LeftHand", 
      "RightShoulder","RightArm","RightForeArm","RightHand", 
      "LeftUpLeg","LeftLeg","LeftFoot","LeftToeBase",
-     "RightUpLeg","RightLeg","RightFoot","RightToeBase"]
+     "RightUpLeg","RightLeg","RightFoot","RightToeBase"
+    ]
     # 22 = 4+2+4+4+4+4
 
 ee_joints = [
     "LeftHand", "RightHand", "LeftToeBase", "RightToeBase"
-]
+    ]
 
 alter_joint_name = {
      "Hips":["Pelvis", "LowerTorso"], 
-     "Spine":["UpperTorso",],
+     "Spine":["UpperTorso", "chest", "chestUpper"], # spine1, spine2, spine3 나누기
 
-     "LeftShoulder": ["LFBXASC032Clavicle", "LeftUpperArm"], 
-     "LeftArm":["LFBXASC032UpperArm", "LeftLowerArm"], 
-     "LeftForeArm":["LFBXASC032Forearm"], 
-     "LeftHand": ["LFBXASC032Hand"],
+     "LeftShoulder": ["LFBXASC032Clavicle", "LeftUpperArm", "shoulder_L",], 
+     "LeftArm":["LFBXASC032UpperArm", "LeftLowerArm", "upperArm_L",], 
+     "LeftForeArm":["LFBXASC032Forearm", "lowerArm_L"], 
+     "LeftHand": ["LFBXASC032Hand", "hand_L"],
 
-     "RightShoulder":["RFBXASC032Clavicle", "RightUpperArm"], 
-     "RightArm":["RFBXASC032UpperArm", "LeftUpperArm"], 
-     "RightForeArm":["RFBXASC032Forearm"], 
-     "RightHand":["RFBXASC032Hand"], 
+     "RightShoulder":["RFBXASC032Clavicle", "RightUpperArm", "shoulder_R",], 
+     "RightArm":["RFBXASC032UpperArm", "RightUpperArm", "upperArm_R",], 
+     "RightForeArm":["RFBXASC032Forearm", "lowerArm_R"], 
+     "RightHand":["RFBXASC032Hand", "hand_R"], 
 
-     "LeftUpLeg":['LFBXASC032Thigh'], 
-     "LeftLeg":['LFBXASC032Calf'], 
-     "LeftFoot":['LFBXASC032Foot'], 
-     "LeftToeBase":['LFBXASC032Toe0'], 
+     "LeftUpLeg":['LFBXASC032Thigh', 'upperLeg_L'],
+     "LeftLeg":['LFBXASC032Calf', 'lowerLeg_L'], 
+     "LeftFoot":['LFBXASC032Foot', 'foot_L'], 
+     "LeftToeBase":['LFBXASC032Toe0', 'toes_L'], 
 
-     "RightUpLeg":['RFBXASC032Thigh'], 
-     "RightLeg":['RFBXASC032Calf'], 
-     "RightFoot":['RFBXASC032Foot'], 
-     "RightToeBase":['RFBXASC032Toe0'], 
+     "RightUpLeg":['RFBXASC032Thigh', 'upperLeg_R', 'upperReg_R'], 
+     "RightLeg":['RFBXASC032Calf', 'lowerLeg_R'   , 'lowerReg_R'], 
+     "RightFoot":['RFBXASC032Foot', 'foot_R'], 
+     "RightToeBase":['RFBXASC032Toe0', 'toes_R'], 
     }
 

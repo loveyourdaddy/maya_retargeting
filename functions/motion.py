@@ -1,32 +1,47 @@
+import maya.mel as mel
 from functions.joints import *
 from functions.keyframe import *
 from functions.rotations import *
 
-def retarget_translation(src_hip, tgt_hip, tgt_locator, tgt_locator_rot, tgt_locator_scale):
+def import_Tpose(sourceChar, targetChar):
+    Tpose = "./motions/"+sourceChar+"/T-Pose.fbx"
+    # print(Tpose)
+    mel.eval('FBXImport -f"{}"'.format(Tpose))
+
+    Tpose = "./motions/"+targetChar+"/T-Pose.fbx"
+    # print(Tpose)
+    mel.eval('FBXImport -f"{}"'.format(Tpose))
+
+def retarget_translation(src_hip, tgt_hip, tgt_locator=None, tgt_locator_rot=None, tgt_locator_scale=None):
     # translation
     trans_data, _ = get_keyframe_data(src_hip) 
     trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
     trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
     len_frame = len(trans_data)
-    print(len_frame)
+
+    # update position
     if len_frame!=0:
-        if len(tgt_locator)!=0:
-            tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
+        if tgt_locator==None:
+            set_keyframe(tgt_hip, trans_data, trans_attr)
         else:
-            tgt_locator_rot_mat = np.identity()
-        tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0), trans_data)
-        
-        # scale translation
-        for i in range(3): # x, y, z
-            tgt_trans_data[:, i] /= tgt_locator_scale[i]
-        
-        # update position
-        set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
+            # if len(tgt_locator)!=0:
+            tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
+            tgt_locator_rot_mat = tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0)
+            # else:
+            #     tgt_locator_rot_mat = np.identity()
+            tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat, trans_data)
+            
+            # scale translation
+            for i in range(3): # x, y, z
+                tgt_trans_data[:, i] /= tgt_locator_scale[i]
+            
+            # update position
+            set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
 
     return trans_data
 
-def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, tgt_locator_rot,\
-                      len_frame):
+def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
+                      len_frame, tgt_locator_rot=None):
     # rotation
     # assumtion: src and tgt have same joint names
     src_world_mats = np.full((len_frame, len(tgt_joints), 3, 3), None, dtype=np.float32)
@@ -69,7 +84,10 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, tgt_lo
             # parent world rot
             if j==0:
                 # locator
-                tgt_parent_rotmat = E_to_R(np.array(tgt_locator_rot))
+                if tgt_locator_rot is not None:
+                    tgt_parent_rotmat = E_to_R(np.array(tgt_locator_rot))
+                else:
+                    tgt_parent_rotmat = np.identity(3)
             else:
                 # tgt parent world rot
                 tgt_parent_rotmat = tgt_world_mats[i, parent_j]
