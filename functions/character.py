@@ -88,7 +88,7 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
     parent_indices = []
     division = []
     child_of_divisions = []
-    print("src {} {} \ntgt {} {}".format(len(src_joint_hierarchy), src_joint_hierarchy, len(tgt_joint_hierarchy_origin), tgt_joint_hierarchy_origin))
+    # print("src {} {} \ntgt {} {}".format(len(src_joint_hierarchy), src_joint_hierarchy, len(tgt_joint_hierarchy_origin), tgt_joint_hierarchy_origin))
     if len(src_indices) < len(tgt_indices):
         joint_indices = src_indices
         joint_hierarchy = src_joint_hierarchy
@@ -106,14 +106,14 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
 
         # child of joint 
         children = cmds.listRelatives(joint_name, children=True, type='joint')
-        print("{} {}: children index {} {}".format(i, joint_name, children, children is not None))
+        # print("{} {}: children index {} {}".format(i, joint_name, children, children is not None))
         if children is not None:
             children_index = []
             for child in children:
                 if child not in name2index:
                     continue
                 children_index.append(name2index[child])
-            print("{} {}: children index {}".format(i, joint_name, children_index))
+            # print("{} {}: children index {}".format(i, joint_name, children_index))
 
         # get parent index 
         if len(parent_indices)==0:
