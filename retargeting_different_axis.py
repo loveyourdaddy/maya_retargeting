@@ -3,7 +3,7 @@ import maya.standalone
 from functions.parser import *
 from functions.character import *
 from functions.motion import *
-from functions.maya import * 
+from functions.maya import *
 
 def main():
     maya.standalone.initialize(name='python')
@@ -19,38 +19,37 @@ def main():
     targetMotion = sourceMotion.split('/')[-1].split('.')[0]
     targetChar = args.targetChar.split('/')[3].split('.')[0]
 
-    # tgt character
+    ''' tgt '''
+    # character
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
 
-
-    # joints 
-    # tgt 
+    # joints
+    # tgt
     tgt_joints, tgt_root_joint = get_tgt_joints()
     # tgt locator
     tgt_locator = cmds.ls(type='locator')
     if len(tgt_locator)!=0:
         tgt_locator, tgt_locator_rot, tgt_locator_scale = get_locator(tgt_locator)
 
-
-    # src
+    ''' src '''
     import_Tpose(sourceChar, targetChar)
     src_joints = get_src_joints(tgt_joints)
+
     # refine name 
     tgt_joints_refined = refine_joint_name(tgt_joints)
-    src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = refine_joints(src_joints, tgt_joints_refined) # common joints # ori도 업데이트해야한다. 
-
-    # tgt_joints: refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기.  
+    src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = refine_joints(src_joints, tgt_joints_refined, tgt_joints) 
+    
+    # tgt_joints
+    # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
     tgt_joints = [tgt_joints[i] for i in tgt_indices]
 
     # Tpose trf
     Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
     
-
-    # import src motion
+    ''' import src motion '''
     mel.eval('FBXImport -f"{}"'.format(sourceMotion))
 
-
-    # retarget 
+    ''' retarget '''
     if tgt_locator is not None and len(tgt_locator)!=0:
         print("retarget with locator")
         trans_data = retarget_translation(src_joints[0], tgt_joints[0], tgt_locator, tgt_locator_rot, tgt_locator_scale)

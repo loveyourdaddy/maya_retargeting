@@ -15,13 +15,28 @@ def get_joint_hierarchy(root_joint):
 def find_root_joints(all_joints):
     root_joints = []
     
+    # find root joint 
     for joint in all_joints:
         parents = cmds.listRelatives(joint, parent=True)
         
         if not parents or cmds.nodeType(parents[0]) != 'joint': 
             root_joints.append(joint)
+
+    # find best root joint
+    children_of_roots = [[] for _ in range(len(root_joints))]
+    list_index = []
+    for i, root_joint in enumerate(root_joints):
+        hierarchy = get_joint_hierarchy(root_joint)
+        hierarchy = refine_joint_name(hierarchy)
+        # in template
+        children_of_roots[i] = select_joints(hierarchy, template_joints)
+        list_index.append(len(children_of_roots[i]))
     
-    return root_joints[0] # should be one 
+    max_index = list_index.index(max(list_index))
+    # print(max_index)
+    # print(root_joints[max_index])
+    
+    return root_joints[max_index] # should be one 
 
 def select_joints(joints, template_joints):
     refined_joints = []
@@ -90,7 +105,7 @@ ee_joints = [
 
 alter_joint_name = {
      "Hips":["Pelvis", "LowerTorso"], 
-     "Spine":["UpperTorso", "chest", "chestUpper"], # spine1, spine2, spine3 나누기
+     "Spine":["UpperTorso", "chest", "chestUpper"], 
 
      "LeftShoulder": ["LFBXASC032Clavicle", "LeftUpperArm", "shoulder_L",], 
      "LeftArm":["LFBXASC032UpperArm", "LeftLowerArm", "upperArm_L",], 
@@ -98,7 +113,7 @@ alter_joint_name = {
      "LeftHand": ["LFBXASC032Hand", "hand_L"],
 
      "RightShoulder":["RFBXASC032Clavicle", "RightUpperArm", "shoulder_R",], 
-     "RightArm":["RFBXASC032UpperArm", "RightUpperArm", "upperArm_R",], 
+     "RightArm":["RFBXASC032UpperArm", "RightLowerArm", "upperArm_R",], 
      "RightForeArm":["RFBXASC032Forearm", "lowerArm_R"], 
      "RightHand":["RFBXASC032Hand", "hand_R"], 
 
@@ -112,4 +127,3 @@ alter_joint_name = {
      "RightFoot":['RFBXASC032Foot', 'foot_R'], 
      "RightToeBase":['RFBXASC032Toe0', 'toes_R'], 
     }
-

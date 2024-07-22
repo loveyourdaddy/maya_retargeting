@@ -24,11 +24,8 @@ def retarget_translation(src_hip, tgt_hip, tgt_locator=None, tgt_locator_rot=Non
         if tgt_locator==None:
             set_keyframe(tgt_hip, trans_data, trans_attr)
         else:
-            # if len(tgt_locator)!=0:
             tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
             tgt_locator_rot_mat = tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0)
-            # else:
-            #     tgt_locator_rot_mat = np.identity()
             tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat, trans_data)
             
             # scale translation
@@ -47,6 +44,7 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
     src_world_mats = np.full((len_frame, len(tgt_joints), 3, 3), None, dtype=np.float32)
     tgt_world_mats = np.full((len_frame, len(tgt_joints), 3, 3), None, dtype=np.float32)
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joints, tgt_joints)):
+        # print("{} {} {}".format(j, src_joint, tgt_joint))
         parent_j = parent_indices[j]
 
         # keyframe_data 
@@ -57,6 +55,8 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
         # src: world rotation for tgt
         rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
         rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
+        src_to_tgt_trf = Tpose_trfs[j]
+        # print("src_to_tgt_trf: \n",src_to_tgt_trf)
 
         # update data
         tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
@@ -66,7 +66,7 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
             src_local_angle = rot_data[i]
             src_local_mat = E_to_R(src_local_angle)
             
-            # parent angle 
+            # parent angle
             if j==0:
                 # locator
                 src_parent_rot_mat = E_to_R(np.array([0,0,0])) # src_locator_rot TODO: src가 다를때 확인 
@@ -78,7 +78,7 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
 
             """ tgt """
             # world angle 
-            tgt_world_mat = src_world_mat @ Tpose_trfs[j]
+            tgt_world_mat = src_world_mat @ src_to_tgt_trf
             tgt_world_mats[i, j] = tgt_world_mat
 
             # parent world rot
@@ -87,7 +87,7 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
                 if tgt_locator_rot is not None:
                     tgt_parent_rotmat = E_to_R(np.array(tgt_locator_rot))
                 else:
-                    tgt_parent_rotmat = np.identity(3)
+                    tgt_parent_rotmat = tgt_world_mat
             else:
                 # tgt parent world rot
                 tgt_parent_rotmat = tgt_world_mats[i, parent_j]
@@ -95,6 +95,8 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
             # update by frame
             tgt_local_mat = np.linalg.inv(tgt_parent_rotmat) @ tgt_world_mat
             tgt_local_angle = R_to_E(tgt_local_mat)
+            # if i==0:
+            #     print("{}par \n{}world".format(parent_j, tgt_parent_rotmat)) # tgt_world_mat, tgt_local_mat, tgt_local_angle
             tgt_perjoint_local_angle[i] = tgt_local_angle
 
         # update by joint

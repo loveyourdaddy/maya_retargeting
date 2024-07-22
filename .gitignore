@@ -3,6 +3,8 @@
 *.jpg
 *.DS_Store
 *.pyc
+*.tif
+*.swp
 /videos/*
 /ppts/*
 /output/*
