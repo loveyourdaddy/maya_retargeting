@@ -39,10 +39,15 @@ def find_root_joints(all_joints):
     return root_joints[max_index] # should be one 
 
 def select_joints(joints, template_joints):
+    # print("joints: ", joints)
+    # import copy
+
     refined_joints = []
     for template_joint in template_joints:
         for joint in joints:
+            # print("joint ", joint)
             # find alternative name 
+            # alter_joint = copy.deepcopy(joint)
             alter_joint = joint
             for temp_name, alter_names in alter_joint_name.items():
                 changed = False
@@ -61,9 +66,14 @@ def select_joints(joints, template_joints):
                 "Middle" not in joint and \
                 "Ring" not in joint and \
                 "Pinky" not in joint:
+                # append
                 refined_joints.append(joint)
+
+                # 체크가 되었으면 joints에서 제거하기
+                joints.remove(joint)
                 break
         
+        # print("{}: {} -> {}".format(template_joint, joint, alter_joint))
     return refined_joints
 
 def refine_joint_name(joints):
@@ -105,7 +115,9 @@ ee_joints = [
 
 alter_joint_name = {
      "Hips":["Pelvis", "LowerTorso"], 
-     "Spine":["UpperTorso", "chest", "chestUpper"], 
+     "Spine":["UpperTorso",], 
+     "Spine1":["chest",], 
+     "Spine2":["chestUpper"], 
 
      "LeftShoulder": ["LFBXASC032Clavicle", "LeftUpperArm", "shoulder_L",], 
      "LeftArm":["LFBXASC032UpperArm", "LeftLowerArm", "upperArm_L",], 

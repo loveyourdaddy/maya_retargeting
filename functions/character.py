@@ -41,6 +41,8 @@ def get_locator(tgt_locator):
     return tgt_locator, tgt_locator_rot, tgt_locator_scale
 
 def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_origin):
+    print("{} {}".format(src_joint_hierarchy, tgt_joint_hierarchy))
+
     # find common joints 
     src_common_joint = []
     tgt_common_joint = []
@@ -74,6 +76,7 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
 
         src_name2index[src_name] = i
         tgt_name2index[tgt_name] = i
+        # print("{} {} {}".format(src_name, tgt_name, i))
     src_joint_hierarchy = src_select_hierarchy
     tgt_joint_hierarchy = tgt_select_hierarchy
 
@@ -82,13 +85,14 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
     for i in range(len(src_indices)):
         tgt_select_hierarchy_origin.append(tgt_joint_hierarchy_origin[tgt_indices[i]])
     tgt_joint_hierarchy_origin = tgt_select_hierarchy_origin
-    
+
 
     # parent index
     parent_indices = []
     division = []
     child_of_divisions = []
     # print("src {} {} \ntgt {} {}".format(len(src_joint_hierarchy), src_joint_hierarchy, len(tgt_joint_hierarchy_origin), tgt_joint_hierarchy_origin))
+    # 적은것 기준
     if len(src_indices) < len(tgt_indices):
         joint_indices = src_indices
         joint_hierarchy = src_joint_hierarchy
@@ -100,17 +104,23 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
         name2index = tgt_name2index
         print("tgt standard")
 
+    # print(name2index)
+    # print("joint_hierarchy: ", joint_hierarchy)
+    # print("name2index: ", name2index)
+    # print("joint_indices: ", joint_indices)
     for i in range(len(joint_indices)):
+        # print("{} {}".format(i, joint_indices[i]))
         # if num child>0, parent joint
         joint_name = joint_hierarchy[joint_indices[i]]
 
         # child of joint 
         children = cmds.listRelatives(joint_name, children=True, type='joint')
-        # print("{} {}: children index {} {}".format(i, joint_name, children, children is not None))
+        # print("{} {}: children index {}".format(i, joint_name, children))
         if children is not None:
             children_index = []
             for child in children:
                 if child not in name2index:
+                    # print("child {} is not in name2index".format(child))
                     continue
                 children_index.append(name2index[child])
             # print("{} {}: children index {}".format(i, joint_name, children_index))
@@ -132,13 +142,14 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
             if check==False:
                 parent_j = i-1
         parent_indices.append(parent_j)
+        # print("{} {} parnet{}".format(i, joint_name, parent_j))
 
         # divider
         if children is not None and len(children)>1 and joint_hierarchy[i] not in ee_joints: # joint name is not in end effector 
             division_j = copy.deepcopy(i)
             division.append(division_j)
             child_of_divisions.append(children_index)
-        
+    
     return src_joint_hierarchy, tgt_joint_hierarchy, parent_indices, src_indices, tgt_indices
 
 def normalize_rotmat(rot_data):
@@ -155,7 +166,7 @@ def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy):
         # print(np.array(cmds.xform(tgt_joint, q=True, ws=True, matrix=True)))
         # get rot matrix 
         src_rot_data = np.transpose(np.array(cmds.xform(src_joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
-        tgt_rot_data = np.transpose (np.array(cmds.xform(tgt_joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
+        tgt_rot_data = np.transpose(np.array(cmds.xform(tgt_joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
         
         # normalize rotation matrix
         src_rot_data = normalize_rotmat(src_rot_data)

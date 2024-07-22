@@ -12,7 +12,9 @@ def import_Tpose(sourceChar, targetChar):
     # print(Tpose)
     mel.eval('FBXImport -f"{}"'.format(Tpose))
 
-def retarget_translation(src_hip, tgt_hip, tgt_locator=None, tgt_locator_rot=None, tgt_locator_scale=None):
+def retarget_translation(src_hip, tgt_hip, 
+                         src_locator=None, src_locator_rot=None, src_locator_scale=None,
+                         tgt_locator=None, tgt_locator_rot=None, tgt_locator_scale=None):
     # translation
     trans_data, _ = get_keyframe_data(src_hip) 
     trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
@@ -21,9 +23,24 @@ def retarget_translation(src_hip, tgt_hip, tgt_locator=None, tgt_locator_rot=Non
 
     # update position
     if len_frame!=0:
-        if tgt_locator==None:
+        # no locator
+        if src_locator==None and tgt_locator==None:
             set_keyframe(tgt_hip, trans_data, trans_attr)
-        else:
+
+        # src
+        elif src_locator!=None and tgt_locator==None:
+            src_locator_rot_mat = E_to_R(np.array(src_locator_rot))
+            src_locator_rot_mat = src_locator_rot_mat[None, :].repeat(len_frame, axis=0)
+            tgt_trans_data = np.einsum('ijk,ik->ij', src_locator_rot_mat, trans_data)
+            
+            # scale translation
+            for i in range(3): # x, y, z
+                tgt_trans_data[:, i] *= src_locator_scale[i]
+            # update position
+            set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
+
+        # tgt
+        elif src_locator==None and tgt_locator!=None:
             tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
             tgt_locator_rot_mat = tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0)
             tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat, trans_data)
@@ -31,14 +48,34 @@ def retarget_translation(src_hip, tgt_hip, tgt_locator=None, tgt_locator_rot=Non
             # scale translation
             for i in range(3): # x, y, z
                 tgt_trans_data[:, i] /= tgt_locator_scale[i]
-            
             # update position
             set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
+
+        # both src and tgt
+        elif src_locator!=None and tgt_locator!=None:
+            src_locator_rot_mat = E_to_R(np.array(src_locator_rot))
+            src_locator_rot_mat = src_locator_rot_mat[None, :].repeat(len_frame, axis=0)
+
+            tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
+            tgt_locator_rot_mat = tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0)
+
+            tgt_trans_data = np.einsum('ijk,ik->ij', src_locator_rot_mat, trans_data)
+            tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat, tgt_trans_data)
+            
+            # scale translation
+            for i in range(3): # x, y, z
+                tgt_trans_data[:, i] *= src_locator_scale[i]
+                tgt_trans_data[:, i] /= tgt_locator_scale[i]
+            # update position
+            set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
+        
+        else:
+            raise ValueError("locator error")
 
     return trans_data
 
 def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
-                      len_frame, tgt_locator_rot=None):
+                      len_frame, src_locator_rot=None, tgt_locator_rot=None):
     # rotation
     # assumtion: src and tgt have same joint names
     src_world_mats = np.full((len_frame, len(tgt_joints), 3, 3), None, dtype=np.float32)
@@ -69,7 +106,10 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
             # parent angle
             if j==0:
                 # locator
-                src_parent_rot_mat = E_to_R(np.array([0,0,0])) # src_locator_rot TODO: src가 다를때 확인 
+                if src_locator_rot is not None:
+                    src_parent_rot_mat = E_to_R(np.array(src_locator_rot))
+                else:
+                    src_parent_rot_mat = E_to_R(np.array([0,0,0]))
             else:
                 # tgt parent world rot
                 src_parent_rot_mat = src_world_mats[i, parent_j]
