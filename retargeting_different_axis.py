@@ -35,16 +35,21 @@ def main():
     else:
         tgt_locator = None
 
-    tgt_joints = add_namespace(tgt_joints, "tgt")
+    tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
     tgt_joints_refined = refine_joint_name(tgt_joints, namespace="tgt")
 
 
     ''' src '''
     import_Tpose(sourceChar)
     src_joints = get_src_joints(tgt_joints)
+    # print("src: ", src_joints)
+    # print("tgt: ", tgt_joints)
 
     # refine name
     src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = refine_joints(src_joints, tgt_joints_refined, tgt_joints) 
+    # print("src: ", src_joints)
+    # print("tgt: ", tgt_joints)
+
 
     # tgt_joints
     # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
@@ -63,6 +68,8 @@ def main():
         src_locator = None
 
     # remove src joints TODO
+    # print("src: ", src_joints)
+    # print("tgt: ", tgt_joints)
 
     ''' retarget '''
     if src_locator is not None or tgt_locator is not None:
@@ -103,9 +110,9 @@ def main():
                     
         # remove namespace in tgt joints
         print("before: ", tgt_joints)
-        tgt_joints = remove_namespace(tgt_joints)
+        tgt_joints = remove_namespaces_for_joints(tgt_joints)
         print("after: ", tgt_joints)
-        
+    
     # free
     # TODO rename tgt joints 
     if tgt_locator is not None:
@@ -133,5 +140,5 @@ D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py
 --targetChar "./models/_General/1.Adori/SKM_ADORI_0424.fbx"
 
 Mac
-/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy retargeting_different_axis.py --sourceMotion './motions/Asooni/animation_before_edit/Go Hard - TWICE_002_RT0118.fbx' --targetChar './models/_General/1.Adori/SKM_ADORI2.0_0424.fbx'
+/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy retargeting_different_axis.py --sourceMotion './motions/Asooni/Go Hard - TWICE_002_RT0118.fbx' --targetChar './models/Adori/SKM_ADORI_0229.fbx'
 """

@@ -46,20 +46,35 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
     tgt_common_joint = []
     src_indices = []
     tgt_indices = []
-    for src_idx, src_joint in enumerate(src_joint_hierarchy):
+    src_joint_hierarchy_for = copy.deepcopy(src_joint_hierarchy)
+    tgt_joint_hierarchy_for = copy.deepcopy(tgt_joint_hierarchy)
+    # print("src_joint_hierarchy_for:", src_joint_hierarchy_for)
+    # print("tgt_joint_hierarchy_for:", tgt_joint_hierarchy_for)
+    for src_idx, src_joint in enumerate(src_joint_hierarchy_for):
         check = False
-        for tgt_idx, tgt_joint in enumerate(tgt_joint_hierarchy):
+        for tgt_idx, tgt_joint in enumerate(tgt_joint_hierarchy_for):
+            tgt_joint_renamed = tgt_joint.split(':')[-1]
+            # print(tgt_joint_renamed)
+
             # find common joint 
-            if src_joint.lower() in tgt_joint.lower() or tgt_joint.lower() in src_joint.lower():
+            # 이름 겹치는 부분이 있음 and 이미 list에 포함되어있지 않음
+            if (src_joint.lower() in tgt_joint_renamed.lower() or tgt_joint_renamed.lower() in src_joint.lower()) \
+                and src_joint not in src_common_joint and tgt_joint not in tgt_common_joint: 
                 src_common_joint.append(src_joint)
                 tgt_common_joint.append(tgt_joint)
                 src_indices.append(src_idx)
                 tgt_indices.append(tgt_idx)
                 check = True
+
+                # remove checked joint
+                # print("{} {} : {} {}".format(src_joint, src_idx, tgt_joint_renamed, tgt_idx))
                 break
         if check:
             continue
-
+    # print("src_common_joint: ",src_common_joint)
+    # print("tgt_common_joint: ",tgt_common_joint)
+    # print("tgt_joint_hierarchy_origin:", tgt_joint_hierarchy_origin, len(tgt_joint_hierarchy_origin))
+    # print("tgt_joint_hierarchy:", tgt_joint_hierarchy, len(tgt_joint_hierarchy))
 
     # selected joint hierarchy
     src_select_hierarchy, tgt_select_hierarchy = [], []
@@ -82,30 +97,33 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
     for i in range(len(src_indices)):
         tgt_select_hierarchy_origin.append(tgt_joint_hierarchy_origin[tgt_indices[i]])
     tgt_joint_hierarchy_origin = tgt_select_hierarchy_origin
+    # print("tgt_joint_hierarchy_origin:", tgt_joint_hierarchy_origin, len(tgt_joint_hierarchy_origin))
+    # print("tgt_joint_hierarchy:", tgt_joint_hierarchy, len(tgt_joint_hierarchy))
 
 
     # parent index
     parent_indices = []
     division = []
     child_of_divisions = []
-    # print("src {} {} \ntgt {} {}".format(len(src_joint_hierarchy), src_joint_hierarchy, len(tgt_joint_hierarchy_origin), tgt_joint_hierarchy_origin))
     # 적은것 기준
-    if len(src_indices) < len(tgt_indices):
+    if len(src_indices) <= len(tgt_indices):
         joint_indices = src_indices
         joint_hierarchy = src_joint_hierarchy
         name2index = src_name2index
-        print("src standard")
+        # print("src standard")
     else:
         joint_indices = tgt_indices
         joint_hierarchy = tgt_joint_hierarchy_origin
         name2index = tgt_name2index
-        print("tgt standard")
+        # print("tgt standard")
 
     for i in range(len(joint_indices)):
         joint_name = joint_hierarchy[joint_indices[i]]
+        # print("{} {}".format(i, joint_name))
 
-        # child of joint 
+        # child of joint
         children = cmds.listRelatives(joint_name, children=True, type='joint')
+        # print(children)
         if children is not None:
             children_index = []
             for child in children:
@@ -130,6 +148,8 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
             if check==False:
                 parent_j = i-1
         parent_indices.append(parent_j)
+        # print("{} {} parent {}".format(i, joint_name, parent_j))
+        # print("parent{}".format(parent_j))
 
         # divider
         # children이 있고, end effector가 아닌 경우
