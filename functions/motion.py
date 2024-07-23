@@ -94,15 +94,14 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
     src_world_mats = np.full((len_frame, len(tgt_joints), 3, 3), None, dtype=np.float32)
     tgt_world_mats = np.full((len_frame, len(tgt_joints), 3, 3), None, dtype=np.float32)
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joints, tgt_joints)):
-        print("{} {} {}".format(j, src_joint, tgt_joint))
+        # print("{} {} {}".format(j, src_joint, tgt_joint))
         parent_j = parent_indices[j]
 
         # keyframe_data
         # [attr, frames, (frame, value)]: (trans, world rot)
         _, rot_data = get_keyframe_data(src_joint)
 
-        # tgt target angle from src
-        # src: world rotation for tgt
+        # tgt angle from src
         rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
         rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
         src_to_tgt_trf = Tpose_trfs[j]
@@ -117,7 +116,6 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
 
             # parent angle
             if j==0:
-                # locator
                 if src_locator_rot is not None:
                     if i==0:
                         print("src locator")
