@@ -2,7 +2,6 @@ import maya.cmds as cmds
 import os
 import maya.cmds as cmds
 import maya.mel as mel
-import maya.standalone
 
 def freeze_and_bake(top_joint):
     # freeze

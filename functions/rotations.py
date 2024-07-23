@@ -55,6 +55,14 @@ def E_to_R(E, order="xyz", radians=False): # order: rotation값이 들어오는 
     
     return R
 
+def normalize_rotmat(rot_data):
+    # normalize each row of rotation matrix
+    for j in range(3):
+        rot_data[j] = rot_data[j]/np.linalg.norm(rot_data[j])
+    return rot_data
+
+
+''' rotation in MAYA '''
 # get src delta rotation (assumption: first frame is Tpose)
 def get_rot_mat(src_joint, bool_worldSpace):
     tgt_Tpose_rot = cmds.xform(src_joint, query=True, worldSpace=bool_worldSpace, rotation=True)
@@ -99,23 +107,3 @@ def get_world_rot_data(joint_name):
                 rot_data[fid][attr_idx] = rot_data[fid-1][attr_idx]
 
     return rot_data
-
-# import math
-# def get_world_vector_from_world_rot(rot_data, vector): # world rot, vector
-#     vector = np.array(vector)
-
-#     forward_vectors = []
-#     for i, frame_rot in enumerate(rot_data):
-#         frame_rot = [math.radians(angle) for angle in frame_rot]
-
-#         rotation = om.MEulerRotation(om.MVector(frame_rot[0], frame_rot[1], frame_rot[2]), om.MEulerRotation.kXYZ) # TODO
-#         transform_matrix = om.MTransformationMatrix()
-#         transform_matrix.setRotation(rotation.asQuaternion())
-#         transform_matrix = np.array(transform_matrix.asMatrix()).reshape(4,4)[:3, :3]
-#         transform_matrix = np.transpose(transform_matrix) # Transpose 
-
-#         # Get the forward vector (positive Z axis in local space)
-#         forward_vector = vector @ transform_matrix
-#         forward_vectors.append(forward_vector)
-
-#     return np.array(forward_vectors)
