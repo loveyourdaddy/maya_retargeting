@@ -1,5 +1,6 @@
 import maya.cmds as cmds
 
+""" hierarchy """
 def get_joint_hierarchy(root_joint):
     hierarchy = []
 
@@ -34,6 +35,18 @@ def find_root_joints(all_joints):
     max_index = list_index.index(max(list_index))
     return root_joints[max_index]
 
+def get_parent_joint(joint):
+    parent = cmds.listRelatives(joint, parent=True)
+    if parent:
+        return parent[0]
+    else:
+        return None
+
+def get_top_level_nodes():
+    return cmds.ls(assemblies=True)
+
+
+""" refine hierarchy """
 def select_joints(joints, template_joints):
     refined_joints = []
     for template_joint in template_joints:
@@ -76,63 +89,32 @@ def refine_joint_name(joints, namespace=None):
 
     return ret_joints
 
-# def refine_joint_name(joints, namespace=None):
-#     # replace joint name as template name
-#     ret_joints = [] 
-#     for joint in joints:
-#         # check = False
-#         for temp_joint, alter_joints in alter_joint_name.items():
-#             for alter_joint in alter_joints:
-#                 if joint in alter_joint or alter_joint in joint:
-#                     # remove from list 
-#                     joints.remove(joint)
-#                     # check = True
 
-#                     # add to list
-#                     joint = temp_joint
-#                     if namespace is not None:
-#                         joint = f"{namespace}:{joint}"
-#                     break
-#             # if check:
-#             #     ret_joints.append(joint)
-#             #     break
+""" namespace """
+def add_namespace(joint, namespace):
+    new_name = f"{namespace}:{joint}"
+    return cmds.rename(joint, new_name)
 
-#         ret_joints.append(joint)
+def remove_namespace(joint):
+    short_name = joint.split(':')[-1]
+    new_name = f"{short_name}"
+    return cmds.rename(joint, new_name) 
 
-#     return ret_joints
-
-def get_parent_joint(joint):
-    parent = cmds.listRelatives(joint, parent=True)
-    if parent:
-        return parent[0]
-    else:
-        return None
-
-def get_top_level_nodes():
-    return cmds.ls(assemblies=True)
-
-def add_namespace(joints, namespace):
+def add_namespace_for_joints(joints, namespace):
     if not cmds.namespace(exists=namespace):
         cmds.namespace(add=namespace)
     
     new_joints = []
     for joint in joints:
-        new_name = f"{namespace}:{joint}"
-        new_joint = cmds.rename(joint, new_name)
-        new_joints.append(new_joint)
-
+        new_joints.append(add_namespace(joint, namespace))
     return new_joints
 
-def remove_namespace(joints):
+def remove_namespace_for_joints(joints):
     new_joints = []
     for joint in joints:
-        short_name = joint.split(':')[-1]
-        new_name = f"{short_name}"
-        joint = cmds.rename(joint, new_name) # 이미 head가 있기 때문에 neck|head로 나오는건가?
-        new_joints.append(joint)
-
+        new_joints.append(remove_namespace(joint))
     return new_joints
-
+# 이미 head가 있기 때문에 neck|head로 나오는건가?
 
 # joints
 # 22 = 4+2+4+4+4+4
