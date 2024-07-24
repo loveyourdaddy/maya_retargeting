@@ -73,8 +73,6 @@ def get_delta_rotation(rot_data):
 def set_translate_keyframe(joint, keyframe_data):
     for attr, keyframes in keyframe_data.items():
         # set only translate
-        # if attr=="rotateX" or attr=="rotateY" or attr=="rotateZ":
-        #     continue
         for tid, (time, value) in enumerate(keyframes):
             cmds.setKeyframe(joint, attribute=attr, time=time, value=value)
 

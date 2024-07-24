@@ -17,7 +17,8 @@ def main():
     sourceMotion = args.sourceMotion
     sourceChar = sourceMotion.split('/')[2]
     targetMotion = sourceMotion.split('/')[-1].split('.')[0]
-    targetChar = args.targetChar.split('/')[3].split('.')[0]
+    targetChar = args.targetChar.split('/')[-1].split('.')[0]
+    # print(targetChar)
 
 
     ''' tgt '''
@@ -44,6 +45,7 @@ def main():
     src_joints = get_src_joints(tgt_joints)
     # print("src: ", src_joints)
     # print("tgt: ", tgt_joints)
+    # print("tgt refned: ", tgt_joints_refined)
 
     # refine name
     src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = refine_joints(src_joints, tgt_joints_refined, tgt_joints) 
@@ -72,6 +74,12 @@ def main():
     # print("tgt: ", tgt_joints)
 
     ''' retarget '''
+    # Translation root
+    if False:
+        translate = np.array([300, 0, 0])
+    else:
+        translate = None
+
     if src_locator is not None or tgt_locator is not None:
         print("retarget with locator")
         if src_locator is None:
@@ -81,11 +89,13 @@ def main():
         
         trans_data = retarget_translation(src_joints[0], tgt_joints[0],\
                                           src_locator, src_locator_rot, src_locator_scale,\
-                                          tgt_locator, tgt_locator_rot, tgt_locator_scale)
+                                          tgt_locator, tgt_locator_rot, tgt_locator_scale,\
+                                          translate=translate)
         retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data), src_locator_rot, tgt_locator_rot)
     else:
         print("retarget without locator")
-        trans_data = retarget_translation(src_joints[0], tgt_joints[0])
+        trans_data = retarget_translation(src_joints[0], tgt_joints[0], 
+                                          translate=translate)
         retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data))
     
     if False:
@@ -120,6 +130,7 @@ def main():
     else:
         tgt_root_joint = tgt_joints[0]
         top_joint = tgt_root_joint
+
 
     freeze_and_bake(top_joint)
     export(args, targetChar, targetMotion)
