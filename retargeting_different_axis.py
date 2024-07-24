@@ -75,8 +75,10 @@ def main():
 
     ''' retarget '''
     # Translation root
-    if True:
+    if False:
         translate = np.array([300, 0, 0])
+    else:
+        translate = None
 
     if src_locator is not None or tgt_locator is not None:
         print("retarget with locator")

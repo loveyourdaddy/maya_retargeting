@@ -123,7 +123,7 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
 
     for i in range(len(joint_indices)):
         joint_name = joint_hierarchy[i] # joint_indices[i]
-        print("{} {}".format(i, joint_name))
+        # print("{} {}".format(i, joint_name))
 
         # child of joint
         children = cmds.listRelatives(joint_name, children=True, type='joint')

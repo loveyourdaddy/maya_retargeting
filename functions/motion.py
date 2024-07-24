@@ -78,15 +78,22 @@ def retarget_translation(src_hip, tgt_hip,
 
         # both src and tgt
         elif src_locator!=None and tgt_locator!=None:
+            # print("before \n", trans_data[0])
+
             src_locator_rot_mat = E_to_R(np.array(src_locator_rot))
             src_locator_rot_mat = src_locator_rot_mat[None, :].repeat(len_frame, axis=0)
 
-            tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
+            # tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
+            # print("tgt_locator_rot_mat before \n", E_to_R(-1 * np.array(tgt_locator_rot)))
+            tgt_locator_rot_mat = np.linalg.inv(E_to_R(np.array(tgt_locator_rot)))
+            # print("tgt_locator_rot_mat after  \n", tgt_locator_rot_mat)
             tgt_locator_rot_mat = tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0)
 
             tgt_trans_data = np.einsum('ijk,ik->ij', src_locator_rot_mat, trans_data)
+            # print("after1 \n", tgt_trans_data[0])
             tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat, tgt_trans_data)
-            
+            # print("after2 \n", tgt_trans_data[0])
+
             # if translate is not None:
             #     print("{} {} {}".format(tgt_locator_rot_mat.shape, src_locator_rot_mat.shape, translate.shape))
             #     tgt_trans_data[:, ] += np.matmul(tgt_locator_rot_mat, np.matmul(src_locator_rot_mat, translate))
