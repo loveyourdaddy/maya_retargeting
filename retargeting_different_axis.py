@@ -18,7 +18,6 @@ def main():
     sourceChar = sourceMotion.split('/')[2]
     targetMotion = sourceMotion.split('/')[-1].split('.')[0]
     targetChar = args.targetChar.split('/')[-1].split('.')[0]
-    # print(targetChar)
 
 
     ''' tgt '''
@@ -36,22 +35,26 @@ def main():
     else:
         tgt_locator = None
 
-    tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
-    tgt_joints_refined = refine_joint_name(tgt_joints, namespace="tgt")
+    # joints
+    # if namespace is already exist, skip it 
+    if ":" in tgt_joints[0]:
+        pass
+    else:
+        tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
+    tgt_joints_refined = refine_joint_name(tgt_joints)
+
+    # meshes 
+    tgt_meshes = cmds.ls(type='mesh')
+    tgt_meshes = add_namespace_for_meshes(tgt_meshes, "tgt_mesh")
+    # print("tgt meshes", tgt_meshes)
 
 
     ''' src '''
     import_Tpose(sourceChar)
     src_joints = get_src_joints(tgt_joints)
-    # print("src: ", src_joints)
-    # print("tgt: ", tgt_joints)
-    # print("tgt refned: ", tgt_joints_refined)
 
     # refine name
     src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = refine_joints(src_joints, tgt_joints_refined, tgt_joints) 
-    # print("src: ", src_joints)
-    # print("tgt: ", tgt_joints)
-
 
     # tgt_joints
     # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
@@ -62,6 +65,7 @@ def main():
 
     ''' import src motion '''
     mel.eval('FBXImport -f"{}"'.format(sourceMotion))
+    # locator and joints 
     locators_list = cmds.ls(type='locator')
     src_locator_list = list(set(locators_list) - set(tgt_locator_list))
     if len(src_locator_list)!=0:
@@ -69,9 +73,10 @@ def main():
     else:
         src_locator = None
 
-    # remove src joints TODO
-    # print("src: ", src_joints)
-    # print("tgt: ", tgt_joints)
+    # src meshes
+    all_meshes = cmds.ls(type='mesh')
+    src_meshes = list(set(all_meshes) - set(tgt_meshes))
+
 
     ''' retarget '''
     # Translation root
@@ -82,56 +87,49 @@ def main():
 
     if src_locator is not None or tgt_locator is not None:
         print("retarget with locator")
+        # 예외처리
         if src_locator is None:
             src_locator_rot, src_locator_scale = None, None
         if tgt_locator is None:
             tgt_locator_rot, tgt_locator_scale = None, None
         
+        # trans 
         trans_data = retarget_translation(src_joints[0], tgt_joints[0],\
                                           src_locator, src_locator_rot, src_locator_scale,\
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale,\
                                           translate=translate)
+        # rot
         retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data), src_locator_rot, tgt_locator_rot)
     else:
         print("retarget without locator")
+        # trans
         trans_data = retarget_translation(src_joints[0], tgt_joints[0], 
                                           translate=translate)
+        # rot
         retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data))
     
-    if False:
-        # remove src
-        # print("src: ", src_joints)
-        print("tgt: ", tgt_joints)
-        for joint in src_joints:
-            # Find the constraints or connections between the locator and the joint
-            connections = cmds.listConnections(joint, type='constraint', s=True, d=False) or []
-            for constraint in connections:
-                if cmds.objExists(constraint):
-                    # Delete the constraint
-                    cmds.delete(constraint)
+    # Remove source locator 
+    if src_locator is not None:
+        delete_locator_and_hierarchy(src_locator)
+    else:
+        delete_locator_and_hierarchy(src_joints[0])
         
-            # Disconnect joint's transformation from locator
-            attrs = ['translate', 'rotate', 'scale']
-            for attr in attrs:
-                for axis in 'XYZ':
-                    connection = cmds.listConnections(f'{joint}.{attr}{axis}', s=True, d=False, plugs=True)
-                    if connection:
-                        cmds.disconnectAttr(connection[0], f'{joint}.{attr}{axis}')
-                    
-        # remove namespace in tgt joints
-        print("before: ", tgt_joints)
-        tgt_joints = remove_namespaces_for_joints(tgt_joints)
-        print("after: ", tgt_joints)
-    
+    # meshes
+    cmds.delete(src_meshes)
+
+    # rename tgt joints 
+    tgt_joints = remove_namespace_for_joints(tgt_joints)
+
+
+    # Run the function
+    delete_all_transform_nodes()
+
     # free
-    # TODO rename tgt joints 
     if tgt_locator is not None:
         top_joint = tgt_locator
     else:
         tgt_root_joint = tgt_joints[0]
         top_joint = tgt_root_joint
-
-
     freeze_and_bake(top_joint)
     export(args, targetChar, targetMotion)
     
@@ -151,5 +149,5 @@ D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py
 --targetChar "./models/_General/1.Adori/SKM_ADORI_0424.fbx"
 
 Mac
-/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy retargeting_different_axis.py --sourceMotion './motions/Asooni/Go Hard - TWICE_002_RT0118.fbx' --targetChar './models/Adori/SKM_ADORI_0229.fbx'
+/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy retargeting_different_axis.py --sourceMotion './motions/Asooni/Go Hard - TWICE_002_RT0118.fbx' --targetChar './models/Adori/Adori.fbx'
 """

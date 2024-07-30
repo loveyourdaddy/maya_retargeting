@@ -1,3 +1,4 @@
+# import and delete the part of character (joints, locator, meshes)
 import copy
 import maya.cmds as cmds
 
@@ -5,7 +6,7 @@ from functions.joints import *
 from functions.keyframe import *
 from functions.rotations import *
 
-
+''' import '''
 def get_src_joints(tgt_joints):
     src_joints = cmds.ls(type='joint')
     src_joints = list(set(src_joints) - set(tgt_joints))
@@ -40,6 +41,35 @@ def get_locator(tgt_locator):
 
     return tgt_locator, tgt_locator_rot, tgt_locator_scale
 
+''' delete '''
+def delete_locator_and_hierarchy(locator_name):
+    if cmds.objExists(locator_name):
+        # List all descendants of the locator
+        descendants = cmds.listRelatives(locator_name, allDescendents=True) or []
+        
+        # Add the locator itself to the list
+        descendants.append(locator_name)
+        
+        # Delete the locator and its hierarchy
+        cmds.delete(descendants)
+        print(f"{locator_name} and its hierarchy have been deleted.")
+    else:
+        print(f"{locator_name} does not exist.")
+
+def delete_all_transform_nodes():
+    # import maya.OpenMaya as om
+    # Get the list of all nodes in the scene
+    all_nodes = cmds.ls(type='transform')
+    # print("all_nodes", all_nodes)
+
+    for node in all_nodes:
+        # print(node)
+        if cmds.listRelatives(node, children=True)==None and cmds.nodeType(node)!='joint': # mobject.apiType() == om.MFn.kTransform and 
+            # Delete the node
+            # print(f"Deleted transform node: {node}")
+            cmds.delete(node)
+
+''' refine '''
 def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_origin):
     # find common joints 
     src_common_joint = []
@@ -68,7 +98,7 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
                 check = True
 
                 # remove checked joint
-                print("{} {} : {} {}".format(src_joint, src_idx, tgt_joint_renamed, tgt_idx))
+                # print("{} {} : {} {}".format(src_joint, src_idx, tgt_joint_renamed, tgt_idx))
                 break
         if check:
             continue
