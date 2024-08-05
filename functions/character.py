@@ -52,9 +52,10 @@ def delete_locator_and_hierarchy(locator_name):
         
         # Delete the locator and its hierarchy
         cmds.delete(descendants)
-        print(f"{locator_name} and its hierarchy have been deleted.")
+        # print(f"{locator_name} and its hierarchy have been deleted.")
     else:
-        print(f"{locator_name} does not exist.")
+        pass
+        # print(f"{locator_name} does not exist.")
 
 def delete_all_transform_nodes():
     # import maya.OpenMaya as om
@@ -142,12 +143,12 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
         joint_indices = src_indices
         joint_hierarchy = src_joint_hierarchy
         name2index = src_name2index
-        print("src standard")
+        # print("src standard")
     else:
         joint_indices = tgt_indices
         joint_hierarchy = tgt_joint_hierarchy_origin
         name2index = tgt_name2index
-        print("tgt standard")
+        # print("tgt standard")
     # print("joint_indices: ", joint_indices)
     # print("joint_hierarchy: ", joint_hierarchy)
 

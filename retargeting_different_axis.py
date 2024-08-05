@@ -1,17 +1,6 @@
 import sys 
 import os
 
-# macOS - Adjust this path if necessary
-maya_location = "/Applications/Autodesk/maya2025/Maya.app/Contents"
-# python_version = "python3.11"
-# sys.path.append(os.path.join(maya_location, "Frameworks/Python.framework/Versions/Current/lib/python2.7/site-packages"))
-sys.path.append(os.path.join(maya_location, "Frameworks/Python.framework/Versions/Current/lib/python3.11/site-packages"))
-sys.path.append(os.path.join(maya_location, "Frameworks/Python.framework/Versions/Current/lib/python3.11/lib-dynload"))
-sys.path.append(os.path.join(maya_location, "Frameworks/Python.framework/Versions/Current/lib/python3.11"))
-sys.path.append(os.path.join(maya_location, "bin"))
-
-# sys.path.append("/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/")
-
 import maya.cmds as cmds
 import maya.standalone
 from functions.parser import *
@@ -29,18 +18,19 @@ def main():
     # name
     args = get_args()
     sourceMotion = args.sourceMotion
-    sourceChar = sourceMotion.split('/')[2]
+    sourceChar = args.sourceChar.split('/')[-1].split('.')[0] # sourceMotion.split('/')[2]
     targetMotion = sourceMotion.split('/')[-1].split('.')[0]
     targetChar = args.targetChar.split('/')[-1].split('.')[0]
-
+ 
 
     ''' tgt '''
     # character
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
-
+ 
     # joints
     import_Tpose(targetChar)
     tgt_joints, tgt_root_joint = get_tgt_joints()
+ 
 
     # tgt locator
     tgt_locator_list = cmds.ls(type='locator')
@@ -56,11 +46,11 @@ def main():
     else:
         tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
     tgt_joints_refined = refine_joint_name(tgt_joints)
+ 
 
     # meshes 
     tgt_meshes = cmds.ls(type='mesh')
     tgt_meshes = add_namespace_for_meshes(tgt_meshes, "tgt_mesh")
-    # print("tgt meshes", tgt_meshes)
 
 
     ''' src '''
@@ -100,7 +90,7 @@ def main():
         translate = None
 
     if src_locator is not None or tgt_locator is not None:
-        print("retarget with locator")
+        # print("retarget with locator")
         # 예외처리
         if src_locator is None:
             src_locator_rot, src_locator_scale = None, None
@@ -115,7 +105,7 @@ def main():
         # rot
         retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data), src_locator_rot, tgt_locator_rot)
     else:
-        print("retarget without locator")
+        # print("retarget without locator")
         # trans
         trans_data = retarget_translation(src_joints[0], tgt_joints[0], 
                                           translate=translate)
