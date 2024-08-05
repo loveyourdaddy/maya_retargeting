@@ -73,7 +73,7 @@ def upload_file():
             return f"An error occurred: {str(e)}"
 
 def run_maya_script(target_char, source_char, source_motion):
-    maya_executable = "/Applications/Autodesk/maya2024/Maya.app/Contents/MacOS/mayapy"
+    maya_executable = "/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy"
     script_path = "retargeting_different_axis.py"
     
     command = [

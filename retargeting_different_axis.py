@@ -34,14 +34,17 @@ def main():
     sourceChar = args.sourceChar.split('/')[-1].split('.')[0] # sourceMotion.split('/')[2]
     targetMotion = sourceMotion.split('/')[-1].split('.')[0]
     targetChar = args.targetChar.split('/')[-1].split('.')[0]
+    # print("sourceMotion:", sourceMotion)
+    # print("sourceChar:", sourceChar)
+    # print("targetMotion:", targetMotion)
+    # print("targetChar:", targetChar)
  
 
     ''' tgt '''
     # character
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
- 
+
     # joints
-    import_Tpose(targetChar)
     tgt_joints, tgt_root_joint = get_tgt_joints()
  
 
@@ -67,7 +70,7 @@ def main():
 
 
     ''' src '''
-    import_Tpose(sourceChar)
+    mel.eval('FBXImport -f"{}"'.format(args.sourceChar))
     src_joints = get_src_joints(tgt_joints)
 
     # refine name
