@@ -1,3 +1,17 @@
+import sys 
+import os
+
+# macOS - Adjust this path if necessary
+maya_location = "/Applications/Autodesk/maya2025/Maya.app/Contents"
+# python_version = "python3.11"
+# sys.path.append(os.path.join(maya_location, "Frameworks/Python.framework/Versions/Current/lib/python2.7/site-packages"))
+sys.path.append(os.path.join(maya_location, "Frameworks/Python.framework/Versions/Current/lib/python3.11/site-packages"))
+sys.path.append(os.path.join(maya_location, "Frameworks/Python.framework/Versions/Current/lib/python3.11/lib-dynload"))
+sys.path.append(os.path.join(maya_location, "Frameworks/Python.framework/Versions/Current/lib/python3.11"))
+sys.path.append(os.path.join(maya_location, "bin"))
+
+# sys.path.append("/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/")
+
 import maya.cmds as cmds
 import maya.standalone
 from functions.parser import *
@@ -120,7 +134,6 @@ def main():
     # rename tgt joints 
     tgt_joints = remove_namespace_for_joints(tgt_joints)
 
-
     # Run the function
     delete_all_transform_nodes()
 
@@ -150,4 +163,13 @@ D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py
 
 Mac
 /Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy retargeting_different_axis.py --sourceMotion './motions/Asooni/Go Hard - TWICE_002_RT0118.fbx' --targetChar './models/Adori/Adori.fbx'
+
+환경변수 설정방법 
+vim ~/.zshrc에서 아래 추가.
+    export MAYAPY_PATH="/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS"
+    export PATH="$MAYAPY_PATH:$PATH"
+source ~/.zshrc
+
+export DYLD_LIBRARY_PATH=/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/:$DYLD_LIBRARY_PATH
+
 """
