@@ -1,3 +1,16 @@
+"""
+Usage:
+mayapy retargeting_different_axis.py --sourceChar "" --sourceMotion "" --targetChar ""
+
+example:
+mayapy retargeting_different_axis.py --sourceChar "Asooni.fbx" --sourceMotion './motions/Asooni/Go Hard - TWICE_002_RT0118.fbx' --targetChar './models/Mingle_4/Mingle_4.fbx'
+
+Requirement:
+1. characters of Source and target
+2. Tpose of source and target
+
+"""
+
 import sys 
 import os
 
@@ -141,25 +154,3 @@ def main():
 
 if __name__=="__main__":
     main()
-
-"""
-usage
-- mayapy retargeting_different_axis.py --src_motion_path "" --tgt_char_path ""
-
-Window 
-D:\_Program\AutoDesk\Maya2023\Maya2023\bin\mayapy retargeting_different_axis.py 
---sourceMotion "./motions/Asooni/animation_before_edit/Go Hard - TWICE_002_RT0118.fbx" 
---targetChar "./models/_General/1.Adori/SKM_ADORI_0424.fbx"
-
-Mac
-/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy retargeting_different_axis.py --sourceMotion './motions/Asooni/Go Hard - TWICE_002_RT0118.fbx' --targetChar './models/Adori/Adori.fbx'
-
-환경변수 설정방법 
-vim ~/.zshrc에서 아래 추가.
-    export MAYAPY_PATH="/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS"
-    export PATH="$MAYAPY_PATH:$PATH"
-source ~/.zshrc
-
-export DYLD_LIBRARY_PATH=/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/:$DYLD_LIBRARY_PATH
-
-"""
