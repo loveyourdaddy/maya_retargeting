@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file, session
+from flask import Flask, request, send_file, session, jsonify
 import os
 import subprocess
 
@@ -22,9 +22,54 @@ def upload_form():
     return '''
     <!doctype html>
     <html>
+    <head>
+        <script>
+            function uploadFiles(event) {
+                event.preventDefault();
+                var formData = new FormData(document.getElementById('uploadForm'));
+
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);  // Show popup with the result message
+                })
+                .catch(error => {
+                    alert('An error occurred: ' + error.message);
+                });
+            }
+
+            function downloadFile(event) {
+                event.preventDefault();
+
+                fetch('/download', {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        const filename = response.headers.get('X-Filename') || 'downloaded_file'; // Get filename from response headers
+                        return response.blob().then(blob => ({ blob, filename }));
+                    } else {
+                        throw new Error('File not found');
+                    }
+                })
+                .then(({ blob, filename }) => {
+                    var link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = filename;
+                    link.click();
+                })
+                .catch(error => {
+                    alert('An error occurred: ' + error.message);
+                });
+            }
+        </script>
+    </head>
     <body>
         <h1>Upload Files and Retargeting Process</h1>
-        <form method="post" enctype="multipart/form-data" action="/upload">
+        <form id="uploadForm" onsubmit="uploadFiles(event)">
             <label for="file1">Target Character:</label><br>
             <input type="file" id="file1" name="file1"><br>
             <label for="file2">Source Character:</label><br>
@@ -34,7 +79,7 @@ def upload_form():
             <input type="submit" value="Upload and Process">
         </form>
         <h2>Download a File</h2>
-        <form method="post" action="/download">
+        <form id="downloadForm" onsubmit="downloadFile(event)">
             <input type="submit" value="Download File">
         </form>
     </body>
@@ -45,14 +90,14 @@ def upload_form():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file1' not in request.files or 'file2' not in request.files or 'file3' not in request.files:
-        return 'No file parts'
+        return jsonify({'message': 'No file parts'})
 
     file1 = request.files['file1']
     file2 = request.files['file2']
     file3 = request.files['file3']
 
     if file1.filename == '' or file2.filename == '' or file3.filename == '':
-        return 'No selected files'
+        return jsonify({'message': 'No selected files'})
 
     if file1 and file2 and file3:
         file1_path = os.path.join(app.config['UPLOAD_FOLDER'], file1.filename)
@@ -68,9 +113,9 @@ def upload_file():
         
         try:
             result = run_maya_script(file1_path, file2_path, file3_path)
-            return result
+            return jsonify({'message': 'Processing complete. You can download the file.'})
         except Exception as e:
-            return f"An error occurred: {str(e)}"
+            return jsonify({'message': 'An error occurred: ' + str(e)})
 
 def run_maya_script(target_char, source_char, source_motion):
     maya_executable = "/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy"
@@ -92,25 +137,22 @@ def run_maya_script(target_char, source_char, source_motion):
 
 @app.route('/download', methods=['POST'])
 def download_file():
-    
-    # 파일 경로를 세션에서 가져오기
     file1_path = session.get('file1_path')
     file3_path = session.get('file3_path')
-    
-    print(file1_path)
-    print(file3_path)
-    
+
     if file1_path and file3_path:
-        # Determine the output path based on the uploaded file
-        # (for example purposes, assuming output folder structure is similar)
-        file_to_download = app.config['OUTPUT_FOLDER'] + file1_path.split('/')[-1].split('.')[0] + '/' + file3_path.split('/')[-1]
-        print(file_to_download)
+        # Determine the output file path based on the uploaded file
+        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], file1_path.split('/')[-1].split('.')[0], file3_path.split('/')[-1])
+        
         if os.path.exists(file_to_download):
-            return send_file(file_to_download, as_attachment=True)
+            response = send_file(file_to_download, as_attachment=True)
+            #response.headers["X-Filename"] = os.path.basename(file_to_download)  # Custom header for filename
+            response.headers["X-Filename"] = file3_path.split('/')[-1]
+            return response
         else:
-            return 'File not found'
+            return jsonify({'message': 'File not found'}), 404
     else:
-        return 'No file paths available for download'
+        return jsonify({'message': 'No file paths available for download'}), 400
 
 # Flask 서버 실행
 if __name__ == "__main__":
