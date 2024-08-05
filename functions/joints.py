@@ -1,3 +1,4 @@
+# refine joints, hierarchy 
 import maya.cmds as cmds
 
 """ hierarchy """
@@ -77,22 +78,30 @@ def select_joints(joints, template_joints):
         
     return refined_joints
 
-# replace joint name as template name
-def refine_joint_name(joints, namespace=None):
+# joint name -> template name (alter)
+def refine_joint_name(joints): 
     ret_joints = [] 
+    # print("alter_joint_name", alter_joint_name)
     for joint in joints:
+        # if joint name in namespace, remove namespace
+        if ":" in joint:
+            joint = joint.split(":")[-1]
+
+        # print("joint", joint)
         for temp_joint, alter_joints in alter_joint_name.items():
             for alter_joint in alter_joints:
                 if joint in alter_joint or alter_joint in joint:
                     joint = temp_joint
+                    # print("temp_joint", temp_joint)
+                    # 찾았다면 alter joint에서 제거하기 왜 안넣었지? TODO
         ret_joints.append(joint)
 
     return ret_joints
 
-
 """ namespace """
 def add_namespace(joint, namespace):
     new_name = f"{namespace}:{joint}"
+    # print("{} -> {}".format(joint, new_name))
     return cmds.rename(joint, new_name)
 
 def remove_namespace(joint):
@@ -108,6 +117,15 @@ def add_namespace_for_joints(joints, namespace):
     for joint in joints:
         new_joints.append(add_namespace(joint, namespace))
     return new_joints
+
+def add_namespace_for_meshes(meshes, namespace):
+    if not cmds.namespace(exists=namespace):
+        cmds.namespace(add=namespace)
+    
+    new_meshes = []
+    for mesh in meshes:
+        new_meshes.append(add_namespace(mesh, namespace))
+    return new_meshes
 
 def remove_namespace_for_joints(joints):
     new_joints = []
