@@ -1,5 +1,4 @@
 import requests
-# import subprocess
 import os
 from functions.parser import *
 import sys
@@ -17,28 +16,22 @@ class Mingle_API():
             'file3': open(source_motion, 'rb')
         }
         response = requests.post(upload_url, files=files)
-        print("Upload response:", response.json())
-
-        # 처리 시간을 위한 지연
-        import time
-        time.sleep(5) # 5초 대기
 
         # download retargeted fbx
-        download_url = os.path.join(self.base_url, 'download')
+        download_url = os.path.join(self.base_url, 'download_api')
         download_response = requests.post(download_url)
-        print("Download response:", download_response)
-        print("Download response response:", download_response.json())
-        print("Download response content:", download_response.content)
-        print(" status_code:", download_response.status_code)
-
 
         if download_response.status_code == 200:
             # 파일 저장
             filename = download_response.headers.get('X-Filename')
-            print("filename: ", filename)
-        
-        # local_save_path = os.path.join("output", target_character, source_motion + ".fbx")
-        # os.makedirs(os.path.dirname(local_save_path), exist_ok=True)
+            if filename:
+                with open(filename, 'wb') as f:
+                    f.write(download_response.content)
+                print(f"File downloaded and saved as {filename}")
+            else:
+                print("Filename not provided in response headers")
+        else:
+            print("Download failed:", download_response.json())
 
 if __name__ == "__main__":
     api = Mingle_API()

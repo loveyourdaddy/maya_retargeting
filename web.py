@@ -5,12 +5,10 @@ import subprocess
 # Flask 앱 초기화
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'  # 세션을 사용하기 위해 필요한 비밀키
-app.config['SESSION_TYPE'] = 'filesystem'
 app.config['UPLOAD_FOLDER'] = './Server_datas/'  # 파일을 저장할 경로
 app.config['OUTPUT_FOLDER'] = './output/' # 파일을 불러올 경로
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 파일 크기 제한 (16 MB)
-from datetime import timedelta
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+
 
 # 업로드 폴더가 없으면 생성
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
@@ -18,6 +16,10 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 
 if not os.path.exists(app.config['OUTPUT_FOLDER']):
     os.makedirs(app.config['OUTPUT_FOLDER'])
+
+global file1_path, file3_path
+file1_path = None
+file3_path = None
 
 # 파일 업로드를 위한 HTML 폼을 제공하는 라우트
 @app.route('/')
@@ -92,9 +94,7 @@ def upload_form():
 # 파일 업로드를 처리하는 라우트
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    print("upload_file")
-    # print("request: ", request)
-    # print("files: ", request.files)
+    global file1_path, file3_path
     if 'file1' not in request.files or 'file2' not in request.files or 'file3' not in request.files:
         return jsonify({'message': 'No file parts'})
 
@@ -116,8 +116,6 @@ def upload_file():
         # 저장한 파일 경로를 세션에 저장
         session['file1_path'] = file1_path
         session['file3_path'] = file3_path
-        print("file1_path: ", file1_path)
-        print("file1_path: ", session['file1_path'])
         
         try:
             result = run_maya_script(file1_path, file2_path, file3_path)
@@ -147,8 +145,6 @@ def run_maya_script(target_char, source_char, source_motion):
 def download_file():
     file1_path = session.get('file1_path')
     file3_path = session.get('file3_path')
-    print("file1_path: ", file1_path)
-    print("file3_path: ", file3_path)
 
     if file1_path and file3_path:
         # Determine the output file path based on the uploaded file
@@ -157,6 +153,25 @@ def download_file():
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
             #response.headers["X-Filename"] = os.path.basename(file_to_download)  # Custom header for filename
+            response.headers["X-Filename"] = file3_path.split('/')[-1]
+            return response
+        else:
+            return jsonify({'message': 'File not found'}), 404
+    else:
+        return jsonify({'message': 'No file paths available for download'}), 400
+
+@app.route('/download_api', methods=['POST'])
+def download_file_api():
+    global file1_path, file3_path
+    # file1_path = session.get('file1_path')
+    # file3_path = session.get('file3_path')
+
+    if file1_path and file3_path:
+        # Determine the output file path based on the uploaded file
+        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], file1_path.split('/')[-1].split('.')[0], file3_path.split('/')[-1])
+        
+        if os.path.exists(file_to_download):
+            response = send_file(file_to_download, as_attachment=True)
             response.headers["X-Filename"] = file3_path.split('/')[-1]
             return response
         else:
