@@ -1,42 +1,55 @@
 import requests
-import subprocess
+# import subprocess
 import os
 from functions.parser import *
-    
+import sys
 
 class Mingle_API():
-    def __init__(self, url='http://127.0.0.1:1236/api/'):
+    def __init__(self, url='http://127.0.0.1:5000/'):
         self.base_url = url
 
-    # api_endpoint ?
-    def call_api(self, ):
-        return requests.post(self.base_url, ) # files=files
-     # files # api_endpoint, 
-        # url = os.path.join(self.base_url, api_endpoint)
-        # requests.post(url, json=files)
+    def call_retargeting_api(self, target_character, source_character, source_motion): 
+        # retarget api 
+        upload_url = os.path.join(self.base_url, "upload")
+        files = {
+            'file1': open(target_character, 'rb'),
+            'file2': open(source_character, 'rb'),
+            'file3': open(source_motion, 'rb')
+        }
+        response = requests.post(upload_url, files=files)
+        print("Upload response:", response.json())
 
-    def call_retargeting_api(self, ): # source_motion, target_character
-        response = self.call_api() # 'api'
-        uid = response.json()["uid"]
-        result_url = os.path.join(self.base_url, uid) # api_endpoint, 
-        save_path = os.path.join("output", "result.fbx")
-        print("uid: ", uid)
-        print("save_path:", save_path)
-        print("result_url:", result_url)
+        # 처리 시간을 위한 지연
+        import time
+        time.sleep(5) # 5초 대기
+
+        # download retargeted fbx
+        download_url = os.path.join(self.base_url, 'download')
+        download_response = requests.post(download_url)
+        print("Download response:", download_response)
+        print("Download response response:", download_response.json())
+        print("Download response content:", download_response.content)
+        print(" status_code:", download_response.status_code)
+
+
+        if download_response.status_code == 200:
+            # 파일 저장
+            filename = download_response.headers.get('X-Filename')
+            print("filename: ", filename)
         
-        subprocess.run(f"curl -o {save_path} {result_url}".split(" ")) 
-
-        # api_endpoint ?
-        # files = {"dasource_motionta" : source_motion,
-        #          "target_character" : target_character}
+        # local_save_path = os.path.join("output", target_character, source_motion + ".fbx")
+        # os.makedirs(os.path.dirname(local_save_path), exist_ok=True)
 
 if __name__ == "__main__":
-    
     api = Mingle_API()
 
-    # import sys
-    # argv = sys.argv
-    # source_motion = argv[1]
-    # target_character = argv[2]
+    if len(sys.argv) != 4:
+        print("Usage: python script.py <target_character> <source_character> <source_motion>")
+        sys.exit(1)
 
-    api.call_retargeting_api() # source_motion, target_character TODO: args 잘들어가는지 확인.
+    argv = sys.argv
+    target_character = argv[1]
+    source_character = argv[2]
+    source_motion = argv[3]
+
+    api.call_retargeting_api(target_character, source_character, source_motion)

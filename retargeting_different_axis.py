@@ -3,16 +3,14 @@ Usage:
 mayapy retargeting_different_axis.py --sourceChar "" --sourceMotion "" --targetChar ""
 
 example:
-mayapy retargeting_different_axis.py --sourceChar "Asooni.fbx" --sourceMotion './motions/Asooni/Go Hard - TWICE_002_RT0118.fbx' --targetChar './models/Mingle_4/Mingle_4.fbx'
+mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
 
 Requirement:
-1. characters of Source and target
-2. Tpose of source and target
-
+1. characters of Source and target : Tpose상태를 가정 
 """
 
-import sys 
-import os
+# import sys
+# import os
 
 import maya.cmds as cmds
 import maya.standalone
@@ -31,22 +29,19 @@ def main():
     # name
     args = get_args()
     sourceMotion = args.sourceMotion
-    sourceChar = args.sourceChar.split('/')[-1].split('.')[0] # sourceMotion.split('/')[2]
+    # sourceChar = args.sourceChar.split('/')[-1].split('.')[0] # sourceMotion.split('/')[2]
     targetMotion = sourceMotion.split('/')[-1].split('.')[0]
     targetChar = args.targetChar.split('/')[-1].split('.')[0]
-    # print("sourceMotion:", sourceMotion)
-    # print("sourceChar:", sourceChar)
-    # print("targetMotion:", targetMotion)
-    # print("targetChar:", targetChar)
- 
+
 
     ''' tgt '''
     # character
+    print("args.targetChar:", args.targetChar)
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
 
     # joints
     tgt_joints, tgt_root_joint = get_tgt_joints()
- 
+
 
     # tgt locator
     tgt_locator_list = cmds.ls(type='locator')
@@ -62,7 +57,7 @@ def main():
     else:
         tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
     tgt_joints_refined = refine_joint_name(tgt_joints)
- 
+
 
     # meshes 
     tgt_meshes = cmds.ls(type='mesh')
@@ -83,7 +78,7 @@ def main():
     # Tpose trf
     Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
 
-    ''' import src motion '''
+    # import src motion 
     mel.eval('FBXImport -f"{}"'.format(sourceMotion))
     # locator and joints 
     locators_list = cmds.ls(type='locator')
