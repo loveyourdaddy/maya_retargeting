@@ -1,3 +1,8 @@
+"""
+Usage
+python retargeting_request.py "./models/Adori/Adori.fbx" "./models/Asooni/Asooni.fbx" "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" 
+"""
+
 import requests
 import os
 from functions.parser import *
