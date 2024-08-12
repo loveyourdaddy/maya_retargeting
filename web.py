@@ -28,10 +28,34 @@ def upload_form():
     <!doctype html>
     <html>
     <head>
+        <style>
+            #processingPopup {
+                display: none;
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                padding: 20px;
+                background-color: #f0f0f0;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                z-index: 1000;
+            }
+        </style>
         <script>
+            function showProcessingPopup() {
+                document.getElementById('processingPopup').style.display = 'block';
+            }
+
+            function hideProcessingPopup() {
+                document.getElementById('processingPopup').style.display = 'none';
+            }
+
             function uploadFiles(event) {
                 event.preventDefault();
                 var formData = new FormData(document.getElementById('uploadForm'));
+
+                showProcessingPopup();
 
                 fetch('/upload', {
                     method: 'POST',
@@ -39,9 +63,11 @@ def upload_form():
                 })
                 .then(response => response.json())
                 .then(data => {
+                    hideProcessingPopup();
                     alert(data.message);  // Show popup with the result message
                 })
                 .catch(error => {
+                    hideProcessingPopup();
                     alert('An error occurred: ' + error.message);
                 });
             }
@@ -73,6 +99,7 @@ def upload_form():
         </script>
     </head>
     <body>
+        <div id="processingPopup">Processing... Please wait.</div>
         <h1>Upload Files and Retargeting Process</h1>
         <form id="uploadForm" onsubmit="uploadFiles(event)">
             <label for="file1">Target Character:</label><br>
