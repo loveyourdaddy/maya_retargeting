@@ -1,3 +1,9 @@
+"""
+Usage 
+target char, source char, source motion 
+python retargeting_request.py ./models/Adori/Adori.fbx ./models/Asooni/Asooni.fbx "./motions/Asooni/0048_Basic Roll_01_RT0104.fbx"
+"""
+
 import requests
 import os
 from functions.parser import *

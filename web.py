@@ -54,12 +54,34 @@ def upload_form():
             }
             .radio-group {
                 margin-bottom: 10px;
+
+            #processingPopup {
+                display: none;
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                padding: 20px;
+                background-color: #f0f0f0;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                z-index: 1000;
             }
         </style>
         <script>
+            function showProcessingPopup() {
+                document.getElementById('processingPopup').style.display = 'block';
+            }
+
+            function hideProcessingPopup() {
+                document.getElementById('processingPopup').style.display = 'none';
+            }
+
             function uploadFiles(event) {
                 event.preventDefault();
                 var formData = new FormData(document.getElementById('uploadForm'));
+
+                showProcessingPopup();
 
                 fetch('/upload', {
                     method: 'POST',
@@ -67,9 +89,11 @@ def upload_form():
                 })
                 .then(response => response.json())
                 .then(data => {
+                    hideProcessingPopup();
                     alert(data.message);  // Show popup with the result message
                 })
                 .catch(error => {
+                    hideProcessingPopup();
                     alert('An error occurred: ' + error.message);
                 });
             }
@@ -108,6 +132,7 @@ def upload_form():
     </head>
     <body>
         <h1 class="center-text">Upload Files and Retargeting Process</h1>
+        <div id="processingPopup">Processing... Please wait.</div>
         <form id="uploadForm" onsubmit="uploadFiles(event)">
             <div class="container">
                 <div class="column">
@@ -188,10 +213,9 @@ def upload_file():
 
 def run_maya_script(target_char, source_char, source_motion):
     # mac 
-    # maya_executable = "/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy"
-    
+    maya_executable = "/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy"    
     # window 
-    maya_executable = "C:\\Program Files\\Autodesk\\Maya2025\\bin\\mayapy" # C:\Program Files\Autodesk\Maya2025\bin\
+    # maya_executable = "C:\\Program Files\\Autodesk\\Maya2025\\bin\\mayapy" 
     script_path = "retargeting_different_axis.py"
     
     command = [
@@ -231,7 +255,6 @@ def download_file():
 def download_file_api():
     
     global file1_path, file3_path
-
     if file1_path and file3_path:
         file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], file1_path.split('/')[-1].split('.')[0], file3_path.split('/')[-1])
 
