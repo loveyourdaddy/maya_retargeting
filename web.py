@@ -143,15 +143,21 @@ def upload_file():
         # 저장한 파일 경로를 세션에 저장
         session['file1_path'] = file1_path
         session['file3_path'] = file3_path
+        print("here")
         
         try:
+            print("run")
             result = run_maya_script(file1_path, file2_path, file3_path)
             return jsonify({'message': 'Processing complete. You can download the file.'})
         except Exception as e:
+            print("error")
             return jsonify({'message': 'An error occurred: ' + str(e)})
 
 def run_maya_script(target_char, source_char, source_motion):
-    maya_executable = "/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy"
+    # mac 
+    maya_executable = "/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy"    
+    # window 
+    # maya_executable = "C:\\Program Files\\Autodesk\\Maya2025\\bin\\mayapy" 
     script_path = "retargeting_different_axis.py"
     
     command = [
@@ -161,7 +167,6 @@ def run_maya_script(target_char, source_char, source_motion):
         "--sourceChar", source_char,
         "--sourceMotion", source_motion,
     ]
-        
     process = subprocess.run(command, capture_output=True, text=True)
     if process.returncode != 0:
         raise Exception(process.stderr)
@@ -190,13 +195,10 @@ def download_file():
 @app.route('/download_api', methods=['POST'])
 def download_file_api():
     global file1_path, file3_path
-    # file1_path = session.get('file1_path')
-    # file3_path = session.get('file3_path')
-
+    
     if file1_path and file3_path:
-        # Determine the output file path based on the uploaded file
         file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], file1_path.split('/')[-1].split('.')[0], file3_path.split('/')[-1])
-        
+
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
             response.headers["X-Filename"] = file3_path.split('/')[-1]
