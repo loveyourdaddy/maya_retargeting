@@ -21,6 +21,7 @@ global file1_path, file3_path
 file1_path = None
 file3_path = None
 
+
 # 파일 업로드를 위한 HTML 폼을 제공하는 라우트
 @app.route('/')
 def upload_form():
@@ -29,6 +30,31 @@ def upload_form():
     <html>
     <head>
         <style>
+            .container {
+                display: flex;
+                justify-content: space-between;
+                width: 100%;
+            }
+            .column {
+                width: 45%;
+            }
+            .file-input {
+                margin-bottom: 10px;
+            }
+            .buttons {
+                display: flex;
+                justify-content: center;
+                margin-top: 20px;
+            }
+            .button {
+                margin: 0 10px;
+            }
+            .center-text {
+                text-align: center;
+            }
+            .radio-group {
+                margin-bottom: 10px;
+
             #processingPopup {
                 display: none;
                 position: fixed;
@@ -96,23 +122,48 @@ def upload_form():
                     alert('An error occurred: ' + error.message);
                 });
             }
+
+            function toggleFileInput() {
+                var etcOption = document.getElementById('etc');
+                var fileInput = document.getElementById('file1');
+                fileInput.disabled = !etcOption.checked;
+            }
         </script>
     </head>
     <body>
+        <h1 class="center-text">Upload Files and Retargeting Process</h1>
         <div id="processingPopup">Processing... Please wait.</div>
-        <h1>Upload Files and Retargeting Process</h1>
         <form id="uploadForm" onsubmit="uploadFiles(event)">
-            <label for="file1">Target Character:</label><br>
-            <input type="file" id="file1" name="file1"><br>
-            <label for="file2">Source Character:</label><br>
-            <input type="file" id="file2" name="file2"><br>
-            <label for="file3">Source Motion:</label><br>
-            <input type="file" id="file3" name="file3"><br><br>
-            <input type="submit" value="Upload and Process">
+            <div class="container">
+                <div class="column">
+                    <h2>Source</h2>
+                    <label for="file2">Source Character:</label><br>
+                    <input type="file" id="file2" name="file2" class="file-input"><br>
+                    <label for="file3">Source Motion:</label><br>
+                    <input type="file" id="file3" name="file3" class="file-input"><br>
+                </div>
+                <div class="column">
+                    <h2>Target</h2>
+                    <div class="radio-group">
+                        <label><input type="radio" name="characterSelect" value="Adori" onclick="toggleFileInput()"> Adori</label><br>
+                        <label><input type="radio" name="characterSelect" value="Asooni" onclick="toggleFileInput()"> Asooni</label><br>
+                        <label><input type="radio" name="characterSelect" value="Bear" onclick="toggleFileInput()"> Bear</label><br>
+                        <label><input type="radio" name="characterSelect" value="Roblox" onclick="toggleFileInput()"> Roblox</label><br>
+                        <label><input type="radio" id="etc" name="characterSelect" value="ETC" onclick="toggleFileInput()"> ETC (User Upload)</label>
+                    </div>
+                    <label for="file1">Target Character:</label><br>
+                    <input type="file" id="file1" name="file1" class="file-input" disabled><br>
+                </div>
+            </div>
+            <div class="buttons">
+                <input type="submit" value="Upload and Process" class="button">
+            </div>
         </form>
-        <h2>Download a File</h2>
+        <h2 class="center-text">Download a File</h2>
         <form id="downloadForm" onsubmit="downloadFile(event)">
-            <input type="submit" value="Download File">
+            <div class="buttons">
+                <input type="submit" value="Download File" class="button">
+            </div>
         </form>
     </body>
     </html>
@@ -122,36 +173,43 @@ def upload_form():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     global file1_path, file3_path
-    if 'file1' not in request.files or 'file2' not in request.files or 'file3' not in request.files:
-        return jsonify({'message': 'No file parts'})
+    character_select = request.form.get('characterSelect')
 
-    file1 = request.files['file1']
+    # 'ETC'가 선택되지 않은 경우 해당 캐릭터의 파일 경로 설정
+    if character_select != "ETC":
+        file1_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{character_select}.fbx")
+    else:
+        if 'file1' not in request.files or 'file2' not in request.files or 'file3' not in request.files:
+            return jsonify({'message': 'No file parts'})
+
+        file1 = request.files['file1']
+        file1_path = os.path.join(app.config['UPLOAD_FOLDER'], file1.filename)
+        file1.save(file1_path)
+
     file2 = request.files['file2']
     file3 = request.files['file3']
 
-    if file1.filename == '' or file2.filename == '' or file3.filename == '':
+    if file2.filename == '' or file3.filename == '':
         return jsonify({'message': 'No selected files'})
 
-    if file1 and file2 and file3:
-        file1_path = os.path.join(app.config['UPLOAD_FOLDER'], file1.filename)
-        file2_path = os.path.join(app.config['UPLOAD_FOLDER'], file2.filename)
-        file3_path = os.path.join(app.config['UPLOAD_FOLDER'], file3.filename)
-        file1.save(file1_path)
-        file2.save(file2_path)
-        file3.save(file3_path)
+    file2_path = os.path.join(app.config['UPLOAD_FOLDER'], file2.filename)
+    file3_path = os.path.join(app.config['UPLOAD_FOLDER'], file3.filename)
+    file2.save(file2_path)
+    file3.save(file3_path)
 
-        # 저장한 파일 경로를 세션에 저장
-        session['file1_path'] = file1_path
-        session['file3_path'] = file3_path
-        print("here")
-        
-        try:
-            print("run")
-            result = run_maya_script(file1_path, file2_path, file3_path)
-            return jsonify({'message': 'Processing complete. You can download the file.'})
-        except Exception as e:
-            print("error")
-            return jsonify({'message': 'An error occurred: ' + str(e)})
+    # 저장한 파일 경로를 세션에 저장
+    session['file1_path'] = file1_path
+    session['file3_path'] = file3_path
+    print("here")
+    
+    try:
+        print("run")
+        result = run_maya_script(file1_path, file2_path, file3_path)
+        return jsonify({'message': 'Processing complete. You can download the file.'})
+    except Exception as e:
+        print("error")
+        return jsonify({'message': 'An error occurred: ' + str(e)})
+
 
 def run_maya_script(target_char, source_char, source_motion):
     # mac 
@@ -170,7 +228,7 @@ def run_maya_script(target_char, source_char, source_motion):
     process = subprocess.run(command, capture_output=True, text=True)
     if process.returncode != 0:
         raise Exception(process.stderr)
-    
+        
     return process.stdout
 
 @app.route('/download', methods=['POST'])
@@ -184,7 +242,7 @@ def download_file():
         
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
-            #response.headers["X-Filename"] = os.path.basename(file_to_download)  # Custom header for filename
+            # response.headers["X-Filename"] = os.path.basename(file_to_download)  # Custom header for filename
             response.headers["X-Filename"] = file3_path.split('/')[-1]
             return response
         else:
@@ -192,10 +250,11 @@ def download_file():
     else:
         return jsonify({'message': 'No file paths available for download'}), 400
 
+
 @app.route('/download_api', methods=['POST'])
 def download_file_api():
-    global file1_path, file3_path
     
+    global file1_path, file3_path
     if file1_path and file3_path:
         file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], file1_path.split('/')[-1].split('.')[0], file3_path.split('/')[-1])
 
@@ -207,6 +266,7 @@ def download_file_api():
             return jsonify({'message': 'File not found'}), 404
     else:
         return jsonify({'message': 'No file paths available for download'}), 400
+    
 
 # Flask 서버 실행
 if __name__ == "__main__":
