@@ -42,7 +42,6 @@ def upload_form():
                 border-radius: 5px;
                 z-index: 1000;
             }
-            
             .container {
                 display: flex;
                 justify-content: space-between;
@@ -67,7 +66,6 @@ def upload_form():
             }
             .radio-group {
                 margin-bottom: 10px;
-
         </style>
         <script>
             function showProcessingPopup() {
@@ -178,9 +176,13 @@ def upload_file():
 
     # 'ETC'가 선택되지 않은 경우 해당 캐릭터의 파일 경로 설정
     if character_select != "ETC":
+        print("case1")
         file1_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{character_select}.fbx")
+        print(file1_path)
     else:
+        print("case2")
         if 'file1' not in request.files or 'file2' not in request.files or 'file3' not in request.files:
+            print("case3")
             return jsonify({'message': 'No file parts'})
 
         file1 = request.files['file1']
@@ -201,22 +203,58 @@ def upload_file():
     # 저장한 파일 경로를 세션에 저장
     session['file1_path'] = file1_path
     session['file3_path'] = file3_path
-    print("here")
+    # print("target char", file1_path)
+    # print("source char", file3_path)
     
     try:
         print("run")
         result = run_maya_script(file1_path, file2_path, file3_path)
+        print(result)
         return jsonify({'message': 'Processing complete. You can download the file.'})
     except Exception as e:
         print("error")
         return jsonify({'message': 'An error occurred: ' + str(e)})
 
 
+@app.route('/upload_api', methods=['POST'])
+def upload_file_api():
+    global file1_path, file3_path
+    if 'file1' not in request.files or 'file2' not in request.files or 'file3' not in request.files:
+        return jsonify({'message': 'No file parts'})
+
+    file1 = request.files['file1']
+    file2 = request.files['file2']
+    file3 = request.files['file3']
+
+    if file1.filename == '' or file2.filename == '' or file3.filename == '':
+        return jsonify({'message': 'No selected files'})
+
+    if file1 and file2 and file3:
+        file1_path = os.path.join(app.config['UPLOAD_FOLDER'], file1.filename)
+        file2_path = os.path.join(app.config['UPLOAD_FOLDER'], file2.filename)
+        file3_path = os.path.join(app.config['UPLOAD_FOLDER'], file3.filename)
+        file1.save(file1_path)
+        file2.save(file2_path)
+        file3.save(file3_path)
+
+        # 저장한 파일 경로를 세션에 저장
+        session['file1_path'] = file1_path
+        session['file3_path'] = file3_path
+        print("here")
+        
+        try:
+            print("run")
+            result = run_maya_script(file1_path, file2_path, file3_path)
+            return jsonify({'message': 'Processing complete. You can download the file.'})
+        except Exception as e:
+            print("error")
+            return jsonify({'message': 'An error occurred: ' + str(e)})
+
 def run_maya_script(target_char, source_char, source_motion):
     # mac 
-    maya_executable = "/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy"    
+    # maya_executable = "/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy"    
     # window 
-    # maya_executable = "C:\\Program Files\\Autodesk\\Maya2025\\bin\\mayapy" 
+    maya_executable = "C:\\Program Files\\Autodesk\\Maya2025\\bin\\mayapy" 
     script_path = "retargeting_different_axis.py"
     
     command = [
@@ -226,8 +264,10 @@ def run_maya_script(target_char, source_char, source_motion):
         "--sourceChar", source_char,
         "--sourceMotion", source_motion,
     ]
+    print("command:", command)
     process = subprocess.run(command, capture_output=True, text=True)
     if process.returncode != 0:
+        print("Error on run maya script")
         raise Exception(process.stderr)
         
     return process.stdout
@@ -236,6 +276,8 @@ def run_maya_script(target_char, source_char, source_motion):
 def download_file():
     file1_path = session.get('file1_path')
     file3_path = session.get('file3_path')
+    print("target char", file1_path)
+    print("source char", file3_path)
 
     if file1_path and file3_path:
         # Determine the output file path based on the uploaded file
@@ -272,4 +314,5 @@ def download_file_api():
 
 # Flask 서버 실행
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    # app.run(host='127.0.0.1', port=5000, debug=True) # local
+    app.run(host='0.0.0.0', port=5000, debug=True) # all interface 
