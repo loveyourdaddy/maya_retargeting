@@ -10,12 +10,12 @@ from functions.parser import *
 import sys
 
 class Mingle_API():
-    def __init__(self, url='http://127.0.0.1:5000/'):
+    def __init__(self, url='http://192.168.1.19:5000/'): #http://127.0.0.1:5000
         self.base_url = url
 
     def call_retargeting_api(self, target_character, source_character, source_motion): 
         # retarget api 
-        upload_url = os.path.join(self.base_url, "upload")
+        upload_url = os.path.join(self.base_url, "upload_api")
         files = {
             'file1': open(target_character, 'rb'),
             'file2': open(source_character, 'rb'),
@@ -25,6 +25,7 @@ class Mingle_API():
 
         # download retargeted fbx
         download_url = os.path.join(self.base_url, 'download_api')
+        # print(download_url)
         download_response = requests.post(download_url)
 
         if download_response.status_code == 200:

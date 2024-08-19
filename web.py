@@ -30,6 +30,19 @@ def upload_form():
     <html>
     <head>
         <style>
+            #processingPopup {
+                display: none;
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                padding: 20px;
+                background-color: #f0f0f0;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                z-index: 1000;
+            }
+            
             .container {
                 display: flex;
                 justify-content: space-between;
@@ -55,18 +68,6 @@ def upload_form():
             .radio-group {
                 margin-bottom: 10px;
 
-            #processingPopup {
-                display: none;
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                padding: 20px;
-                background-color: #f0f0f0;
-                border: 1px solid #ccc;
-                border-radius: 5px;
-                z-index: 1000;
-            }
         </style>
         <script>
             function showProcessingPopup() {
@@ -239,6 +240,7 @@ def download_file():
     if file1_path and file3_path:
         # Determine the output file path based on the uploaded file
         file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], file1_path.split('/')[-1].split('.')[0], file3_path.split('/')[-1])
+        print(file_to_download)
         
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
