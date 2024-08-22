@@ -30,6 +30,39 @@ def upload_form():
     <html>
     <head>
         <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .step {
+                border: 2px solid #000;
+                border-radius: 20px;
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            .step-title {
+                font-weight: bold;
+                font-size: 1.2em;
+                margin-bottom: 10px;
+            }
+            .file-input {
+                margin-bottom: 10px;
+            }
+            .radio-group {
+                margin-bottom: 10px;
+            }
+            .button {
+                display: block;
+                width: 100%;
+                padding: 10px;
+                background-color: #f0f0f0;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                text-align: center;
+                cursor: pointer;
+            }
             #processingPopup {
                 display: none;
                 position: fixed;
@@ -42,32 +75,9 @@ def upload_form():
                 border-radius: 5px;
                 z-index: 1000;
             }
-            .container {
-                display: flex;
-                justify-content: space-between;
-                width: 100%;
-            }
-            .column {
-                width: 45%;
-            }
-            .file-input {
-                margin-bottom: 10px;
-            }
-            .buttons {
-                display: flex;
-                justify-content: center;
-                margin-top: 20px;
-            }
-            .button {
-                margin: 0 10px;
-            }
-            .center-text {
-                text-align: center;
-            }
-            .radio-group {
-                margin-bottom: 10px;
         </style>
         <script>
+            // JavaScript functions remain the same as in the original code
             function showProcessingPopup() {
                 document.getElementById('processingPopup').style.display = 'block';
             }
@@ -89,7 +99,7 @@ def upload_form():
                 .then(response => response.json())
                 .then(data => {
                     hideProcessingPopup();
-                    alert(data.message);  // Show popup with the result message
+                    alert(data.message);
                 })
                 .catch(error => {
                     hideProcessingPopup();
@@ -105,7 +115,7 @@ def upload_form():
                 })
                 .then(response => {
                     if (response.ok) {
-                        const filename = response.headers.get('X-Filename') || 'downloaded_file'; // Get filename from response headers
+                        const filename = response.headers.get('X-Filename') || 'downloaded_file';
                         return response.blob().then(blob => ({ blob, filename }));
                     } else {
                         throw new Error('File not found');
@@ -130,40 +140,37 @@ def upload_form():
         </script>
     </head>
     <body>
-        <h1 class="center-text">Upload Files and Retargeting Process</h1>
+        <h1>Danstruct AI Motion System</h1>
+        <h2>Upload Files and Retargeting Process</h2>
         <div id="processingPopup">Processing... Please wait.</div>
         <form id="uploadForm" onsubmit="uploadFiles(event)">
-            <div class="container">
-                <div class="column">
-                    <h2>Source</h2>
-                    <label for="file2">Source Character:</label><br>
-                    <input type="file" id="file2" name="file2" class="file-input"><br>
-                    <label for="file3">Source Motion:</label><br>
-                    <input type="file" id="file3" name="file3" class="file-input"><br>
-                </div>
-                <div class="column">
-                    <h2>Target</h2>
-                    <div class="radio-group">
-                        <label><input type="radio" name="characterSelect" value="Adori" onclick="toggleFileInput()"> Adori</label><br>
-                        <label><input type="radio" name="characterSelect" value="Asooni" onclick="toggleFileInput()"> Asooni</label><br>
-                        <label><input type="radio" name="characterSelect" value="Bear" onclick="toggleFileInput()"> Bear</label><br>
-                        <label><input type="radio" name="characterSelect" value="Roblox" onclick="toggleFileInput()"> Roblox</label><br>
-                        <label><input type="radio" id="etc" name="characterSelect" value="ETC" onclick="toggleFileInput()"> ETC (User Upload)</label>
-                    </div>
-                    <label for="file1">Target Character:</label><br>
-                    <input type="file" id="file1" name="file1" class="file-input" disabled><br>
-                </div>
+            <div class="step">
+                <div class="step-title">STEP 1: Source</div>
+                <label for="file2">Source Character:</label><br>
+                <input type="file" id="file2" name="file2" class="file-input"><br>
+                <label for="file3">Source Motion:</label><br>
+                <input type="file" id="file3" name="file3" class="file-input"><br>
             </div>
-            <div class="buttons">
+            <div class="step">
+                <div class="step-title">STEP 2: Target</div>
+                <div class="radio-group">
+                    <label><input type="radio" name="characterSelect" value="Adori" onclick="toggleFileInput()"> Adori</label><br>
+                    <label><input type="radio" name="characterSelect" value="Asooni" onclick="toggleFileInput()"> Asooni</label><br>
+                    <label><input type="radio" name="characterSelect" value="Bear" onclick="toggleFileInput()"> Bear</label><br>
+                    <label><input type="radio" name="characterSelect" value="Roblox" onclick="toggleFileInput()"> Roblox</label><br>
+                    <label><input type="radio" id="etc" name="characterSelect" value="ETC" onclick="toggleFileInput()"> ETC (User Upload)</label>
+                </div>
+                <label for="file1">Target Character:</label><br>
+                <input type="file" id="file1" name="file1" class="file-input" disabled><br>
                 <input type="submit" value="Upload and Process" class="button">
             </div>
         </form>
-        <h2 class="center-text">Download a File</h2>
-        <form id="downloadForm" onsubmit="downloadFile(event)">
-            <div class="buttons">
+        <div class="step">
+            <div class="step-title">STEP 3: Download a File</div>
+            <form id="downloadForm" onsubmit="downloadFile(event)">
                 <input type="submit" value="Download File" class="button">
-            </div>
-        </form>
+            </form>
+        </div>
     </body>
     </html>
     '''
@@ -315,4 +322,4 @@ def download_file_api():
 # Flask 서버 실행
 if __name__ == "__main__":
     # app.run(host='127.0.0.1', port=5000, debug=True) # local
-    app.run(host='0.0.0.0', port=5000, debug=True) # all interface 
+    app.run(host='0.0.0.0', port=5000, debug=True) # all interface

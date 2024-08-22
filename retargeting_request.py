@@ -9,7 +9,7 @@ import os
 from functions.parser import *
 import sys
 
-class Mingle_API():
+class Mingle_API(): 
     def __init__(self, url='http://192.168.1.19:5000/'): #http://127.0.0.1:5000
         self.base_url = url
 
