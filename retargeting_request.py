@@ -44,12 +44,12 @@ if __name__ == "__main__":
     api = Mingle_API()
 
     if len(sys.argv) != 4:
-        print("Usage: python script.py <target_character> <source_character> <source_motion>")
+        print("Usage: python script.py <source_character> <source_motion> <target_character>")
         sys.exit(1)
 
     argv = sys.argv
-    target_character = argv[1]
-    source_character = argv[2]
-    source_motion = argv[3]
+    source_character = argv[1]
+    source_motion = argv[2]
+    target_character = argv[3]
 
     api.call_retargeting_api(target_character, source_character, source_motion)
