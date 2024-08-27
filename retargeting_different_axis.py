@@ -9,9 +9,6 @@ Requirement:
 1. characters of Source and target : Tpose상태를 가정 
 """
 
-# import sys
-# import os
-
 import maya.cmds as cmds
 import maya.standalone
 from functions.parser import *
@@ -23,20 +20,23 @@ def main():
     maya.standalone.initialize(name='python')
 
     # Load the FBX plugin
+    print("retargeting start")
     if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
+        # print("no maya pluginInfo")
         cmds.loadPlugin('fbxmaya')
     
     # name
     args = get_args()
     sourceMotion = args.sourceMotion
-    # sourceChar = args.sourceChar.split('/')[-1].split('.')[0] # sourceMotion.split('/')[2]
     targetMotion = sourceMotion.split('/')[-1].split('.')[0]
     targetChar = args.targetChar.split('/')[-1].split('.')[0]
+    print("in retargeting, srcMotion {} of srcChar {} -> tgtChar {}".format(\
+        sourceMotion, args.sourceChar, targetChar))
 
 
     ''' tgt '''
     # character
-    print("args.targetChar:", args.targetChar)
+    # print("args.targetChar:", args.targetChar)
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
 
     # joints

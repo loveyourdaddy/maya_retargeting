@@ -7,7 +7,7 @@ app = Flask(__name__)
 app.secret_key = 'supersecretkey'  # 세션을 사용하기 위해 필요한 비밀키
 app.config['UPLOAD_FOLDER'] = './Server_datas/'  # 파일을 저장할 경로
 app.config['OUTPUT_FOLDER'] = './output/' # 파일을 불러올 경로
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 파일 크기 제한 (16 MB)
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 파일 크기 제한 (16 MB)
 
 
 # 업로드 폴더가 없으면 생성
@@ -25,6 +25,7 @@ file3_path = None
 # 파일 업로드를 위한 HTML 폼을 제공하는 라우트
 @app.route('/')
 def upload_form():
+    print("upload form")
     return '''
     <!doctype html>
     <html>
@@ -143,7 +144,7 @@ def upload_form():
         <h1>Danstruct AI Motion System</h1>
         <h2>Upload Files and Retargeting Process</h2>
         <div id="processingPopup">Processing... Please wait.</div>
-        <form id="uploadForm" onsubmit="uploadFiles(event)">
+        <form id="uploadForm" enctype="multipart/form-data" onsubmit="uploadFiles(event)">
             <div class="step">
                 <div class="step-title">STEP 1: Source</div>
                 <label for="file2">Source Character:</label><br>
@@ -178,18 +179,21 @@ def upload_form():
 # 파일 업로드를 처리하는 라우트
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    global file1_path, file3_path
+    # print("upload file")
+    # print("Form Data:", request.form)  # 디버깅을 위해 추가
+    # print("Files Data:", request.files)  # 디버깅을 위해 추가
+    # global file1_path, file3_path
     character_select = request.form.get('characterSelect')
+    # print("character_select: ", character_select)
 
     # 'ETC'가 선택되지 않은 경우 해당 캐릭터의 파일 경로 설정
     if character_select != "ETC":
-        print("case1")
+        # print("selected: ", file1_path)
         file1_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{character_select}.fbx")
-        print(file1_path)
     else:
-        print("case2")
+        # print("etc: ")
         if 'file1' not in request.files or 'file2' not in request.files or 'file3' not in request.files:
-            print("case3")
+            print("error: no file")
             return jsonify({'message': 'No file parts'})
 
         file1 = request.files['file1']
@@ -226,6 +230,7 @@ def upload_file():
 @app.route('/upload_api', methods=['POST'])
 def upload_file_api():
     global file1_path, file3_path
+    # print("here1")
     if 'file1' not in request.files or 'file2' not in request.files or 'file3' not in request.files:
         return jsonify({'message': 'No file parts'})
 
@@ -263,6 +268,9 @@ def run_maya_script(target_char, source_char, source_motion):
     # window 
     maya_executable = "C:\\Program Files\\Autodesk\\Maya2025\\bin\\mayapy" 
     script_path = "retargeting_different_axis.py"
+    print("target_char", target_char)
+    print("source_char", source_char)
+    print("source_motion", source_motion)
     
     command = [
         maya_executable,
@@ -304,7 +312,6 @@ def download_file():
 
 @app.route('/download_api', methods=['POST'])
 def download_file_api():
-    
     global file1_path, file3_path
     if file1_path and file3_path:
         file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], file1_path.split('/')[-1].split('.')[0], file3_path.split('/')[-1])

@@ -25,7 +25,6 @@ class Mingle_API():
 
         # download retargeted fbx
         download_url = os.path.join(self.base_url, 'download_api')
-        # print(download_url)
         download_response = requests.post(download_url)
 
         if download_response.status_code == 200:
