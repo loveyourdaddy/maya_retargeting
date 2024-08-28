@@ -135,8 +135,8 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
         rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
         rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
         if rot_data.shape[0]!=len_frame:
-            print("rot_data shape is not matched with len_frame")
-            print(rot_data.shape)
+            print("rot_data {} of joint {} is not matched with len_frame{}".format(
+                rot_data.shape, src_joint, len_frame))
             continue
         src_to_tgt_trf = Tpose_trfs[j]
 

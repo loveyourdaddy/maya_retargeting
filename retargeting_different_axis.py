@@ -124,11 +124,12 @@ def main():
         retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data))
     
     # Remove source locator 
+    print(src_locator)
     if src_locator is not None:
         delete_locator_and_hierarchy(src_locator)
     else:
         delete_locator_and_hierarchy(src_joints[0])
-        
+    
     # meshes
     cmds.delete(src_meshes)
 
