@@ -65,21 +65,40 @@ def main():
 
 
     ''' src '''
-    mel.eval('FBXImport -f"{}"'.format(args.sourceChar))
-    src_joints = get_src_joints(tgt_joints)
+    if args.sourceChar != "":
+        mel.eval('FBXImport -f"{}"'.format(args.sourceChar))
+        # get joint hierarchy and 
+        src_joints = get_src_joints(tgt_joints)
 
-    # refine name
-    src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = refine_joints(src_joints, tgt_joints_refined, tgt_joints) 
+        # refine name
+        src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = refine_joints(src_joints, tgt_joints_refined, tgt_joints) 
 
-    # tgt_joints
-    # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
-    tgt_joints = [tgt_joints[i] for i in tgt_indices]
+        # tgt_joints
+        # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
+        tgt_joints = [tgt_joints[i] for i in tgt_indices]
 
-    # Tpose trf
-    Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
-
-    # import src motion 
+        # Tpose trf
+        Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
+    
+    # import src motion
     mel.eval('FBXImport -f"{}"'.format(sourceMotion))
+
+    # source character가 없을때, 0 frame을 Tpose로 사용. src joints, tgt joitns, Tpose_trfs을 얻기
+    if args.sourceChar == "": 
+        print("no source character")
+        # get joint hierarchy and 
+        src_joints = get_src_joints(tgt_joints)
+
+        # refine name
+        src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = refine_joints(src_joints, tgt_joints_refined, tgt_joints) 
+
+        # tgt_joints
+        # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
+        tgt_joints = [tgt_joints[i] for i in tgt_indices]
+
+        # Tpose trf
+        Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
+    
     # locator and joints 
     locators_list = cmds.ls(type='locator')
     src_locator_list = list(set(locators_list) - set(tgt_locator_list))

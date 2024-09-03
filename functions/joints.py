@@ -150,7 +150,7 @@ ee_joints = [
     ]
 
 alter_joint_name = {
-     "Hips":["Pelvis", "LowerTorso"], 
+     "Hips":["Root", "Pelvis", "LowerTorso"], 
      "Spine":["UpperTorso",], 
      "Spine1":["chest",], 
      "Spine2":["chestUpper",], 

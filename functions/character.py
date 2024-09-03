@@ -20,11 +20,14 @@ def get_src_joints(tgt_joints):
 def get_tgt_joints():
     # tgt joint hierarchy
     tgt_joints = cmds.ls(type='joint')
+    import pdb; pdb.set_trace()
     tgt_root_joint = find_root_joints(tgt_joints)
     tgt_joints = get_joint_hierarchy(tgt_root_joint)
     tgt_joints = select_joints(tgt_joints, template_joints)
 
     return tgt_joints, tgt_root_joint
+
+# def get_joint_hierarchy()
 
 def get_locator(tgt_locator):
     # get locator 
