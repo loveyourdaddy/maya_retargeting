@@ -33,7 +33,6 @@ def main():
     print("in retargeting, srcMotion {} of srcChar {} -> tgtChar {}".format(\
         sourceMotion, args.sourceChar, targetChar))
 
-
     ''' tgt '''
     # character
     # print("args.targetChar:", args.targetChar)
@@ -49,6 +48,7 @@ def main():
         tgt_locator, tgt_locator_rot, tgt_locator_scale = get_locator(tgt_locator_list)
     else:
         tgt_locator = None
+    print("tgt loaded")
 
     # joints
     # if namespace is already exist, skip it 
@@ -110,7 +110,7 @@ def main():
     # src meshes
     all_meshes = cmds.ls(type='mesh')
     src_meshes = list(set(all_meshes) - set(tgt_meshes))
-
+    print("src loaded")
 
     ''' retarget '''
     # Translation root
@@ -142,6 +142,7 @@ def main():
         # rot
         retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data))
     
+    print("retargeted ")
     # Remove source locator 
     print(src_locator)
     if src_locator is not None:

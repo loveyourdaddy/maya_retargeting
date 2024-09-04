@@ -1,7 +1,7 @@
 """
 Usage 
-target char, source char, source motion 
-python retargeting_request.py ./models/Adori/Adori.fbx ./models/Asooni/Asooni.fbx "./motions/Asooni/0048_Basic Roll_01_RT0104.fbx"
+source char, source motion, target char, 
+python retargeting_request.py ./models/Asooni/Asooni.fbx "./motions/Asooni/0048_Basic Roll_01_RT0104.fbx" ./models/Adori/Adori.fbx 
 """
 
 import requests
@@ -10,7 +10,7 @@ from functions.parser import *
 import sys
 
 class Mingle_API(): 
-    def __init__(self, url='http://192.168.1.19:5000/'): #http://127.0.0.1:5000
+    def __init__(self, url='http://127.0.0.1:5000/'): #http://127.0.0.1:5000 http://192.168.1.19:5000
         self.base_url = url
 
     def call_retargeting_api(self, target_character, source_character, source_motion): 
@@ -22,10 +22,17 @@ class Mingle_API():
             'file3': open(source_motion, 'rb')
         }
         response = requests.post(upload_url, files=files)
+        transaction_id = response.json().get('transaction_id')
+        # print(transaction_id)
 
         # download retargeted fbx
         download_url = os.path.join(self.base_url, 'download_api')
-        download_response = requests.post(download_url)
+        headers = {'Content-Type': 'application/json'}
+        download_data = {'transaction_id': transaction_id}
+        download_response = requests.post(download_url, json=download_data, headers=headers)
+        print("Download response:", download_response)
+        # download_response = requests.post(download_url)
+        # import pdb; pdb.set_trace()
 
         if download_response.status_code == 200:
             # 파일 저장
