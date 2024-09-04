@@ -234,9 +234,9 @@ def upload_file_api():
     if 'file1' not in request.files or 'file2' not in request.files or 'file3' not in request.files:
         return jsonify({'message': 'No file parts'})
 
-    file1 = request.files['file1']
-    file2 = request.files['file2']
-    file3 = request.files['file3']
+    file1 = request.files['file1'] # target char 
+    file2 = request.files['file2'] # source char
+    file3 = request.files['file3'] # source motion 
 
     if file1.filename == '' or file2.filename == '' or file3.filename == '':
         return jsonify({'message': 'No selected files'})
@@ -263,10 +263,16 @@ def upload_file_api():
             return jsonify({'message': 'An error occurred: ' + str(e)})
 
 def run_maya_script(target_char, source_char, source_motion):
-    # mac 
-    # maya_executable = "/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy"    
+    import platform
+    if platform.system() == "Windows":
+        maya_executable = "C:\\Program Files\\Autodesk\\Maya2025\\bin\\mayapy" 
+    elif platform.system() == "Darwin": # mac 
+        maya_executable = "/Applications/Autodesk/maya2025/Maya.app/Contents/MacOS/mayapy"
+    else:
+        print("Unsupported OS")
+        return
+
     # window 
-    maya_executable = "C:\\Program Files\\Autodesk\\Maya2025\\bin\\mayapy" 
     script_path = "retargeting_different_axis.py"
     print("target_char", target_char)
     print("source_char", source_char)
