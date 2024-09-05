@@ -23,7 +23,6 @@ class Mingle_API():
         }
         response = requests.post(upload_url, files=files)
         transaction_id = response.json().get('transaction_id')
-        # print(transaction_id)
 
         # download retargeted fbx
         download_url = os.path.join(self.base_url, 'download_api')
@@ -31,8 +30,6 @@ class Mingle_API():
         download_data = {'transaction_id': transaction_id}
         download_response = requests.post(download_url, json=download_data, headers=headers)
         print("Download response:", download_response)
-        # download_response = requests.post(download_url)
-        # import pdb; pdb.set_trace()
 
         if download_response.status_code == 200:
             # 파일 저장

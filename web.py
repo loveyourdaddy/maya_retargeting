@@ -17,10 +17,8 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 if not os.path.exists(app.config['OUTPUT_FOLDER']):
     os.makedirs(app.config['OUTPUT_FOLDER'])
 
-global file1_path, file3_path
-file1_path = None
-file3_path = None
-
+# key: tranaction_id, value: file1_path, file3_path
+transactions = {}
 
 # 파일 업로드를 위한 HTML 폼을 제공하는 라우트
 @app.route('/')
@@ -226,7 +224,6 @@ def upload_file():
         print("error")
         return jsonify({'message': 'An error occurred: ' + str(e)})
 
-
 @app.route('/upload_api', methods=['POST'])
 def upload_file_api():
     global file1_path, file3_path
@@ -249,15 +246,23 @@ def upload_file_api():
         file2.save(file2_path)
         file3.save(file3_path)
 
+        # transaction_id 생성
+        import uuid 
+        transaction_id = str(uuid.uuid4())
+        print("transaction_id in upload:", transaction_id)
+        # transaction_folder = os.path.join(app.config['UPLOAD_FOLDER'], transaction_id)
+
         # 저장한 파일 경로를 세션에 저장
-        session['file1_path'] = file1_path
-        session['file3_path'] = file3_path
-        print("here")
+        transactions[transaction_id] = {
+            'file1_path': file1_path,
+            'file2_path': file2_path,
+            'file3_path': file3_path,
+        }
         
         try:
             print("run")
             result = run_maya_script(file1_path, file2_path, file3_path)
-            return jsonify({'message': 'Processing complete. You can download the file.'})
+            return jsonify({'message': 'Processing complete. You can download the file.', 'transaction_id': transaction_id})
         except Exception as e:
             print("error")
             return jsonify({'message': 'An error occurred: ' + str(e)})
@@ -315,10 +320,21 @@ def download_file():
     else:
         return jsonify({'message': 'No file paths available for download'}), 400
 
-
 @app.route('/download_api', methods=['POST'])
 def download_file_api():
-    global file1_path, file3_path
+    # Get the transaction ID from the request data
+    data = request.json
+    transaction_id = data.get('transaction_id')
+    print("transaction_id in download:", transaction_id)
+
+    if not transaction_id or transaction_id not in transactions:
+        return jsonify({'message': 'Invalid transaction ID'}), 400
+
+    transaction = transactions[transaction_id]
+    file1_path = transaction['file1_path']
+    file3_path = transaction['file3_path']
+
+    # load 
     if file1_path and file3_path:
         file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], file1_path.split('/')[-1].split('.')[0], file3_path.split('/')[-1])
 
