@@ -29,7 +29,7 @@ class Mingle_API():
         headers = {'Content-Type': 'application/json'}
         download_data = {'transaction_id': transaction_id}
         download_response = requests.post(download_url, json=download_data, headers=headers)
-        print("Download response:", download_response)
+        # print("Download response:", download_response)
 
         if download_response.status_code == 200:
             # 파일 저장
