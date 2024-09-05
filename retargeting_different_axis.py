@@ -41,7 +41,6 @@ def main():
     # joints
     tgt_joints, tgt_root_joint = get_tgt_joints()
 
-
     # tgt locator
     tgt_locator_list = cmds.ls(type='locator')
     if len(tgt_locator_list)!=0:
@@ -50,8 +49,8 @@ def main():
         tgt_locator = None
     print("tgt loaded")
 
-    # joints
-    # if namespace is already exist, skip it 
+    # rename joints
+    # if namespace is already exist, skip it
     if ":" in tgt_joints[0]:
         pass
     else:
@@ -67,37 +66,15 @@ def main():
     ''' src '''
     if args.sourceChar != "":
         mel.eval('FBXImport -f"{}"'.format(args.sourceChar))
-        # get joint hierarchy and 
-        src_joints = get_src_joints(tgt_joints)
-
-        # refine name
-        src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = refine_joints(src_joints, tgt_joints_refined, tgt_joints) 
-
-        # tgt_joints
-        # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
-        tgt_joints = [tgt_joints[i] for i in tgt_indices]
-
-        # Tpose trf
-        Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
+        src_joints, tgt_joints, _, parent_indices, Tpose_trfs = get_joint_hierarchy_and_Tpose_trf(tgt_joints, tgt_joints_refined)
     
     # import src motion
     mel.eval('FBXImport -f"{}"'.format(sourceMotion))
 
-    # source character가 없을때, 0 frame을 Tpose로 사용. src joints, tgt joitns, Tpose_trfs을 얻기
+    # source character가 없을때, 0 frame을 Tpose로 사용. 
     if args.sourceChar == "": 
         print("no source character")
-        # get joint hierarchy and 
-        src_joints = get_src_joints(tgt_joints)
-
-        # refine name
-        src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = refine_joints(src_joints, tgt_joints_refined, tgt_joints) 
-
-        # tgt_joints
-        # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
-        tgt_joints = [tgt_joints[i] for i in tgt_indices]
-
-        # Tpose trf
-        Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
+        src_joints, tgt_joints, _, parent_indices, Tpose_trfs = get_joint_hierarchy_and_Tpose_trf(tgt_joints, tgt_joints_refined)
     
     # locator and joints 
     locators_list = cmds.ls(type='locator')
