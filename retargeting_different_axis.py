@@ -20,7 +20,7 @@ def main():
     maya.standalone.initialize(name='python')
 
     # Load the FBX plugin
-    print("retargeting start")
+    print(">> retargeting start")
     if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
         # print("no maya pluginInfo")
         cmds.loadPlugin('fbxmaya')
@@ -30,7 +30,7 @@ def main():
     sourceMotion = args.sourceMotion
     targetMotion = sourceMotion.split('/')[-1].split('.')[0]
     targetChar = args.targetChar.split('/')[-1].split('.')[0]
-    print("in retargeting, srcMotion {} of srcChar {} -> tgtChar {}".format(\
+    print(">> in retargeting, srcMotion {} of srcChar {} -> tgtChar {}".format(\
         sourceMotion, args.sourceChar, targetChar))
 
     ''' tgt '''
@@ -47,7 +47,7 @@ def main():
         tgt_locator, tgt_locator_rot, tgt_locator_scale = get_locator(tgt_locator_list)
     else:
         tgt_locator = None
-    print("tgt loaded")
+    print(">> tgt loaded")
 
     # rename joints
     # if namespace is already exist, skip it
@@ -57,25 +57,27 @@ def main():
         tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
     tgt_joints_refined = refine_joint_name(tgt_joints)
 
-
-    # meshes 
+    # meshes
     tgt_meshes = cmds.ls(type='mesh')
     tgt_meshes = add_namespace_for_meshes(tgt_meshes, "tgt_mesh")
 
-
     ''' src '''
+    # source character 있을때
     if args.sourceChar != "":
         mel.eval('FBXImport -f"{}"'.format(args.sourceChar))
         src_joints, tgt_joints, _, parent_indices, Tpose_trfs = get_joint_hierarchy_and_Tpose_trf(tgt_joints, tgt_joints_refined)
-    
-    # import src motion
-    mel.eval('FBXImport -f"{}"'.format(sourceMotion))
+        
+        # import src motion
+        mel.eval('FBXImport -f"{}"'.format(sourceMotion))
 
     # source character가 없을때, 0 frame을 Tpose로 사용. 
     if args.sourceChar == "": 
-        print("no source character")
-        src_joints, tgt_joints, _, parent_indices, Tpose_trfs = get_joint_hierarchy_and_Tpose_trf(tgt_joints, tgt_joints_refined)
+        print(">> no source character")
     
+        # import src motion
+        mel.eval('FBXImport -f"{}"'.format(sourceMotion))
+        src_joints, tgt_joints, _, parent_indices, Tpose_trfs = get_joint_hierarchy_and_Tpose_trf(tgt_joints, tgt_joints_refined)
+
     # locator and joints 
     locators_list = cmds.ls(type='locator')
     src_locator_list = list(set(locators_list) - set(tgt_locator_list))
@@ -87,7 +89,7 @@ def main():
     # src meshes
     all_meshes = cmds.ls(type='mesh')
     src_meshes = list(set(all_meshes) - set(tgt_meshes))
-    print("src loaded")
+    print(">> src loaded")
 
     ''' retarget '''
     # Translation root
@@ -119,7 +121,7 @@ def main():
         # rot
         retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data))
     
-    print("retargeted ")
+    print(">> retargeted")
     # Remove source locator 
     print(src_locator)
     if src_locator is not None:

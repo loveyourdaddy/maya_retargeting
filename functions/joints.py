@@ -1,5 +1,6 @@
 # refine joints, hierarchy 
 import maya.cmds as cmds
+import copy
 
 """ hierarchy """
 def get_joint_hierarchy(root_joint):
@@ -20,19 +21,20 @@ def find_root_joints(all_joints):
     # find root joint 
     for joint in all_joints:
         parents = cmds.listRelatives(joint, parent=True)
-        
         if not parents or cmds.nodeType(parents[0]) != 'joint': 
             root_joints.append(joint)
 
     # find best root joint
     children_of_roots = [[] for _ in range(len(root_joints))]
     list_index = []
+    # import pdb; pdb.set_trace()
     for i, root_joint in enumerate(root_joints):
         hierarchy = get_joint_hierarchy(root_joint)
         hierarchy = refine_joint_name(hierarchy)
+        # import pdb; pdb.set_trace()
         children_of_roots[i] = select_joints(hierarchy, template_joints)
         list_index.append(len(children_of_roots[i]))
-    
+        
     max_index = list_index.index(max(list_index))
     return root_joints[max_index]
 
@@ -46,38 +48,7 @@ def get_parent_joint(joint):
 def get_top_level_nodes():
     return cmds.ls(assemblies=True)
 
-
-""" refine hierarchy """
-def select_joints(joints, template_joints):
-    refined_joints = []
-    for template_joint in template_joints:
-        for joint in joints:
-            alter_joint = joint
-            for temp_name, alter_names in alter_joint_name.items():
-                changed = False
-                for alter_name in alter_names:
-                    if joint in alter_name or alter_name in joint:
-                        alter_joint = temp_name
-                        changed = True
-                        break
-                if changed:
-                    break
-
-            # joint in template joint, not finger
-            if (template_joint.lower() in alter_joint.lower() or alter_joint.lower() in template_joint.lower()) and \
-                "Thumb" not in joint and \
-                "Index" not in joint and \
-                "Middle" not in joint and \
-                "Ring" not in joint and \
-                "Pinky" not in joint:
-                refined_joints.append(joint)
-
-                # 체크가 되었으면 joints에서 제거하기
-                joints.remove(joint)
-                break
-        
-    return refined_joints
-
+""" rename """
 # joint name -> template name (alter)
 def refine_joint_name(joints): 
     ret_joints = [] 
@@ -87,16 +58,203 @@ def refine_joint_name(joints):
         if ":" in joint:
             joint = joint.split(":")[-1]
 
+        # replace joint name to template key name 
         # print("joint", joint)
         for temp_joint, alter_joints in alter_joint_name.items():
             for alter_joint in alter_joints:
-                if joint in alter_joint or alter_joint in joint:
+                if (joint in alter_joint or alter_joint in joint) and temp_joint not in ret_joints:
+                    # import pdb; pdb.set_trace()
                     joint = temp_joint
                     # print("temp_joint", temp_joint)
-                    # 찾았다면 alter joint에서 제거하기 왜 안넣었지? TODO
+                    
         ret_joints.append(joint)
 
     return ret_joints
+
+""" refine hierarchy """
+# select by template
+def select_joints(joints, template_joints):
+    refined_joints = []
+    added_template_joints = []
+    alter_joint_name_ = copy.deepcopy(alter_joint_name)
+    for template_joint in template_joints:
+        for joint in joints:
+            alter_joint = joint
+            for temp_name, alter_names in alter_joint_name_.items():
+                changed = False
+                for alter_name in alter_names:
+                    if joint in alter_name or alter_name in joint:
+                        alter_joint = temp_name
+                        changed = True
+                        break
+                if changed:
+                    # altername에서 찾았으면 제거하기
+                    del alter_joint_name_[temp_name]
+                    break
+
+            # 1. joint in template joint,
+            # 2. not finger
+            # 3. not already exist in the list
+            if (template_joint.lower() in alter_joint.lower() or alter_joint.lower() in template_joint.lower()) and \
+                    "Thumb" not in joint and \
+                    "Index" not in joint and \
+                    "Middle" not in joint and \
+                    "Ring" not in joint and \
+                    "Pinky" not in joint and \
+                    joint not in refined_joints and \
+                    template_joint not in added_template_joints:
+                refined_joints.append(joint)
+                added_template_joints.append(template_joint)
+                print("{} joint and {} template mapped".format(joint, template_joint))
+                # 체크가 되었으면 joints에서 제거하기
+
+                joints.remove(joint)
+                # template_joints.remove(template_joint)
+                break
+    # import pdb; pdb.set_trace()
+    
+    return refined_joints
+
+def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_origin):
+    # get division 
+    def get_spine_division(joint_hierarchy):
+        division = []
+        for i, joint_name in enumerate(joint_hierarchy):
+            children = cmds.listRelatives(joint_name, children=True, type='joint')
+            # import pdb; pdb.set_trace()
+            # 예외처리: 만약 child의 child가 없다면, 제외해주기. 
+            for child in children:
+                if cmds.listRelatives(child, children=True, type='joint') is None:
+                    children.remove(child)
+            if children is not None and len(children)>1 and src_joint_hierarchy[i]:
+                division.append(joint_name)
+                if len(division)==2:
+                    return i, joint_name
+        raise ValueError("division not found")
+    tgt_spine_div_jid, tgt_spine_div = get_spine_division(tgt_joint_hierarchy_origin)
+    src_spine_div_jid, src_spine_div = get_spine_division(src_joint_hierarchy)
+    src_spine_div = src_spine_div.split(':')[-1]
+    tgt_spine_div = tgt_spine_div.split(':')[-1]
+
+    # find common joints 
+    src_common_joint = []
+    tgt_common_joint = []
+    src_indices = []
+    tgt_indices = []
+    spine_check_flag = False
+    for src_idx, src_joint in enumerate(src_joint_hierarchy):
+        check = False
+        for tgt_idx, tgt_joint in enumerate(tgt_joint_hierarchy):
+            src_joint_renamed = src_joint.split(':')[-1]
+            tgt_joint_renamed = tgt_joint.split(':')[-1]
+
+            # find common joint 
+            # 1. 이름 겹치는 부분이 있음
+            # 2. 이미 list에 포함되어있지 않음
+            if (src_joint_renamed.lower() in tgt_joint_renamed.lower() or tgt_joint_renamed.lower() in src_joint_renamed.lower()) \
+                    and src_joint not in src_common_joint and tgt_joint not in tgt_common_joint: 
+                print("src {} tgt {}".format(src_joint, tgt_joint))
+                # add spine division
+                # 만약 joint가 spine div조인트를 넘어갔고, 리스트에 없다면 
+                # 마지막 조인트를 1개 빼주고(spine이 1개 이상있다고 가정.) division joint을 넣어주기
+                if spine_check_flag==False and src_idx > src_spine_div_jid and tgt_idx > tgt_spine_div_jid:
+                    if src_joint not in src_common_joint:
+                        src_common_joint[-1] = src_spine_div
+                        src_indices[-1] = src_spine_div_jid
+                        print("add src spine div")
+                    if tgt_joint not in tgt_common_joint:
+                        tgt_common_joint[-1] = tgt_spine_div
+                        tgt_indices[-1] = tgt_spine_div_jid
+                        print("add tgt spine div")
+                    spine_check_flag = True
+
+                src_common_joint.append(src_joint)
+                tgt_common_joint.append(tgt_joint)
+                src_indices.append(src_idx)
+                tgt_indices.append(tgt_idx)
+                check = True
+                break
+        if check:
+            continue
+    import pdb; pdb.set_trace()
+
+    # Updated joint hierarchy by selected ones 
+    src_select_hierarchy, tgt_select_hierarchy = [], []
+    src_name2index = {}
+    tgt_name2index = {}
+    for i in range(len(src_indices)):
+        src_name = src_joint_hierarchy[src_indices[i]]
+        tgt_name = tgt_joint_hierarchy_origin[tgt_indices[i]]
+
+        src_select_hierarchy.append(src_name)
+        tgt_select_hierarchy.append(tgt_joint_hierarchy[tgt_indices[i]])
+
+        src_name2index[src_name] = i
+        tgt_name2index[tgt_name] = i
+    src_joint_hierarchy = src_select_hierarchy
+    tgt_joint_hierarchy = tgt_select_hierarchy
+
+    # origin name
+    tgt_select_hierarchy_origin = []
+    for i in range(len(src_indices)):
+        tgt_select_hierarchy_origin.append(tgt_joint_hierarchy_origin[tgt_indices[i]])
+    tgt_joint_hierarchy_origin = tgt_select_hierarchy_origin
+
+    """ parent index """
+    # select joint hierarchy: 적은것 기준
+    if len(src_indices) <= len(tgt_indices):
+        joint_indices = src_indices
+        joint_hierarchy = src_joint_hierarchy
+        name2index = src_name2index
+        # print("src standard")
+    else:
+        joint_indices = tgt_indices
+        joint_hierarchy = tgt_joint_hierarchy_origin
+        name2index = tgt_name2index
+        # print("tgt standard")
+    
+    parent_indices = []
+    division = []
+    child_of_divisions = []
+    for i in range(len(joint_indices)):
+        joint_name = joint_hierarchy[i] # joint_indices[i]
+        print("{} {}".format(i, joint_name))
+
+        # child of joint
+        children = cmds.listRelatives(joint_name, children=True, type='joint')
+        if children is not None:
+            children_index = []
+            for child in children:
+                if child not in name2index:
+                    continue
+                children_index.append(name2index[child])
+
+        # get parent index
+        if len(parent_indices)==0:
+            # root 
+            parent_j = -1
+        else:
+            # parent가 division이라면, division을 parent index로 
+            check = False 
+            for division_idx, child_of_division in enumerate(child_of_divisions):
+                if i in child_of_division:
+                    parent_j = division[division_idx]
+                    check = True
+                    break
+
+            # 해당 없다면
+            if check==False:
+                parent_j = i-1
+        parent_indices.append(parent_j)
+
+        # division
+        # children이 있고, end effector가 아닌 경우
+        if children is not None and len(children)>1 and joint_hierarchy[i] not in ee_joints:
+            division_j = copy.deepcopy(i)
+            division.append(division_j)
+            child_of_divisions.append(children_index)
+    
+    return src_joint_hierarchy, tgt_joint_hierarchy, parent_indices, src_indices, tgt_indices
 
 """ namespace """
 def add_namespace(joint, namespace):
@@ -137,7 +295,7 @@ def remove_namespace_for_joints(joints):
 # joints
 # 22 = 4+2+4+4+4+4
 template_joints = [
-    "Hips","Spine","Spine1","Spine2",
+     "Hips","Spine","Spine1","Spine2",
      "Neck","Head", 
      "LeftShoulder","LeftArm","LeftForeArm","LeftHand", 
      "RightShoulder","RightArm","RightForeArm","RightHand", 
