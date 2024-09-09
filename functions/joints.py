@@ -176,7 +176,6 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
                 break
         if check:
             continue
-    import pdb; pdb.set_trace()
 
     # Updated joint hierarchy by selected ones 
     src_select_hierarchy, tgt_select_hierarchy = [], []

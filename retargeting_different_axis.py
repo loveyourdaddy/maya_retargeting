@@ -61,6 +61,21 @@ def main():
     tgt_meshes = cmds.ls(type='mesh')
     tgt_meshes = add_namespace_for_meshes(tgt_meshes, "tgt_mesh")
 
+    # get pre rotation
+    prerotations = []
+    for joint in tgt_joints:
+        # zero rotation을 만들어야하는게 아닐까?
+        angle_origin = cmds.xform(joint, q=True, ws=False, ro=True)
+
+        # set zero rot and get world rot 
+        cmds.xform(joint, ro=(0,0,0), q=False, ws=False) 
+        prerot = np.transpose(np.array(cmds.xform(joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
+        
+        # 원래 rotation으로 돌려두기
+        cmds.xform(joint, ro=tuple(angle_origin), q=False, ws=False)
+        prerotations.append(prerot)
+        # print("{} \n{} ".format(prerot, joint))
+
     ''' src '''
     # source character 있을때
     if args.sourceChar != "":
@@ -99,7 +114,7 @@ def main():
         translate = None
 
     if src_locator is not None or tgt_locator is not None:
-        # print("retarget with locator")
+        print(">> retarget with locator")
         # 예외처리
         if src_locator is None:
             src_locator_rot, src_locator_scale = None, None
@@ -112,9 +127,11 @@ def main():
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale,\
                                           translate=translate)
         # rot
-        retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data), src_locator_rot, tgt_locator_rot)
+        retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
+                          len(trans_data), src_locator_rot, tgt_locator_rot,\
+                            prerotations)
     else:
-        # print("retarget without locator")
+        print(">> retarget without locator")
         # trans
         trans_data = retarget_translation(src_joints[0], tgt_joints[0], 
                                           translate=translate)
@@ -132,7 +149,7 @@ def main():
     # meshes
     cmds.delete(src_meshes)
 
-    # rename tgt joints 
+    # rename tgt joints
     tgt_joints = remove_namespace_for_joints(tgt_joints)
 
     # Run the function

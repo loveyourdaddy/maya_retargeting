@@ -45,19 +45,16 @@ def get_joint_hierarchy_and_Tpose_trf(tgt_joints, tgt_joints_refined):
 
     return src_joints, tgt_joints, tgt_joints_refined, parent_indices, Tpose_trfs
 
-
 def get_locator(tgt_locator):
     # get locator 
     tgt_locator = tgt_locator[0].replace("Shape","")
 
     # rotation 
     tgt_locator_rot = cmds.xform(tgt_locator, q=True, ws=True, ro=True)
-    # position
-    # tgt_locator_pos = cmds.xform(tgt_locator, q=True, ws=True, translation=True)
     # scale 
     tgt_locator_scale = cmds.xform(tgt_locator, q=True, ws=True, scale=True)
-    # set locator 
-    # cmds.xform(tgt_locator, q=False, ws=True, translation=tgt_locator_pos)
+    # position
+    # tgt_locator_pos = cmds.xform(tgt_locator, q=True, ws=True, translation=True)
 
     return tgt_locator, tgt_locator_rot, tgt_locator_scale
 
