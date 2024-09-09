@@ -131,7 +131,7 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
     tgt_world_mats = np.full((len_frame, len(tgt_joints), 3, 3), None, dtype=np.float32)
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joints, tgt_joints)):
         parent_j = parent_indices[j]
-        # print("{} {} {} parent{}".format(j, src_joint, tgt_joint, parent_j))
+        print("{} {} {} parent{}".format(j, src_joint, tgt_joint, parent_j))
 
         # keyframe_data
         # [attr, frames, (frame, value)]: (trans, world rot)
@@ -148,6 +148,8 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
 
         # prerot
         prerot = prerotations[j]
+
+        # parent prerot
         if j==0:
             # because parent is None
             parent_prerot = np.eye(3)
@@ -184,7 +186,6 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
             # world angle 
             tgt_world_mat = src_world_mat @ src_to_tgt_trf
             tgt_world_mats[i, j] = tgt_world_mat
-            # import pdb; pdb.set_trace()
 
             # parent world rot
             if j==0:
@@ -200,8 +201,7 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
 
             # update by frame
             # prerot * inv(parent_rot) * world_rot
-            # HOW TO GET prerot 
-            parent_rot = np.linalg.inv(parent_prerot) @ tgt_parent_rotmat
+            parent_rot = np.linalg.inv(parent_prerot) @ tgt_parent_rotmat # parent world rotation without prerot
             tgt_local_mat = np.linalg.inv(parent_rot) @ np.linalg.inv(prerot) @ tgt_world_mat
             # tgt_local_mat = np.linalg.inv(tgt_parent_rotmat) @ np.linalg.inv(prerot) @ tgt_world_mat
 

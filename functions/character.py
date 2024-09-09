@@ -6,7 +6,7 @@ from functions.joints import *
 from functions.keyframe import *
 from functions.rotations import *
 
-''' import '''
+''' import ''' # move to joints
 def get_src_joints(tgt_joints):
     src_joints = cmds.ls(type='joint')
     src_joints = list(set(src_joints) - set(tgt_joints))
@@ -34,7 +34,7 @@ def get_joint_hierarchy_and_Tpose_trf(tgt_joints, tgt_joints_refined):
     src_joints = get_src_joints(tgt_joints)
 
     # refine name
-    src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = refine_joints(src_joints, tgt_joints_refined, tgt_joints) 
+    src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = get_common_hierarchy_bw_src_and_tgt(src_joints, tgt_joints_refined, tgt_joints) 
 
     # tgt_joints
     # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기

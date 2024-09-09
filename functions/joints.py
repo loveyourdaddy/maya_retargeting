@@ -106,22 +106,25 @@ def select_joints(joints, template_joints):
                 refined_joints.append(joint)
                 added_template_joints.append(template_joint)
                 print("{} joint and {} template mapped".format(joint, template_joint))
-                # 체크가 되었으면 joints에서 제거하기
+                import pdb; pdb.set_trace()
 
+                # 체크가 되었으면 joints에서 제거하기
                 joints.remove(joint)
                 # template_joints.remove(template_joint)
                 break
-    # import pdb; pdb.set_trace()
     
     return refined_joints
 
-def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_origin):
+def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_origin):
+    """ origin: 이름이 원래 것. """
     # get division 
     def get_spine_division(joint_hierarchy):
+        # import pdb; pdb.set_trace()
         division = []
         for i, joint_name in enumerate(joint_hierarchy):
             children = cmds.listRelatives(joint_name, children=True, type='joint')
-            # import pdb; pdb.set_trace()
+            if children is None:
+                continue
             # 예외처리: 만약 child의 child가 없다면, 제외해주기. 
             for child in children:
                 if cmds.listRelatives(child, children=True, type='joint') is None:
@@ -131,6 +134,7 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
                 if len(division)==2:
                     return i, joint_name
         raise ValueError("division not found")
+    # import pdb; pdb.set_trace()
     tgt_spine_div_jid, tgt_spine_div = get_spine_division(tgt_joint_hierarchy_origin)
     src_spine_div_jid, src_spine_div = get_spine_division(src_joint_hierarchy)
     src_spine_div = src_spine_div.split(':')[-1]
@@ -153,7 +157,7 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
             # 2. 이미 list에 포함되어있지 않음
             if (src_joint_renamed.lower() in tgt_joint_renamed.lower() or tgt_joint_renamed.lower() in src_joint_renamed.lower()) \
                     and src_joint not in src_common_joint and tgt_joint not in tgt_common_joint: 
-                print("src {} tgt {}".format(src_joint, tgt_joint))
+                # print("src {} tgt {}".format(src_joint, tgt_joint))
                 # add spine division
                 # 만약 joint가 spine div조인트를 넘어갔고, 리스트에 없다면 
                 # 마지막 조인트를 1개 빼주고(spine이 1개 이상있다고 가정.) division joint을 넣어주기
@@ -217,7 +221,7 @@ def refine_joints(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_
     child_of_divisions = []
     for i in range(len(joint_indices)):
         joint_name = joint_hierarchy[i] # joint_indices[i]
-        print("{} {}".format(i, joint_name))
+        # print("{} {}".format(i, joint_name))
 
         # child of joint
         children = cmds.listRelatives(joint_name, children=True, type='joint')
@@ -287,7 +291,9 @@ def add_namespace_for_meshes(meshes, namespace):
 def remove_namespace_for_joints(joints):
     new_joints = []
     for joint in joints:
-        new_joints.append(remove_namespace(joint))
+        # if joint exist 
+        if cmds.objExists(joint):
+            new_joints.append(remove_namespace(joint))
     return new_joints
 # 이미 head가 있기 때문에 neck|head로 나오는건가?
 

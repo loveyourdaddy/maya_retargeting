@@ -61,23 +61,35 @@ def main():
     tgt_meshes = cmds.ls(type='mesh')
     tgt_meshes = add_namespace_for_meshes(tgt_meshes, "tgt_mesh")
 
-    # get pre rotation
+    # Get prerot
+    # (locator, joint들의) local rotation을 저장 후 나중에 복원.
+    angle_origins = []
     prerotations = []
+    if tgt_locator is not None:
+        cmds.xform(tgt_locator, ro=(0,0,0), q=False, ws=False)
     for joint in tgt_joints:
         # zero rotation을 만들어야하는게 아닐까?
         angle_origin = cmds.xform(joint, q=True, ws=False, ro=True)
 
         # set zero rot and get world rot 
-        cmds.xform(joint, ro=(0,0,0), q=False, ws=False) 
+        cmds.xform(joint, ro=(0,0,0), q=False, ws=False)
         prerot = np.transpose(np.array(cmds.xform(joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
         
         # 원래 rotation으로 돌려두기
-        cmds.xform(joint, ro=tuple(angle_origin), q=False, ws=False)
+        # cmds.xform(joint, ro=tuple(angle_origin), q=False, ws=False)
+        angle_origins.append(angle_origin)
         prerotations.append(prerot)
-        # print("{} \n{} ".format(prerot, joint))
+
+    # 기존 값으로 돌려주기
+    if tgt_locator is not None:
+        cmds.xform(tgt_locator, ro=(tgt_locator_rot), q=False, ws=False)
+    for j, joint in enumerate(tgt_joints):
+        angle_origin = angle_origins[j]
+        cmds.xform(joint, ro=tuple(angle_origin), q=False, ws=False)
 
     ''' src '''
     # source character 있을때
+    import pdb; pdb.set_trace()
     if args.sourceChar != "":
         mel.eval('FBXImport -f"{}"'.format(args.sourceChar))
         src_joints, tgt_joints, _, parent_indices, Tpose_trfs = get_joint_hierarchy_and_Tpose_trf(tgt_joints, tgt_joints_refined)
@@ -137,10 +149,10 @@ def main():
                                           translate=translate)
         # rot
         retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data))
-    
+    # import pdb; pdb.set_trace()
     print(">> retargeted")
     # Remove source locator 
-    print(src_locator)
+    # print(src_locator)
     if src_locator is not None:
         delete_locator_and_hierarchy(src_locator)
     else:
@@ -150,6 +162,7 @@ def main():
     cmds.delete(src_meshes)
 
     # rename tgt joints
+    # import pdb; pdb.set_trace()
     tgt_joints = remove_namespace_for_joints(tgt_joints)
 
     # Run the function
@@ -162,6 +175,7 @@ def main():
         tgt_root_joint = tgt_joints[0]
         top_joint = tgt_root_joint
     freeze_and_bake(top_joint)
+    print(">> retargeting from source: char {}, motion {}".format(args.sourceChar, sourceMotion))
     export(args, targetChar, targetMotion)
     
     # end
