@@ -23,5 +23,5 @@ def export(args, target_char, targetMotion):
 
     # export 
     export_file = output_dir+'/'+targetMotion+'.fbx'
-    mel.eval('FBXExport -f"{}"'.format(export_file))
     print("File export to ", export_file)
+    mel.eval('FBXExport -f"{}"'.format(export_file))

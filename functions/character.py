@@ -1,5 +1,4 @@
-# import and delete the part of character (joints, locator, meshes)
-import copy
+# import copy
 import maya.cmds as cmds
 
 from functions.joints import *
@@ -11,39 +10,26 @@ def get_src_joints(tgt_joints):
     src_joints = cmds.ls(type='joint')
     src_joints = list(set(src_joints) - set(tgt_joints))
     root_joint = find_root_joints(src_joints)
-    src_joint_hierarchy = get_joint_hierarchy(root_joint)
-    # refine joint hierarchy
-    src_joint_hierarchy = select_joints(src_joint_hierarchy, template_joints)
-
-    return src_joint_hierarchy
+    src_joints = get_joint_hierarchy(root_joint)
+    return src_joints
 
 def get_tgt_joints():
     # tgt joint hierarchy
     tgt_joints = cmds.ls(type='joint')
     tgt_root_joint = find_root_joints(tgt_joints)    
-
     tgt_joints = get_joint_hierarchy(tgt_root_joint)
-    tgt_joints = select_joints(tgt_joints, template_joints)
 
     return tgt_joints, tgt_root_joint
 
-def get_joint_hierarchy_and_Tpose_trf(tgt_joints, tgt_joints_refined):
-    from functions.motion import get_Tpose_trf
-
-    # get src, tgt, joint hierarchy, Tpose trf
-    src_joints = get_src_joints(tgt_joints)
-
-    # refine name
-    src_joints, tgt_joints_refined, parent_indices, _, tgt_indices = get_common_hierarchy_bw_src_and_tgt(src_joints, tgt_joints_refined, tgt_joints) 
+def get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joints_renamed):
+    # refine joint hierarchy
+    src_joints, tgt_joints_renamed, parent_indices, _, tgt_indices = get_common_hierarchy_bw_src_and_tgt(src_joints, tgt_joints_renamed, tgt_joints) 
 
     # tgt_joints
     # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
     tgt_joints = [tgt_joints[i] for i in tgt_indices]
 
-    # Tpose trf
-    Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
-
-    return src_joints, tgt_joints, tgt_joints_refined, parent_indices, Tpose_trfs
+    return src_joints, tgt_joints, tgt_joints_renamed, parent_indices
 
 def get_locator(tgt_locator):
     # get locator 
