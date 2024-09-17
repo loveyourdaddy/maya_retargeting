@@ -23,6 +23,8 @@ def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy):
         # trf 
         trf = np.linalg.inv(src_rot_data) @ tgt_rot_data
         Tpose_trfs.append(trf)
+        # if j==14:
+        #     import pdb; pdb.set_trace()
     
     return Tpose_trfs
 
@@ -125,8 +127,6 @@ def retarget_translation(src_hip, tgt_hip,
 def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
                       len_frame, src_locator_rot=None, tgt_locator_rot=None,\
                         tgt_prerotations=None):
-    # tgt_prerotations = None 
-
     # rotation
     # assumtion: src and tgt have same joint names
     src_world_mats = np.full((len_frame, len(tgt_joints), 3, 3), None, dtype=np.float32)
@@ -170,12 +170,8 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
             # parent angle
             if j==0:
                 if src_locator_rot is not None:
-                    # if i==0:
-                        # print("src locator")
                     src_parent_rot_mat = E_to_R(np.array(src_locator_rot))
                 else:
-                    # if i==0:
-                        # print("no src locator")
                     src_parent_rot_mat = E_to_R(np.array([0,0,0]))
             else:
                 # tgt parent world rot
@@ -194,23 +190,24 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
             if j==0:
                 # locator
                 if tgt_locator_rot is not None:
-                    tgt_parent_rotmat = E_to_R(np.array(tgt_locator_rot))
+                    tgt_parent_world_rot = E_to_R(np.array(tgt_locator_rot))
                 # src locator, no tgt locator
                 else:
-                    tgt_parent_rotmat = E_to_R(np.array([0,0,0]))
+                    tgt_parent_world_rot = E_to_R(np.array([0,0,0]))
             else:
                 # tgt parent world rot
-                tgt_parent_rotmat = tgt_world_mats[i, parent_j]
+                tgt_parent_world_rot = tgt_world_mats[i, parent_j]
 
             # update by frame
             # prerot * inv(parent_rot) * world_rot
             if tgt_prerotations is not None:
-                parent_rot = np.linalg.inv(parent_prerot) @ tgt_parent_rotmat # parent world rotation without prerot
-                tgt_local_mat = np.linalg.inv(parent_rot) @ np.linalg.inv(prerot) @ tgt_world_mat
-                # tgt_local_mat = np.linalg.inv(tgt_parent_rotmat) @ np.linalg.inv(prerot) @ tgt_world_mat
+                parent_pure_rot = tgt_parent_world_rot @ np.linalg.inv(parent_prerot) # parent world rotation without prerot
+                tgt_local_mat = np.linalg.inv(parent_pure_rot) @ tgt_world_mat @ np.linalg.inv(prerot)
+                # tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ np.linalg.inv(prerot) @ tgt_world_mat
             else:
-                tgt_local_mat = np.linalg.inv(tgt_parent_rotmat) @ tgt_world_mat
-
+                tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ tgt_world_mat
+            if j==14:
+                import pdb; pdb.set_trace()
 
             tgt_local_angle = R_to_E(tgt_local_mat)
             tgt_perjoint_local_angle[i] = tgt_local_angle

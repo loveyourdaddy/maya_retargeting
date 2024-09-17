@@ -30,8 +30,8 @@ def main():
     sourceMotion = args.sourceMotion
     targetMotion = sourceMotion.split('/')[-1].split('.')[0]
     targetChar = args.targetChar.split('/')[-1].split('.')[0]
-    print(">> in retargeting, srcMotion {} of srcChar {} -> tgtChar {}".format(\
-        sourceMotion, args.sourceChar, targetChar))
+    print(">>({}, {}) ->  {}".format(\
+        args.sourceChar, sourceMotion, targetChar))
 
 
     ''' tgt '''
@@ -180,7 +180,6 @@ def main():
     cmds.delete(src_meshes)
 
     # rename tgt joints
-    # import pdb; pdb.set_trace()
     tgt_joints = remove_namespace_for_joints(tgt_joints)
 
     # Run the function
