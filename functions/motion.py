@@ -124,7 +124,9 @@ def retarget_translation(src_hip, tgt_hip,
 
 def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
                       len_frame, src_locator_rot=None, tgt_locator_rot=None,\
-                        prerotations=None):
+                        tgt_prerotations=None):
+    # tgt_prerotations = None 
+
     # rotation
     # assumtion: src and tgt have same joint names
     src_world_mats = np.full((len_frame, len(tgt_joints), 3, 3), None, dtype=np.float32)
@@ -146,15 +148,16 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
             continue
         src_to_tgt_trf = Tpose_trfs[j]
 
-        # prerot
-        prerot = prerotations[j]
+        # tgt prerot 
+        if tgt_prerotations is not None:
+            prerot = tgt_prerotations[j]
 
-        # parent prerot
-        if j==0:
-            # because parent is None
-            parent_prerot = np.eye(3)
-        else:
-            parent_prerot = prerotations[parent_j]
+            # parent prerot
+            if j==0:
+                # because parent is None
+                parent_prerot = np.eye(3)
+            else:
+                parent_prerot = tgt_prerotations[parent_j]
 
         # update data
         tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
@@ -201,9 +204,13 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
 
             # update by frame
             # prerot * inv(parent_rot) * world_rot
-            parent_rot = np.linalg.inv(parent_prerot) @ tgt_parent_rotmat # parent world rotation without prerot
-            tgt_local_mat = np.linalg.inv(parent_rot) @ np.linalg.inv(prerot) @ tgt_world_mat
-            # tgt_local_mat = np.linalg.inv(tgt_parent_rotmat) @ np.linalg.inv(prerot) @ tgt_world_mat
+            if tgt_prerotations is not None:
+                parent_rot = np.linalg.inv(parent_prerot) @ tgt_parent_rotmat # parent world rotation without prerot
+                tgt_local_mat = np.linalg.inv(parent_rot) @ np.linalg.inv(prerot) @ tgt_world_mat
+                # tgt_local_mat = np.linalg.inv(tgt_parent_rotmat) @ np.linalg.inv(prerot) @ tgt_world_mat
+            else:
+                tgt_local_mat = np.linalg.inv(tgt_parent_rotmat) @ tgt_world_mat
+
 
             tgt_local_angle = R_to_E(tgt_local_mat)
             tgt_perjoint_local_angle[i] = tgt_local_angle
