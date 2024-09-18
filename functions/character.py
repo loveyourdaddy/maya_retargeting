@@ -72,3 +72,34 @@ def delete_all_transform_nodes():
             # Delete the node
             # print(f"Deleted transform node: {node}")
             cmds.delete(node)
+
+""" Get prerot """
+def get_prerotations(tgt_joints, tgt_locator=None, tgt_locator_rot=None):
+    # (locator, joint들의) local rotation을 저장 후 나중에 복원.
+    angle_origins = []
+    prerotations = []
+    if tgt_locator is not None:
+        cmds.xform(tgt_locator, ro=(0,0,0), q=False, ws=False)
+    for j, joint in enumerate(tgt_joints):
+        # zero rotation을 만들어야하는게 아닐까?
+        angle_origin = cmds.xform(joint, q=True, ws=False, ro=True)
+
+        # set zero rot and get world rot 
+        cmds.xform(joint, ro=(0,0,0), q=False, ws=False)
+        prerot = np.transpose(np.array(cmds.xform(joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
+        
+        # 원래 rotation으로 돌려두기
+        # cmds.xform(joint, ro=tuple(angle_origin), q=False, ws=False)
+        angle_origins.append(angle_origin)
+        prerotations.append(prerot)
+        # if j==14:
+        #     import pdb; pdb.set_trace()
+
+    # 기존 값으로 돌려주기
+    if tgt_locator is not None:
+        cmds.xform(tgt_locator, ro=(tgt_locator_rot), q=False, ws=False)
+    for j, joint in enumerate(tgt_joints):
+        angle_origin = angle_origins[j]
+        cmds.xform(joint, ro=tuple(angle_origin), q=False, ws=False)
+    
+    return prerotations

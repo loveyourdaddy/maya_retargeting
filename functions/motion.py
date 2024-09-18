@@ -7,7 +7,10 @@ def import_Tpose(char):
     Tpose = "./motions/"+char+"/T-Pose.fbx"
     mel.eval('FBXImport -f"{}"'.format(Tpose))
 
-def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy):
+""" Trf between characters """
+def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy, tgt_prerotations=None):
+    # trf: src와 tgt간의 pure rotation 관계
+
     # world rotation
     Tpose_trfs = []
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
@@ -20,9 +23,18 @@ def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy):
         src_rot_data = normalize_rotmat(src_rot_data)
         tgt_rot_data = normalize_rotmat(tgt_rot_data)
 
-        # trf 
+        # prerot
+        # world rot = prerot @ pure rot
+        # tgt_rot_data = np.linalg.inv(tgt_prerotations[j]) @ tgt_rot_data
+        # tgt_rot_data = tgt_rot_data @ np.linalg.inv(tgt_prerotations[j])
+        # tgt_rot_data = tgt_rot_data @ tgt_prerotations[j]
+
+        # trf
+        # tgt_world_mat = trf @ src_world_mat
         trf = np.linalg.inv(src_rot_data) @ tgt_rot_data
+        # trf = tgt_rot_data @ np.linalg.inv(src_rot_data)
         Tpose_trfs.append(trf)
+        # print("{} src {} tgt {} \n{} \n{} \n{}".format(j, src_joint, tgt_joint, src_rot_data, tgt_rot_data, trf))
         # if j==14:
         #     import pdb; pdb.set_trace()
     
@@ -127,6 +139,8 @@ def retarget_translation(src_hip, tgt_hip,
 def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
                       len_frame, src_locator_rot=None, tgt_locator_rot=None,\
                         tgt_prerotations=None):
+    # tgt_prerotations=None
+
     # rotation
     # assumtion: src and tgt have same joint names
     src_world_mats = np.full((len_frame, len(tgt_joints), 3, 3), None, dtype=np.float32)
@@ -146,9 +160,9 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
             print("rot_data {} of joint {} is not matched with len_frame{}".format(
                 rot_data.shape, src_joint, len_frame))
             continue
-        src_to_tgt_trf = Tpose_trfs[j]
+        trf = Tpose_trfs[j]
 
-        # tgt prerot 
+        # tgt prerot
         if tgt_prerotations is not None:
             prerot = tgt_prerotations[j]
 
@@ -182,8 +196,9 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
             src_world_mats[i, j] = src_world_mat
 
             """ tgt """
-            # world angle 
-            tgt_world_mat = src_world_mat @ src_to_tgt_trf
+            # world pure rot 
+            tgt_world_mat = src_world_mat @ trf
+            tgt_world_mat = np.linalg.inv(prerot) @ tgt_world_mat
             tgt_world_mats[i, j] = tgt_world_mat
 
             # parent world rot
@@ -200,17 +215,20 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
 
             # update by frame
             # prerot * inv(parent_rot) * world_rot
-            if tgt_prerotations is not None:
-                parent_pure_rot = tgt_parent_world_rot @ np.linalg.inv(parent_prerot) # parent world rotation without prerot
-                tgt_local_mat = np.linalg.inv(parent_pure_rot) @ tgt_world_mat @ np.linalg.inv(prerot)
-                # tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ np.linalg.inv(prerot) @ tgt_world_mat
-            else:
-                tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ tgt_world_mat
-            if j==14:
-                import pdb; pdb.set_trace()
+            # world = parent * (local * prerot)
+            # if tgt_prerotations is not None:
+            #     parent_pure_rot = np.linalg.inv(parent_prerot) @ tgt_parent_world_rot
+            #     tgt_local_mat = np.linalg.inv(parent_pure_rot) @ (tgt_world_mat)
+            #     # tgt_local_mat = np.linalg.inv(prerot) @ tgt_local_mat
+            # else:
+            # tgt_world_mat = prerot @ tgt_world_mat
+            tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ tgt_world_mat
+            # tgt_local_mat = prerot @ tgt_local_mat
 
             tgt_local_angle = R_to_E(tgt_local_mat)
             tgt_perjoint_local_angle[i] = tgt_local_angle
+            # if j==14 and i==0:
+            #     import pdb; pdb.set_trace()
 
         # update by joint
         set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)

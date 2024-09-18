@@ -71,12 +71,16 @@ def main():
         mel.eval('FBXImport -f"{}"'.format(args.sourceChar))
         
         src_joints = get_src_joints(tgt_joints) 
-        # src_joints_templ
 
         src_joints, tgt_joints, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joint_renamed)
         
+        if tgt_locator is not None:
+            prerotations = get_prerotations(tgt_joints, tgt_locator, tgt_locator_rot, )
+        else:
+            prerotations = get_prerotations(tgt_joints)
+
         # Tpose trf
-        Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
+        Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints, prerotations)
 
         # import src motion
         mel.eval('FBXImport -f"{}"'.format(sourceMotion))
@@ -106,33 +110,6 @@ def main():
     all_meshes = cmds.ls(type='mesh')
     src_meshes = list(set(all_meshes) - set(tgt_meshes))
     print(">> src loaded")
-
-
-    """ Get prerot """
-    # (locator, joint들의) local rotation을 저장 후 나중에 복원.
-    angle_origins = []
-    prerotations = []
-    if tgt_locator is not None:
-        cmds.xform(tgt_locator, ro=(0,0,0), q=False, ws=False)
-    for joint in tgt_joints:
-        # zero rotation을 만들어야하는게 아닐까?
-        angle_origin = cmds.xform(joint, q=True, ws=False, ro=True)
-
-        # set zero rot and get world rot 
-        cmds.xform(joint, ro=(0,0,0), q=False, ws=False)
-        prerot = np.transpose(np.array(cmds.xform(joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
-        
-        # 원래 rotation으로 돌려두기
-        # cmds.xform(joint, ro=tuple(angle_origin), q=False, ws=False)
-        angle_origins.append(angle_origin)
-        prerotations.append(prerot)
-
-    # 기존 값으로 돌려주기
-    if tgt_locator is not None:
-        cmds.xform(tgt_locator, ro=(tgt_locator_rot), q=False, ws=False)
-    for j, joint in enumerate(tgt_joints):
-        angle_origin = angle_origins[j]
-        cmds.xform(joint, ro=tuple(angle_origin), q=False, ws=False)
 
 
     ''' retarget '''
