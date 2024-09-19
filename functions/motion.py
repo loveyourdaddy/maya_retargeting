@@ -214,11 +214,11 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
                 tgt_parent_world_rot = tgt_world_mats[i, parent_j]
 
             # local angle
-            tgt_local_mat = np.linalg.inv(tgt_parent_world_rot @ np.linalg.inv(parent_prerot)) @ (tgt_world_mat @ np.linalg.inv(prerot))
-            # tgt_local_mat = np.linalg.inv(np.linalg.inv(parent_prerot) @ tgt_parent_world_rot) @ (np.linalg.inv(prerot) @ tgt_world_mat)
+            # tgt_local_mat = np.linalg.inv(tgt_parent_world_rot @ np.linalg.inv(parent_prerot)) @ (tgt_world_mat @ np.linalg.inv(prerot))
+            tgt_local_mat = np.linalg.inv(np.linalg.inv(parent_prerot) @ tgt_parent_world_rot) @ (np.linalg.inv(prerot) @ tgt_world_mat)
             tgt_local_angle = R_to_E(tgt_local_mat)
             tgt_perjoint_local_angle[i] = tgt_local_angle
-            # if i==200:
-            #     import pdb; pdb.set_trace()
+            if i==0:
+                import pdb; pdb.set_trace()
         # update by joint
         set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
