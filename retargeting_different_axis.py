@@ -168,7 +168,7 @@ def main():
     else:
         tgt_root_joint = tgt_joints[0]
         top_joint = tgt_root_joint
-    freeze_and_bake(top_joint)
+    # freeze_and_bake(top_joint)
     print(">> retargeting from source: (char {}, motion {})".format(args.sourceChar, sourceMotion))
     export(args, targetChar, targetMotion)
     

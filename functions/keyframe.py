@@ -82,4 +82,7 @@ def set_keyframe(joint, keyframe_data, rot_attr):
             value = float(perframe_data[attr_idx])
             if np.isnan(value):
                 continue
+            # print("{} {} {}".format(tid, attr, value))
+            # if tid==0:
+            #     import pdb; pdb.set_trace()
             cmds.setKeyframe(joint, attribute=attr, time=tid, value=value) # world 로 가능?
