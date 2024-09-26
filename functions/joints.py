@@ -58,13 +58,11 @@ def rename_joint_by_template(joints):
         if ":" in joint:
             joint = joint.split(":")[-1]
 
-        # replace joint name to template key name 
-        # print("joint", joint)
+        # replace joint name to template key name
         for temp_joint, alter_joints in alter_joint_name.items():
             for alter_joint in alter_joints:
                 if (joint in alter_joint or alter_joint in joint) and temp_joint not in ret_joints:
                     joint = temp_joint
-                    # print("temp_joint", temp_joint)
                     
         ret_joints.append(joint)
 
@@ -108,78 +106,9 @@ def select_joints(joints, template_joints):
 
                 # 체크가 되었으면 joints에서 제거하기
                 joints.remove(joint)
-                # print("{} joint and {} template mapped".format(joint, template_joint))
-                # template_joints.remove(template_joint)
                 break
     
     return refined_joints
-
-# select by template
-# def select_joints_with_condition(joints, template_joints, condition_joints):
-    # get division
-    # def get_spine_division(joint_hierarchy):
-    #     # import pdb; pdb.set_trace()
-    #     division = []
-    #     for i, joint_name in enumerate(joint_hierarchy):
-    #         children = cmds.listRelatives(joint_name, children=True, type='joint')
-    #         if children is None:
-    #             continue
-    #         # 예외처리: 만약 child의 child가 없다면, 제외해주기. 
-    #         for child in children:
-    #             if cmds.listRelatives(child, children=True, type='joint') is None:
-    #                 children.remove(child)
-    #         if children is not None and len(children)>1: # and src_joint_hierarchy[i]
-    #             division.append(joint_name)
-    #             if len(division)==2:
-    #                 return i, joint_name
-    #     raise ValueError("division not found")
-    
-    # tgt_spine_div_jid, tgt_spine_div = get_spine_division(joints)
-    # src_spine_div_jid, src_spine_div = get_spine_division(condition_joints)
-    # src_spine_div = src_spine_div.split(':')[-1]
-    # tgt_spine_div = tgt_spine_div.split(':')[-1]
-    # import pdb; pdb.set_trace()
-
-    # refined_joints = []
-    # added_template_joints = []
-    # alter_joint_name_ = copy.deepcopy(alter_joint_name)
-    # # import pdb; pdb.set_trace()
-    # for template_joint in template_joints:
-    #     for joint in joints:
-    #         alter_joint = joint
-    #         for temp_name, alter_names in alter_joint_name_.items():
-    #             changed = False
-    #             for alter_name in alter_names:
-    #                 if joint in alter_name or alter_name in joint:
-    #                     alter_joint = temp_name
-    #                     changed = True
-    #                     break
-    #             if changed:
-    #                 # altername에서 찾았으면 제거하기
-    #                 del alter_joint_name_[temp_name]
-    #                 break
-
-    #         # 1. joint in template joint,
-    #         # 2. not finger
-    #         # 3. not already exist in the list
-    #         if (template_joint.lower() in alter_joint.lower() or alter_joint.lower() in template_joint.lower()) and \
-    #                 "Thumb" not in joint and \
-    #                 "Index" not in joint and \
-    #                 "Middle" not in joint and \
-    #                 "Ring" not in joint and \
-    #                 "Pinky" not in joint and \
-    #                 joint not in refined_joints and \
-    #                 template_joint not in added_template_joints:
-    #             refined_joints.append(joint)
-    #             added_template_joints.append(template_joint)
-
-    #             # 체크가 되었으면 joints에서 제거하기
-    #             joints.remove(joint)
-    #             # template_joints.remove(template_joint)
-    #             print("{} joint and {} template mapped".format(joint, template_joint))
-    #             break
-    
-    # return refined_joints
 
 def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_origin): # tgt_joints_renamed, tgt_joints
     # origin: 이름이 원래 것

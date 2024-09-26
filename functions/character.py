@@ -61,10 +61,8 @@ def delete_locator_and_hierarchy(locator_name):
         # print(f"{locator_name} does not exist.")
 
 def delete_all_transform_nodes():
-    # import maya.OpenMaya as om
     # Get the list of all nodes in the scene
     all_nodes = cmds.ls(type='transform')
-    # print("all_nodes", all_nodes)
 
     for node in all_nodes:
         # print(node)
