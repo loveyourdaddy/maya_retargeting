@@ -34,9 +34,6 @@ def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy, tgt_prerotations=Non
         trf = np.linalg.inv(src_rot_data) @ tgt_rot_data
         # trf = tgt_rot_data @ np.linalg.inv(src_rot_data)
         Tpose_trfs.append(trf)
-        # print("{} src {} tgt {} \n{} \n{} \n{}".format(j, src_joint, tgt_joint, src_rot_data, tgt_rot_data, trf))
-        # if j==5:
-        #     import pdb; pdb.set_trace()
     
     return Tpose_trfs
 
@@ -214,8 +211,9 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
                 tgt_parent_world_rot = tgt_world_mats[i, parent_j]
 
             # local angle
-            # tgt_local_mat = np.linalg.inv(tgt_parent_world_rot @ np.linalg.inv(parent_prerot)) @ (tgt_world_mat @ np.linalg.inv(prerot))
-            tgt_local_mat = np.linalg.inv(np.linalg.inv(parent_prerot) @ tgt_parent_world_rot) @ (np.linalg.inv(prerot) @ tgt_world_mat)
+            # TODO: prerotation
+            # tgt_local_mat = np.linalg.inv(np.linalg.inv(parent_prerot) @ tgt_parent_world_rot) @ (np.linalg.inv(prerot) @ tgt_world_mat)
+            tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ (tgt_world_mat)
             tgt_local_angle = R_to_E(tgt_local_mat)
             tgt_perjoint_local_angle[i] = tgt_local_angle
         # update by joint
