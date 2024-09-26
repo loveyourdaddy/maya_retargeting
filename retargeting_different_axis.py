@@ -64,8 +64,8 @@ def main():
     tgt_meshes = add_namespace_for_meshes(tgt_meshes, "tgt_mesh")
 
 
-    ''' src '''
     # import pdb; pdb.set_trace()
+    ''' src '''
     if args.sourceChar != "":
         # source character 있을때
         mel.eval('FBXImport -f"{}"'.format(args.sourceChar))
@@ -75,7 +75,7 @@ def main():
         src_joints, tgt_joints, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joint_renamed)
         
         if tgt_locator is not None:
-            prerotations = get_prerotations(tgt_joints, tgt_locator, tgt_locator_rot, )
+            prerotations = get_prerotations(tgt_joints, tgt_locator, tgt_locator_rot,)
         else:
             prerotations = get_prerotations(tgt_joints)
 
@@ -97,6 +97,13 @@ def main():
 
         # Tpose trf
         Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
+    
+    # get root height scale 
+    src_root = src_joints[0]
+    src_hip_height = cmds.xform(src_root, query=True, translation=True, worldSpace=True)[1]
+    tgt_root = tgt_joints[0]
+    tgt_hip_height = cmds.xform(tgt_root, query=True, translation=True, worldSpace=True)[1]
+    height_ratio = tgt_hip_height / src_hip_height
 
     # locator and joints
     locators_list = cmds.ls(type='locator')
@@ -113,12 +120,6 @@ def main():
 
 
     ''' retarget '''
-    # Translation root
-    if False:
-        translate = np.array([300, 0, 0])
-    else:
-        translate = None
-
     if src_locator is not None or tgt_locator is not None:
         print(">> retarget with locator")
         # 예외처리
@@ -131,7 +132,7 @@ def main():
         trans_data = retarget_translation(src_joints[0], tgt_joints[0],\
                                           src_locator, src_locator_rot, src_locator_scale,\
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale,\
-                                          translate=translate)
+                                            height_ratio)
         # rot
         retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
                           len(trans_data), src_locator_rot, tgt_locator_rot,\
@@ -139,8 +140,8 @@ def main():
     else:
         print(">> retarget without locator")
         # trans
-        trans_data = retarget_translation(src_joints[0], tgt_joints[0], 
-                                          translate=translate)
+        trans_data = retarget_translation(src_joints[0], tgt_joints[0],
+                                          height_ratio)
         # rot
         retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data))
     print(">> retargeted")

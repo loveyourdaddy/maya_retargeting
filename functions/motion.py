@@ -40,22 +40,18 @@ def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy, tgt_prerotations=Non
 def retarget_translation(src_hip, tgt_hip, 
                          src_locator=None, src_locator_rot=None, src_locator_scale=None,
                          tgt_locator=None, tgt_locator_rot=None, tgt_locator_scale=None, 
-                         translate=None):
+                         height_ratio=1):
     # translation
     trans_data, _ = get_keyframe_data(src_hip) 
     trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
     trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
     len_frame = len(trans_data)
-    # if translate is not None:
-    #     translate = translate[None, :].repeat(len_frame, axis=0)
 
     # update position
     if len_frame!=0:
         # no locator
         if src_locator==None and tgt_locator==None:
             print(">> no locator")
-            if translate is not None:
-                trans_data[:, ] += translate
 
             set_keyframe(tgt_hip, trans_data, trans_attr)
 
@@ -70,11 +66,6 @@ def retarget_translation(src_hip, tgt_hip,
             for i in range(3): # x, y, z
                 tgt_trans_data[:, i] *= src_locator_scale[i]
 
-            # update position
-            if translate is not None:
-                tgt_trans_data[:, ] += np.einsum('ijk,ik->ij', src_locator_rot_mat, translate)
-            set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
-
         # tgt
         elif src_locator==None and tgt_locator!=None:
             print(">> tgt locator {} ".format(tgt_locator))
@@ -85,11 +76,6 @@ def retarget_translation(src_hip, tgt_hip,
             # scale translation
             for i in range(3): # x, y, z
                 tgt_trans_data[:, i] /= tgt_locator_scale[i]
-
-            # update position
-            if translate is not None:
-                tgt_trans_data[:, ] += np.einsum('ijk,ik->ij', src_locator_rot_mat, translate) 
-            set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
 
         # both src and tgt
         elif src_locator!=None and tgt_locator!=None:
@@ -106,30 +92,17 @@ def retarget_translation(src_hip, tgt_hip,
             tgt_locator_rot_mat = tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0)
 
             tgt_trans_data = np.einsum('ijk,ik->ij', src_locator_rot_mat, trans_data)
-            # print("after1 \n", tgt_trans_data[0])
             tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat, tgt_trans_data)
-            # print("after2 \n", tgt_trans_data[0])
-
-            # if translate is not None:
-            #     print("{} {} {}".format(tgt_locator_rot_mat.shape, src_locator_rot_mat.shape, translate.shape))
-            #     tgt_trans_data[:, ] += np.matmul(tgt_locator_rot_mat, np.matmul(src_locator_rot_mat, translate))
 
             # scale translation
             for i in range(3): # x, y, z
                 tgt_trans_data[:, i] *= src_locator_scale[i]
                 tgt_trans_data[:, i] /= tgt_locator_scale[i]
 
-            # update position
-            # TODO: 기존 값을 받아와서 업데이트하기
-            # if translate is not None:
-            #     for attr_idx, attr in enumerate(trans_attr.keys()):
-            #         for tid, _ in enumerate(tgt_trans_data):
-            #             # print(translate[attr_idx])
-            #             cmds.setKeyframe(tgt_locator, attribute=attr, time=tid, value=float(translate[attr_idx]))
-            set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
-        
         else:
             raise ValueError("locator error")
+        tgt_trans_data *= height_ratio
+        set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
 
     return trans_data
 
@@ -143,7 +116,7 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
     tgt_world_mats = np.full((len_frame, len(tgt_joints), 3, 3), None, dtype=np.float32)
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joints, tgt_joints)):
         parent_j = parent_indices[j]
-        print("{} {} {} parent{}".format(j, src_joint, tgt_joint, parent_j))
+        # print("{} {} {} parent{}".format(j, src_joint, tgt_joint, parent_j))
 
         # keyframe_data
         # [attr, frames, (frame, value)]: (trans, world rot)
