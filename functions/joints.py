@@ -115,7 +115,6 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
     
     # get division 
     def get_spine_division(joint_hierarchy):
-        # import pdb; pdb.set_trace()
         division = []
         for i, joint_name in enumerate(joint_hierarchy):
             children = cmds.listRelatives(joint_name, children=True, type='joint')
@@ -125,24 +124,38 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
             for child in children:
                 if cmds.listRelatives(child, children=True, type='joint') is None:
                     children.remove(child)
+
             if children is not None and len(children)>1 and src_joint_hierarchy[i]:
+                # diuvision0: 
                 division.append(joint_name)
-                if len(division)==2:
-                    return i, joint_name
+                if len(division)==1:
+                    root_name = joint_name
+                    root_jid = i
+                # division1 : spine joint 
+                elif len(division)==2:
+                    spine_name = joint_name
+                    spine_jid = i
+                    return root_jid, root_name, spine_jid, spine_name
+                else: 
+                    raise ValueError("division not found")
+                
+        # if spine not found 
         raise ValueError("division not found")
     
-    tgt_spine_div_jid, tgt_spine_div = get_spine_division(tgt_joint_hierarchy_origin)
-    src_spine_div_jid, src_spine_div = get_spine_division(src_joint_hierarchy)
+    # jid, name 
+    tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = get_spine_division(tgt_joint_hierarchy_origin)
+    src_root_div_jid, src_root_div, src_spine_div_jid, src_spine_div = get_spine_division(src_joint_hierarchy)
+    src_root_div = src_root_div.split(':')[-1]
+    tgt_root_div = tgt_root_div.split(':')[-1]
     src_spine_div = src_spine_div.split(':')[-1]
     tgt_spine_div = tgt_spine_div.split(':')[-1]
-    print("src spine div", src_spine_div)
-    print("tgt spine div", tgt_spine_div)
 
     # get common joints 
     src_common_joint = []
     tgt_common_joint = []
     src_indices = []
     tgt_indices = []
+    root_check_flag = False
     spine_check_flag = False
     for src_idx, src_joint in enumerate(src_joint_hierarchy):
         check = False
@@ -157,9 +170,25 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
                     and src_joint not in src_common_joint and tgt_joint not in tgt_common_joint: 
                 # print("src {} tgt {}".format(src_joint, tgt_joint))
 
+                """
+                Divison 예외처리: 
+                - 만약 joint가 spine div조인트를 넘어갔고, 리스트에 없다면 
+                - 마지막 조인트를 1개 빼주고(spine이 1개 이상있다고 가정.) division joint을 넣어주기
+                """
+
+                # add root division
+                if root_check_flag==False and src_idx > src_root_div_jid and tgt_idx > tgt_root_div_jid:
+                    if src_joint not in src_common_joint:
+                        src_common_joint[-1] = src_root_div
+                        src_indices[-1] = src_root_div_jid
+                        print("add src root div")
+                    if tgt_joint not in tgt_common_joint:
+                        tgt_common_joint[-1] = tgt_root_div
+                        tgt_indices[-1] = tgt_root_div_jid
+                        print("add tgt root div")
+                    root_check_flag = True
+
                 # add spine division
-                # - 만약 joint가 spine div조인트를 넘어갔고, 리스트에 없다면 
-                # - 마지막 조인트를 1개 빼주고(spine이 1개 이상있다고 가정.) division joint을 넣어주기
                 if spine_check_flag==False and src_idx > src_spine_div_jid and tgt_idx > tgt_spine_div_jid:
                     if src_joint not in src_common_joint:
                         src_common_joint[-1] = src_spine_div

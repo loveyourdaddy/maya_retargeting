@@ -3,10 +3,7 @@ Usage:
 mayapy retargeting_different_axis.py --sourceChar "" --sourceMotion "" --targetChar ""
 
 example:
-mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
-
-Requirement:
-1. characters of Source and target : Tpose상태를 가정 
+mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"\
 """
 
 import maya.cmds as cmds
@@ -36,7 +33,6 @@ def main():
 
     ''' tgt '''
     # character
-    # print("args.targetChar:", args.targetChar)
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
 
     # joints
@@ -64,13 +60,12 @@ def main():
     tgt_meshes = add_namespace_for_meshes(tgt_meshes, "tgt_mesh")
 
 
-    # import pdb; pdb.set_trace()
     ''' src '''
     if args.sourceChar != "":
         # source character 있을때
         mel.eval('FBXImport -f"{}"'.format(args.sourceChar))
         
-        src_joints = get_src_joints(tgt_joints) 
+        src_joints = get_src_joints(tgt_joints)
 
         src_joints, tgt_joints, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joint_renamed)
         

@@ -41,20 +41,17 @@ def retarget_translation(src_hip, tgt_hip,
                          src_locator=None, src_locator_rot=None, src_locator_scale=None,
                          tgt_locator=None, tgt_locator_rot=None, tgt_locator_scale=None, 
                          height_ratio=1):
-    # translation
+    # translation data 
     trans_data, _ = get_keyframe_data(src_hip) 
     trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
     trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
     len_frame = len(trans_data)
 
-    # update position
+    # set root position (by locator)
     if len_frame!=0:
         # no locator
         if src_locator==None and tgt_locator==None:
             print(">> no locator")
-
-            set_keyframe(tgt_hip, trans_data, trans_attr)
-
         # src
         elif src_locator!=None and tgt_locator==None:
             print(">> src locator {} ".format(src_locator))
@@ -65,7 +62,6 @@ def retarget_translation(src_hip, tgt_hip,
             # scale translation
             for i in range(3): # x, y, z
                 tgt_trans_data[:, i] *= src_locator_scale[i]
-
         # tgt
         elif src_locator==None and tgt_locator!=None:
             print(">> tgt locator {} ".format(tgt_locator))
@@ -76,7 +72,6 @@ def retarget_translation(src_hip, tgt_hip,
             # scale translation
             for i in range(3): # x, y, z
                 tgt_trans_data[:, i] /= tgt_locator_scale[i]
-
         # both src and tgt
         elif src_locator!=None and tgt_locator!=None:
             print(">> src locator {} tgt locator {}".format(src_locator, tgt_locator))
@@ -86,9 +81,7 @@ def retarget_translation(src_hip, tgt_hip,
             src_locator_rot_mat = src_locator_rot_mat[None, :].repeat(len_frame, axis=0)
 
             # tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
-            # print("tgt_locator_rot_mat before \n", E_to_R(-1 * np.array(tgt_locator_rot)))
             tgt_locator_rot_mat = np.linalg.inv(E_to_R(np.array(tgt_locator_rot)))
-            # print("tgt_locator_rot_mat after  \n", tgt_locator_rot_mat)
             tgt_locator_rot_mat = tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0)
 
             tgt_trans_data = np.einsum('ijk,ik->ij', src_locator_rot_mat, trans_data)
@@ -98,9 +91,9 @@ def retarget_translation(src_hip, tgt_hip,
             for i in range(3): # x, y, z
                 tgt_trans_data[:, i] *= src_locator_scale[i]
                 tgt_trans_data[:, i] /= tgt_locator_scale[i]
-
         else:
             raise ValueError("locator error")
+
         tgt_trans_data *= height_ratio
         set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
 
@@ -189,5 +182,6 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
             tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ (tgt_world_mat)
             tgt_local_angle = R_to_E(tgt_local_mat)
             tgt_perjoint_local_angle[i] = tgt_local_angle
+
         # update by joint
         set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
