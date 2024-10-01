@@ -86,7 +86,11 @@ def get_prerotations(tgt_joints, tgt_locator=None, tgt_locator_rot=None):
         # set zero rot and get world rot 
         cmds.xform(joint, ro=(0,0,0), q=False, ws=False)
         prerot = np.transpose(np.array(cmds.xform(joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
+        prerot = normalize_rotmat(prerot)
         prerotations.append(prerot)
+        print("{} joint {} \n {}".format(j, joint, prerot))
+        # if j==16:
+    # import pdb; pdb.set_trace()
 
     # 기존 값으로 돌려주기
     if tgt_locator is not None:

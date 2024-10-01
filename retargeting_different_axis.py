@@ -93,7 +93,7 @@ def main():
         # Tpose trf
         Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
     
-    # get root height scale 
+    # get root height scale
     src_root = src_joints[0]
     src_hip_height = cmds.xform(src_root, query=True, translation=True, worldSpace=True)[1]
     tgt_root = tgt_joints[0]
