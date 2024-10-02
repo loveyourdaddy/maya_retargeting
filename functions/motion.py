@@ -1,11 +1,9 @@
+# retarget 
+
 import maya.mel as mel
 from functions.joints import *
 from functions.keyframe import *
 from functions.rotations import *
-
-def import_Tpose(char):
-    Tpose = "./motions/"+char+"/T-Pose.fbx"
-    mel.eval('FBXImport -f"{}"'.format(Tpose))
 
 """ Trf between characters """
 def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy, tgt_prerotations=None):
@@ -15,7 +13,7 @@ def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy, tgt_prerotations=Non
     Tpose_trfs = []
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
         # get rot matrix 
-        print("src {} tgt {}".format(src_joint, tgt_joint))
+        # print("src {} tgt {}".format(src_joint, tgt_joint))
         src_rot_data = np.transpose(np.array(cmds.xform(src_joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
         tgt_rot_data = np.transpose(np.array(cmds.xform(tgt_joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
 
@@ -32,6 +30,7 @@ def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy, tgt_prerotations=Non
         # trf
         # tgt_world_mat = trf @ src_world_mat
         trf = np.linalg.inv(src_rot_data) @ tgt_rot_data
+
         # trf = tgt_rot_data @ np.linalg.inv(src_rot_data)
         Tpose_trfs.append(trf)
     
@@ -123,19 +122,19 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
                 rot_data.shape, src_joint, len_frame))
             continue
 
-        # trf 
+        # trf
         trf = Tpose_trfs[j]
 
         # tgt prerot
-        if tgt_prerotations is not None:
-            prerot = tgt_prerotations[j]
+        # if tgt_prerotations is not None:
+        #     prerot = tgt_prerotations[j]
 
-            # parent prerot
-            if j==0:
-                # because parent is None
-                parent_prerot = np.eye(3) # prerot
-            else:
-                parent_prerot = tgt_prerotations[parent_j]
+        #     # parent prerot
+        #     if j==0:
+        #         # because parent is None
+        #         parent_prerot = np.eye(3) # prerot
+        #     else:
+        #         parent_prerot = tgt_prerotations[parent_j]
 
         # update data
         tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
@@ -171,17 +170,19 @@ def retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
                     tgt_parent_world_rot = E_to_R(np.array(tgt_locator_rot))
                 # src locator, no tgt locator
                 else:
-                    tgt_parent_world_rot = E_to_R(np.array([0,0,0])) # tgt_world_mat # 
+                    tgt_parent_world_rot = E_to_R(np.array([0,0,0]))
             else:
                 # tgt parent world rot
                 tgt_parent_world_rot = tgt_world_mats[i, parent_j]
 
             # local angle
-            # TODO: prerotation
+            # prerotation
             # tgt_local_mat = np.linalg.inv(np.linalg.inv(parent_prerot) @ tgt_parent_world_rot) @ (np.linalg.inv(prerot) @ tgt_world_mat)
             tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ (tgt_world_mat)
             tgt_local_angle = R_to_E(tgt_local_mat)
             tgt_perjoint_local_angle[i] = tgt_local_angle
+            # if i==0:
+            #     print("{} trf \n{} parent \n{} world \n{} local".format(trf, tgt_parent_world_rot, tgt_world_mat, tgt_local_mat))
 
         # update by joint
         set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)

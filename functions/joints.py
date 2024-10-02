@@ -1,6 +1,50 @@
 # refine joints, hierarchy 
 import maya.cmds as cmds
 import copy
+import numpy as np
+from functions.rotations import normalize_rotmat
+
+# joints
+# 22 = 4+2+4+4+4+4
+template_joints = [
+     "Hips","Spine","Spine1","Spine2",
+     "Neck","Head", 
+     "LeftShoulder","LeftArm","LeftForeArm","LeftHand", 
+     "RightShoulder","RightArm","RightForeArm","RightHand", 
+     "LeftUpLeg","LeftLeg","LeftFoot","LeftToeBase",
+     "RightUpLeg","RightLeg","RightFoot","RightToeBase"
+    ]
+
+ee_joints = [
+    "LeftHand", "RightHand", "LeftToeBase", "RightToeBase"
+    ]
+
+alter_joint_name = {
+     "Hips":["Root", "Pelvis", "LowerTorso"], 
+     "Spine":["UpperTorso",], 
+     "Spine1":["chest",], 
+     "Spine2":["chestUpper",], 
+
+     "LeftShoulder": ["LFBXASC032Clavicle", "LeftUpperArm", "shoulder_L",], 
+     "LeftArm":["LFBXASC032UpperArm", "LeftLowerArm", "upperArm_L",], 
+     "LeftForeArm":["LFBXASC032Forearm", "lowerArm_L"], 
+     "LeftHand": ["LFBXASC032Hand", "hand_L"],
+
+     "RightShoulder":["RFBXASC032Clavicle", "RightUpperArm", "shoulder_R",], 
+     "RightArm":["RFBXASC032UpperArm", "RightLowerArm", "upperArm_R",], 
+     "RightForeArm":["RFBXASC032Forearm", "lowerArm_R"], 
+     "RightHand":["RFBXASC032Hand", "hand_R"], 
+
+     "LeftUpLeg":['LFBXASC032Thigh', 'upperLeg_L', 'upperReg_L', 'LeftUpperLeg'],
+     "LeftLeg":  ['LFBXASC032Calf',  'lowerLeg_L', 'lowerReg_L', 'LeftLowerLeg'], 
+     "LeftFoot":['LFBXASC032Foot', 'foot_L'], 
+     "LeftToeBase":['LFBXASC032Toe0', 'toes_L'], 
+
+     "RightUpLeg":['RFBXASC032Thigh', 'upperLeg_R', 'upperReg_R', 'RightUpperLeg'], 
+     "RightLeg":  ['RFBXASC032Calf',  'lowerLeg_R', 'lowerReg_R', 'RightLowerLeg'], 
+     "RightFoot":['RFBXASC032Foot', 'foot_R'], 
+     "RightToeBase":['RFBXASC032Toe0', 'toes_R'], 
+    }
 
 """ hierarchy """
 def get_joint_hierarchy(root_joint):
@@ -27,11 +71,9 @@ def find_root_joints(all_joints):
     # find best root joint
     children_of_roots = [[] for _ in range(len(root_joints))]
     list_index = []
-    # import pdb; pdb.set_trace()
     for i, root_joint in enumerate(root_joints):
         hierarchy = get_joint_hierarchy(root_joint)
         hierarchy = rename_joint_by_template(hierarchy)
-        # import pdb; pdb.set_trace()
         children_of_roots[i] = select_joints(hierarchy, template_joints)
         list_index.append(len(children_of_roots[i]))
         
@@ -111,7 +153,7 @@ def select_joints(joints, template_joints):
     return refined_joints
 
 def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_origin): # tgt_joints_renamed, tgt_joints
-    # origin: 이름이 원래 것
+    ''' origin: 이름이 원래 것 '''
     
     # get division 
     def get_spine_division(joint_hierarchy):
@@ -168,7 +210,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
             # 2. 이미 list에 포함되어있지 않음
             if (src_joint_renamed.lower() in tgt_joint_renamed.lower() or tgt_joint_renamed.lower() in src_joint_renamed.lower()) \
                     and src_joint not in src_common_joint and tgt_joint not in tgt_common_joint: 
-                # print("src {} tgt {}".format(src_joint, tgt_joint))
+                # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
 
                 """
                 Divison 예외처리: 
@@ -326,44 +368,41 @@ def remove_namespace_for_joints(joints):
     return new_joints
 # 이미 head가 있기 때문에 neck|head로 나오는건가?
 
-# joints
-# 22 = 4+2+4+4+4+4
-template_joints = [
-     "Hips","Spine","Spine1","Spine2",
-     "Neck","Head", 
-     "LeftShoulder","LeftArm","LeftForeArm","LeftHand", 
-     "RightShoulder","RightArm","RightForeArm","RightHand", 
-     "LeftUpLeg","LeftLeg","LeftFoot","LeftToeBase",
-     "RightUpLeg","RightLeg","RightFoot","RightToeBase"
-    ]
+# def normalize_vector(v):
+#     return v / np.linalg.norm(v)
 
-ee_joints = [
-    "LeftHand", "RightHand", "LeftToeBase", "RightToeBase"
-    ]
+# def normalize_rotmat_in_col(rotmat):
+#     # Normalize each column of the rotation matrix
+#     return np.column_stack([normalize_vector(rotmat[:,i]) for i in range(3)])
 
-alter_joint_name = {
-     "Hips":["Root", "Pelvis", "LowerTorso"], 
-     "Spine":["UpperTorso",], 
-     "Spine1":["chest",], 
-     "Spine2":["chestUpper",], 
+""" Get prerot """
+def get_prerotations(tgt_joints, tgt_locator=None, tgt_locator_rot=None):
+    # (locator, joint들의) local rotation을 저장 후 나중에 복원.
 
-     "LeftShoulder": ["LFBXASC032Clavicle", "LeftUpperArm", "shoulder_L",], 
-     "LeftArm":["LFBXASC032UpperArm", "LeftLowerArm", "upperArm_L",], 
-     "LeftForeArm":["LFBXASC032Forearm", "lowerArm_L"], 
-     "LeftHand": ["LFBXASC032Hand", "hand_L"],
+    # set zero 
+    if tgt_locator is not None:
+        cmds.xform(tgt_locator, ro=(0,0,0), q=False, ws=False)
 
-     "RightShoulder":["RFBXASC032Clavicle", "RightUpperArm", "shoulder_R",], 
-     "RightArm":["RFBXASC032UpperArm", "RightLowerArm", "upperArm_R",], 
-     "RightForeArm":["RFBXASC032Forearm", "lowerArm_R"], 
-     "RightHand":["RFBXASC032Hand", "hand_R"], 
+    # get prerot
+    angle_origins = []
+    prerotations = []
+    for j, joint in enumerate(tgt_joints):
+        # print("{} joint {}".format(j, joint))
+        # zero rotation을 만들어야하는게 아닐까?
+        angle_origin = cmds.xform(joint, q=True, ws=False, ro=True)
+        angle_origins.append(angle_origin)
 
-     "LeftUpLeg":['LFBXASC032Thigh', 'upperLeg_L', 'upperReg_L', 'LeftUpperLeg'],
-     "LeftLeg":  ['LFBXASC032Calf',  'lowerLeg_L', 'lowerReg_L', 'LeftLowerLeg'], 
-     "LeftFoot":['LFBXASC032Foot', 'foot_L'], 
-     "LeftToeBase":['LFBXASC032Toe0', 'toes_L'], 
+        # set zero rot and get world rot 
+        cmds.xform(joint, ro=(0,0,0), q=False, ws=False)
+        prerot = np.transpose(np.array(cmds.xform(joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
+        prerot = normalize_rotmat(prerot)
+        prerotations.append(prerot)
 
-     "RightUpLeg":['RFBXASC032Thigh', 'upperLeg_R', 'upperReg_R', 'RightUpperLeg'], 
-     "RightLeg":  ['RFBXASC032Calf',  'lowerLeg_R', 'lowerReg_R', 'RightLowerLeg'], 
-     "RightFoot":['RFBXASC032Foot', 'foot_R'], 
-     "RightToeBase":['RFBXASC032Toe0', 'toes_R'], 
-    }
+    # 기존 값으로 돌려주기
+    if tgt_locator is not None:
+        cmds.xform(tgt_locator, ro=(tgt_locator_rot), q=False, ws=False)
+    for j, joint in enumerate(tgt_joints):
+        angle_origin = angle_origins[j]
+        cmds.xform(joint, ro=tuple(angle_origin), q=False, ws=False)
+    
+    return prerotations

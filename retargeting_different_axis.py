@@ -34,6 +34,31 @@ def main():
     ''' tgt '''
     # character
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
+    # 예상되는 .fbm 폴더 경로
+    paths = args.targetChar.split('.')
+    path = '.' + paths[0] + paths[1]
+    fbm_folder = path + ".fbm"
+    
+    # 모든 파일 노드 가져오기
+    file_nodes = cmds.ls(type="file")
+    
+    for node in file_nodes:
+        # 현재 파일 경로 가져오기
+        current_path = cmds.getAttr(node + ".fileTextureName")
+        
+        # 파일 이름만 추출
+        file_name = os.path.basename(current_path)
+        
+        # 새 경로 생성
+        new_path = os.path.join(fbm_folder, file_name)
+        
+        # 새 경로가 존재하는지 확인
+        if os.path.exists(new_path):
+            # 텍스처 경로 업데이트
+            cmds.setAttr(node + ".fileTextureName", new_path, type="string")
+            print(f">>Texture loaded: {node} -> {new_path}")
+        else:
+            print(f">>No texture: {new_path}")    
 
     # joints
     tgt_joints, tgt_root_joint = get_tgt_joints()
