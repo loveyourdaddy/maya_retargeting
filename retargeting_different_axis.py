@@ -22,11 +22,18 @@ def main():
         # print("no maya pluginInfo")
         cmds.loadPlugin('fbxmaya')
     
+    def get_name(name):
+        # path 제거 
+        name = name.split('/')[-1]
+        # format 제거
+        format = "." + name.split('.')[-1]
+        return name.replace(format, "")
+
     # name
     args = get_args()
+    targetChar = get_name(args.targetChar)
     sourceMotion = args.sourceMotion
-    targetMotion = sourceMotion.split('/')[-1].split('.')[0]
-    targetChar = args.targetChar.split('/')[-1].split('.')[0]
+    targetMotion = get_name(sourceMotion)
     print(">>({}, {}) ->  {}".format(\
         args.sourceChar, sourceMotion, targetChar))
 
@@ -34,9 +41,8 @@ def main():
     ''' tgt '''
     # character
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
-    # 예상되는 .fbm 폴더 경로
-    paths = args.targetChar.split('.')
-    path = '.' + paths[0] + paths[1]
+    # .fbm 폴더 경로
+    path = "./models/" + targetChar
     fbm_folder = path + ".fbm"
     
     # import texture
@@ -62,7 +68,6 @@ def main():
 
     # joints
     tgt_joints, tgt_root_joint = get_tgt_joints()
-    # import pdb; pdb.set_trace()
 
     # tgt locator
     tgt_locator_list = cmds.ls(type='locator')
