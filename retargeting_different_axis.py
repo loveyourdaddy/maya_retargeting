@@ -169,10 +169,10 @@ def main():
 
     ''' export '''
     # Remove source locator
-    # if src_locator is not None:
-    #     delete_locator_and_hierarchy(src_locator)
-    # else:
-    #     delete_locator_and_hierarchy(src_joints[0])
+    if src_locator is not None:
+        delete_locator_and_hierarchy(src_locator)
+    else:
+        delete_locator_and_hierarchy(src_joints[0])
     
     # meshes
     cmds.delete(src_meshes)
@@ -184,11 +184,11 @@ def main():
     delete_all_transform_nodes()
 
     # free
-    if tgt_locator is not None:
-        top_joint = tgt_locator
-    else:
-        tgt_root_joint = tgt_joints[0]
-        top_joint = tgt_root_joint
+    # if tgt_locator is not None:
+    #     top_joint = tgt_locator
+    # else:
+    #     tgt_root_joint = tgt_joints[0]
+    #     top_joint = tgt_root_joint
     # freeze_and_bake(top_joint)
     print(">> retargeting from source: (char {}, motion {})".format(args.sourceChar, sourceMotion))
     export(args, targetChar, targetMotion)
