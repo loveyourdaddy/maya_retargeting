@@ -19,7 +19,6 @@ def main():
     # Load the FBX plugin
     print(">> retargeting start")
     if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
-        # print("no maya pluginInfo")
         cmds.loadPlugin('fbxmaya')
     
     def get_name(name):
@@ -42,7 +41,7 @@ def main():
     # character
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
     # .fbm 폴더 경로
-    path = "./models/" + targetChar
+    path = "./models/" + targetChar + "/" + targetChar
     fbm_folder = path + ".fbm"
     
     # import texture
@@ -64,7 +63,7 @@ def main():
             cmds.setAttr(node + ".fileTextureName", new_path, type="string")
             print(f">>Texture loaded: {node} -> {new_path}")
         else:
-            print(f">>No texture: {new_path}")    
+            print(f">>No texture: {new_path}")
 
     # joints
     tgt_joints, tgt_root_joint = get_tgt_joints()
