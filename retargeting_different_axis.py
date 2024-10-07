@@ -39,9 +39,9 @@ def main():
     path = '.' + paths[0] + paths[1]
     fbm_folder = path + ".fbm"
     
+    # import texture
     # 모든 파일 노드 가져오기
     file_nodes = cmds.ls(type="file")
-    
     for node in file_nodes:
         # 현재 파일 경로 가져오기
         current_path = cmds.getAttr(node + ".fileTextureName")
@@ -62,6 +62,7 @@ def main():
 
     # joints
     tgt_joints, tgt_root_joint = get_tgt_joints()
+    # import pdb; pdb.set_trace()
 
     # tgt locator
     tgt_locator_list = cmds.ls(type='locator')
@@ -153,6 +154,7 @@ def main():
                                           src_locator, src_locator_rot, src_locator_scale,\
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale,\
                                             height_ratio)
+        # import pdb; pdb.set_trace()
         # rot
         retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
                           len(trans_data), src_locator_rot, tgt_locator_rot,\
@@ -178,7 +180,7 @@ def main():
     cmds.delete(src_meshes)
 
     # rename tgt joints
-    tgt_joints = remove_namespace_for_joints(tgt_joints)
+    tgt_joints = remove_namespace_for_joints(tgt_joints) # tgt_joint_renamed
 
     # Run the function
     delete_all_transform_nodes()
@@ -190,6 +192,8 @@ def main():
     #     tgt_root_joint = tgt_joints[0]
     #     top_joint = tgt_root_joint
     # freeze_and_bake(top_joint)
+
+    # export 
     print(">> retargeting from source: (char {}, motion {})".format(args.sourceChar, sourceMotion))
     export(args, targetChar, targetMotion)
     

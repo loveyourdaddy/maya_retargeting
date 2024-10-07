@@ -156,7 +156,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
     ''' origin: 이름이 원래 것 '''
     
     # get division 
-    def get_spine_division(joint_hierarchy):
+    def get_division(joint_hierarchy):
         division = []
         for i, joint_name in enumerate(joint_hierarchy):
             children = cmds.listRelatives(joint_name, children=True, type='joint')
@@ -184,9 +184,9 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
         # if spine not found 
         raise ValueError("division not found")
     
-    # jid, name 
-    tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = get_spine_division(tgt_joint_hierarchy_origin)
-    src_root_div_jid, src_root_div, src_spine_div_jid, src_spine_div = get_spine_division(src_joint_hierarchy)
+    # jid, name
+    tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = get_division(tgt_joint_hierarchy_origin)
+    src_root_div_jid, src_root_div, src_spine_div_jid, src_spine_div = get_division(src_joint_hierarchy)
     src_root_div = src_root_div.split(':')[-1]
     tgt_root_div = tgt_root_div.split(':')[-1]
     src_spine_div = src_spine_div.split(':')[-1]
@@ -241,7 +241,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
                         tgt_indices[-1] = tgt_spine_div_jid
                         print("add tgt spine div")
                     spine_check_flag = True
-
+                
                 src_common_joint.append(src_joint)
                 tgt_common_joint.append(tgt_joint)
                 src_indices.append(src_idx)
