@@ -1,9 +1,9 @@
 """
 Usage:
-mayapy retargeting_different_axis.py --sourceChar "" --sourceMotion "" --targetChar ""
+mayapy retargeting_different_axis.py --sourceMotion "" --targetChar ""
 
 example:
-mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"\
+mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"\
 """
 
 import maya.cmds as cmds
@@ -30,11 +30,13 @@ def main():
 
     # name
     args = get_args()
+    # tgt
     targetChar = get_name(args.targetChar)
+    targetMotion = get_name(args.sourceMotion)
+    # src 
     sourceMotion = args.sourceMotion
-    targetMotion = get_name(sourceMotion)
-    print(">>({}, {}) ->  {}".format(\
-        args.sourceChar, sourceMotion, targetChar))
+    sourceChar = sourceMotion.split('/')[-2]
+    print(">>({}, {}) ->  {}".format(sourceChar, sourceMotion, targetChar))
 
 
     ''' tgt '''
@@ -91,9 +93,10 @@ def main():
 
 
     ''' src '''
-    if args.sourceChar != "":
-        # source character 있을때
-        mel.eval('FBXImport -f"{}"'.format(args.sourceChar))
+    sourceChar_path = './models/' + sourceChar + '/' + sourceChar + '.fbx'
+    # if source character exist 
+    if os.path.exists(sourceChar_path):
+        mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
         
         src_joints = get_src_joints(tgt_joints)
 
@@ -198,7 +201,7 @@ def main():
     # freeze_and_bake(top_joint)
 
     # export 
-    print(">> retargeting from source: (char {}, motion {})".format(args.sourceChar, sourceMotion))
+    print(">> retargeting from source: (char {}, motion {})".format(sourceChar, sourceMotion))
     export(args, targetChar, targetMotion)
     
     # end
