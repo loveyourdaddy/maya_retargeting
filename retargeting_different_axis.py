@@ -51,13 +51,7 @@ def main():
     file_nodes = cmds.ls(type="file")
     for node in file_nodes:
         # 현재 파일 경로 가져오기
-        current_path = cmds.getAttr(node + ".fileTextureName")
-        
-        # 파일 이름만 추출
-        file_name = os.path.basename(current_path)
-        
-        # 새 경로 생성
-        new_path = os.path.join(fbm_folder, file_name)
+        new_path = os.path.join(fbm_folder, node)
         
         # 새 경로가 존재하는지 확인
         if os.path.exists(new_path):
