@@ -63,6 +63,7 @@ def main():
 
     # joints
     tgt_joints, tgt_root_joint = get_tgt_joints()
+    tgt_Tpose_rots = get_Tpose_local_rotations(tgt_joints)
 
     # tgt locator
     tgt_locator_list = cmds.ls(type='locator')
@@ -78,7 +79,9 @@ def main():
         pass
     else:
         tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
-    # renamed by template 
+    # renamed by template
+    tgt_joints_original = tgt_joints # copy.deepcopy(tgt_joints)
+    # import pdb; pdb.set_trace()
     tgt_joint_renamed = rename_joint_by_template(tgt_joints)
 
     # meshes
@@ -142,6 +145,7 @@ def main():
 
 
     ''' retarget '''
+    # import pdb; pdb.set_trace()
     if src_locator is not None or tgt_locator is not None:
         print(">> retarget with locator")
         # 예외처리
@@ -155,9 +159,9 @@ def main():
                                           src_locator, src_locator_rot, src_locator_scale,\
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale,\
                                             height_ratio)
-        # import pdb; pdb.set_trace()
         # rot
-        retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, \
+        retarget_rotation(src_joints, tgt_joints, tgt_joints_original, 
+                          Tpose_trfs, parent_indices, tgt_Tpose_rots,
                           len(trans_data), src_locator_rot, tgt_locator_rot,\
                             prerotations)
     else:
@@ -166,22 +170,23 @@ def main():
         trans_data = retarget_translation(src_joints[0], tgt_joints[0],
                                           height_ratio)
         # rot
-        retarget_rotation(src_joints, tgt_joints, Tpose_trfs, parent_indices, len(trans_data))
-    print(">> retargeted")
+        retarget_rotation(src_joints, tgt_joints, tgt_joints_original,
+                          Tpose_trfs, parent_indices, tgt_Tpose_rots,
+                            len(trans_data))
     
 
     ''' export '''
     # Remove source locator
-    if src_locator is not None:
-        delete_locator_and_hierarchy(src_locator)
-    else:
-        delete_locator_and_hierarchy(src_joints[0])
+    # if src_locator is not None:
+    #     delete_locator_and_hierarchy(src_locator)
+    # else:
+    #     delete_locator_and_hierarchy(src_joints[0])
     
     # meshes
     cmds.delete(src_meshes)
 
     # rename tgt joints
-    tgt_joints = remove_namespace_for_joints(tgt_joints) # tgt_joint_renamed
+    tgt_joints = remove_namespace_for_joints(tgt_joint_renamed) # tgt_joints
 
     # Run the function
     delete_all_transform_nodes()
