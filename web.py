@@ -267,7 +267,8 @@ def upload_file_api():
             print("error")
             return jsonify({'message': 'An error occurred: ' + str(e)})
 
-def run_maya_script(target_char, source_char, source_motion):
+import shutil
+def run_maya_script(target_char_path, source_char_path, source_motion_path):
     import platform
     if platform.system() == "Windows":
         maya_executable = "C:\\Program Files\\Autodesk\\Maya2025\\bin\\mayapy" 
@@ -279,16 +280,34 @@ def run_maya_script(target_char, source_char, source_motion):
 
     # window 
     script_path = "retargeting_different_axis.py"
-    print("target_char", target_char)
-    print("source_char", source_char)
-    print("source_motion", source_motion)
+    target_char = target_char_path.split('/')[-1].split('.')[0]
+    source_char = source_char_path.split('/')[-1].split('.')[0]
+    source_motion = source_motion_path.split('/')[-1].split('.')[0]
+
+    # mkdir 
+    os.makedirs('./models/' + target_char + '/', exist_ok=True)
+    os.makedirs('./models/' + source_char + '/', exist_ok=True)
+    os.makedirs('./motions/' + source_char + '/', exist_ok=True)
+
+    # target path
+    path_target_char = './models/' + target_char + '/'+ target_char + '.fbx'
+    path_source_char = './models/' + source_char + '/'+ source_char + '.fbx'
+    path_source_motion = './motions/' + source_char + '/' + source_motion + '.fbx'
+
+    print("target_char", path_target_char)
+    print("source_char", path_source_char)
+    print("source_motion", path_source_motion)
     
+    shutil.move(target_char_path, path_target_char)
+    shutil.move(source_char_path, path_source_char)
+    shutil.move(source_motion_path, path_source_motion)
+
     command = [
         maya_executable,
         script_path,
-        "--targetChar", target_char,
-        "--sourceChar", source_char,
-        "--sourceMotion", source_motion,
+        "--targetChar", path_target_char,
+        "--sourceChar", path_source_char,
+        "--sourceMotion", path_source_motion,
     ]
     print("command:", command)
     process = subprocess.run(command, capture_output=True, text=True)
