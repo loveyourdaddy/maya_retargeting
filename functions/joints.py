@@ -15,9 +15,9 @@ template_joints = [
      "RightUpLeg","RightLeg","RightFoot","RightToeBase"
     ]
 
-ee_joints = [
-    "LeftHand", "RightHand", "LeftToeBase", "RightToeBase"
-    ]
+# ee_joints = [
+#     "LeftHand", "RightHand", "LeftToeBase", "RightToeBase"
+#     ]
 
 alter_joint_name = {
      "Hips":["Root", "Pelvis", "LowerTorso"], 
@@ -273,6 +273,15 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
         tgt_select_hierarchy_origin.append(tgt_joint_hierarchy_origin[tgt_indices[i]])
     tgt_joint_hierarchy_origin = tgt_select_hierarchy_origin
 
+    
+    """ ee joints """
+    # ee joints
+    ee_joints = []
+    for i, joint in enumerate(tgt_joint_hierarchy_origin):
+        children = cmds.listRelatives(joint, children=True, type='joint')
+        if children is None:
+            ee_joints.append(joint)
+
 
     """ parent index """
     # TODO: remove. 동일함.
@@ -320,6 +329,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
             if check==False:
                 parent_j = i-1
         parent_indices.append(parent_j)
+        # print("joint {} {} parent {} {}".format(i, joint_name, parent_j, joint_hierarchy[parent_j]))
 
         # division
         # children이 있고, end effector가 아닌 경우

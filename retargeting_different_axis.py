@@ -96,6 +96,8 @@ def main():
         mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
         
         src_joints = get_src_joints(tgt_joints)
+        src_Tpose_rots = get_Tpose_local_rotations(src_joints)
+        src_joints_origin = src_joints
 
         src_joints, tgt_joints, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joint_renamed)
         
@@ -117,6 +119,7 @@ def main():
         # import src motion
         mel.eval('FBXImport -f"{}"'.format(sourceMotion))
         src_joints = get_src_joints(tgt_joints)
+        src_Tpose_rots = get_Tpose_local_rotations(src_joints)
 
         src_joints, tgt_joints, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joint_renamed)
 
@@ -160,8 +163,9 @@ def main():
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale,\
                                             height_ratio)
         # rot
-        retarget_rotation(src_joints, tgt_joints, tgt_joints_original, 
-                          Tpose_trfs, parent_indices, tgt_Tpose_rots,
+        retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_original, 
+                          Tpose_trfs, parent_indices, 
+                          src_Tpose_rots, tgt_Tpose_rots,
                           len(trans_data), src_locator_rot, tgt_locator_rot,\
                             prerotations)
     else:
@@ -170,17 +174,17 @@ def main():
         trans_data = retarget_translation(src_joints[0], tgt_joints[0],
                                           height_ratio)
         # rot
-        retarget_rotation(src_joints, tgt_joints, tgt_joints_original,
+        retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_original,
                           Tpose_trfs, parent_indices, tgt_Tpose_rots,
                             len(trans_data))
     
 
     ''' export '''
     # Remove source locator
-    # if src_locator is not None:
-    #     delete_locator_and_hierarchy(src_locator)
-    # else:
-    #     delete_locator_and_hierarchy(src_joints[0])
+    if src_locator is not None:
+        delete_locator_and_hierarchy(src_locator)
+    else:
+        delete_locator_and_hierarchy(src_joints[0])
     
     # meshes
     cmds.delete(src_meshes)
