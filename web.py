@@ -294,13 +294,13 @@ def run_maya_script(target_char_path, source_char_path, source_motion_path):
     path_source_char = './models/' + source_char + '/'+ source_char + '.fbx'
     path_source_motion = './motions/' + source_char + '/' + source_motion + '.fbx'
 
-    print("target_char", path_target_char)
-    print("source_char", path_source_char)
-    print("source_motion", path_source_motion)
+    # print("target_char", path_target_char)
+    # print("source_char", path_source_char)
+    # print("source_motion", path_source_motion)
     
-    shutil.move(target_char_path, path_target_char)
-    shutil.move(source_char_path, path_source_char)
-    shutil.move(source_motion_path, path_source_motion)
+    shutil.copy(target_char_path, path_target_char)
+    shutil.copy(source_char_path, path_source_char)
+    shutil.copy(source_motion_path, path_source_motion)
 
     command = [
         maya_executable,
