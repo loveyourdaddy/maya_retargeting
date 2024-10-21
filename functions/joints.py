@@ -22,26 +22,29 @@ template_joints = [
 alter_joint_name = {
      "Hips":["Root", "Pelvis", "LowerTorso"], 
      "Spine":["UpperTorso",], 
-     "Spine1":["chest",], 
-     "Spine2":["chestUpper",], 
+     "Spine1":["chest", "spine_1"], 
+     "Spine2":["chestUpper", "spine_2"], 
 
-     "LeftShoulder": ["LFBXASC032Clavicle", "LeftUpperArm", "shoulder_L",], 
-     "LeftArm":["LFBXASC032UpperArm", "LeftLowerArm", "upperArm_L",], 
-     "LeftForeArm":["LFBXASC032Forearm", "lowerArm_L"], 
-     "LeftHand": ["LFBXASC032Hand", "hand_L"],
+     "Neck":["neck_01",], 
+     "Head":["head",], 
 
-     "RightShoulder":["RFBXASC032Clavicle", "RightUpperArm", "shoulder_R",], 
-     "RightArm":["RFBXASC032UpperArm", "RightLowerArm", "upperArm_R",], 
-     "RightForeArm":["RFBXASC032Forearm", "lowerArm_R"], 
-     "RightHand":["RFBXASC032Hand", "hand_R"], 
+     "LeftShoulder": ["LFBXASC032Clavicle", "LeftUpperArm", "shoulder_L", "upperarm_l"],
+     "LeftArm":["LFBXASC032UpperArm", "LeftLowerArm", "upperArm_L", "lowerarm_l"],
+     "LeftForeArm":["LFBXASC032Forearm", "lowerArm_L", "lowerarm_in_l"],
+     "LeftHand": ["LFBXASC032Hand", "hand_L", "lowerarm_out_l"],
 
-     "LeftUpLeg":['LFBXASC032Thigh', 'upperLeg_L', 'upperReg_L', 'LeftUpperLeg'],
-     "LeftLeg":  ['LFBXASC032Calf',  'lowerLeg_L', 'lowerReg_L', 'LeftLowerLeg'], 
+     "RightShoulder":["RFBXASC032Clavicle", "RightUpperArm", "shoulder_R", "upperarm_r"], 
+     "RightArm":["RFBXASC032UpperArm", "RightLowerArm", "upperArm_R", "lowerarm_r"], 
+     "RightForeArm":["RFBXASC032Forearm", "lowerArm_R", "lowerarm_in_r"], 
+     "RightHand":["RFBXASC032Hand", "hand_R", "lowerarm_out_r"], 
+
+     "LeftUpLeg":['LFBXASC032Thigh', 'upperLeg_L', 'upperReg_L', 'LeftUpperLeg', 'thigh_l'],
+     "LeftLeg":  ['LFBXASC032Calf',  'lowerLeg_L', 'lowerReg_L', 'LeftLowerLeg', 'calf_l'], 
      "LeftFoot":['LFBXASC032Foot', 'foot_L'], 
      "LeftToeBase":['LFBXASC032Toe0', 'toes_L'], 
 
-     "RightUpLeg":['RFBXASC032Thigh', 'upperLeg_R', 'upperReg_R', 'RightUpperLeg'], 
-     "RightLeg":  ['RFBXASC032Calf',  'lowerLeg_R', 'lowerReg_R', 'RightLowerLeg'], 
+     "RightUpLeg":['RFBXASC032Thigh', 'upperLeg_R', 'upperReg_R', 'RightUpperLeg', 'thigh_r'], 
+     "RightLeg":  ['RFBXASC032Calf',  'lowerLeg_R', 'lowerReg_R', 'RightLowerLeg', 'calf_r'], 
      "RightFoot":['RFBXASC032Foot', 'foot_R'], 
      "RightToeBase":['RFBXASC032Toe0', 'toes_R'], 
     }
