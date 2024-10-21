@@ -131,7 +131,16 @@ def main():
     src_hip_height = cmds.xform(src_root, query=True, translation=True, worldSpace=True)[1]
     tgt_root = tgt_joints[0]
     tgt_hip_height = cmds.xform(tgt_root, query=True, translation=True, worldSpace=True)[1]
+
+    # 만약 hip height가 0이면 발끝부터 root 까지의 거리를 계산
+    # if src_hip_height < 0.01:
+    #     src_hip_height = get_distance_from_toe_to_root(src_joints)
+    if tgt_hip_height < 0.01:
+        tgt_hip_height = get_distance_from_toe_to_root(tgt_joints, tgt_root)
+
+    # ratio
     height_ratio = tgt_hip_height / src_hip_height
+
 
     # locator and joints
     locators_list = cmds.ls(type='locator')

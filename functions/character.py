@@ -69,3 +69,12 @@ def delete_all_transform_nodes():
             # Delete the node
             # print(f"Deleted transform node: {node}")
             cmds.delete(node)
+
+def get_distance_from_toe_to_root(joint, root):
+    toe = joint[-1] # TODO: find toe joint
+    toe_pos = cmds.xform(toe, query=True, translation=True, worldSpace=True)
+    root_pos = cmds.xform(root, query=True, translation=True, worldSpace=True)
+    
+    # 발끝에서 루트까지의 수직 거리를 계산합니다.
+    hip_height = root_pos[1] - toe_pos[1]
+    return hip_height
