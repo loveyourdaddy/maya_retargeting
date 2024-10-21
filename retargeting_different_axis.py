@@ -41,6 +41,7 @@ def main():
 
     ''' tgt '''
     # character
+    mel.eval('FBXImportSmoothingGroups -v true')
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
     # .fbm 폴더 경로
     path = "./models/" + targetChar + "/" + targetChar
@@ -81,7 +82,6 @@ def main():
         tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
     # renamed by template
     tgt_joints_original = tgt_joints # copy.deepcopy(tgt_joints)
-    # import pdb; pdb.set_trace()
     tgt_joint_renamed = rename_joint_by_template(tgt_joints)
 
     # meshes

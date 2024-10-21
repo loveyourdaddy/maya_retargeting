@@ -23,7 +23,8 @@ def export(args, target_char, targetMotion):
 
     # export 
     export_file = output_dir+'/'+targetMotion+'.fbx'
-    cmds.FBXResetExport()    
+    cmds.FBXResetExport()
+    mel.eval('FBXExportSmoothingGroups -v true')
     mel.eval('FBXExportEmbeddedTextures -v true')
     mel.eval('FBXExport -f"{}"'.format(export_file))
     print(">> File export to ", export_file)
