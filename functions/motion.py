@@ -47,8 +47,8 @@ def retarget_translation(src_hip, tgt_hip,
                          src_locator=None, src_locator_rot=None, src_locator_scale=None,
                          tgt_locator=None, tgt_locator_rot=None, tgt_locator_scale=None, 
                          height_ratio=1):
-    # translation data 
-    trans_data, _ = get_keyframe_data(src_hip) 
+    # translation data
+    trans_data, _ = get_keyframe_data(src_hip)
     trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
     trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
     len_frame = len(trans_data)
@@ -116,9 +116,8 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
     2. 있다면 local angle을 계산해서 keyframe에 넣어주기 
     '''
 
-    # rotation data
+    # Get rotation data
     ''' src world rot '''
-    # src_world_mats_origin = np.full((len_frame, len(src_joints_origin), 3, 3), None, dtype=np.float32)
     src_world_mats_origin = np.eye(3)[None, None, :, :].repeat(len_frame, axis=0).repeat(len(src_joints_origin), axis=1)
     for src_j_origin, src_joint_origin in enumerate(src_joints_origin):
         is_common = False
@@ -196,7 +195,6 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
         if tgt_parent_name_origin not in tgt_joints_origin:
             tgt_parent_j_origin = None 
             tgt_parent_name_origin = ''
-            # tgt_world_mats_origin[:, tgt_j_origin] = np.eye(3)
         # 일반 조인트 
         else:
             tgt_parent_j_origin = tgt_joints_origin.index(tgt_parent_name_origin)
@@ -215,21 +213,20 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
             j = tgt_joints.index(tgt_joint_origin)
             src_joint = src_joints[j]
             tgt_joint = tgt_joints[j]
-            tgt_parent_j = parent_indices[j]
+            # tgt_parent_j = parent_indices[j]
             # tgt_parent_name = tgt_joints[tgt_parent_j]
             # print("     {} {} {}, parent {} {}".format(j, src_joint, tgt_joint, tgt_parent_j, tgt_parent_name))
 
             # trf
             trf = Tpose_trfs[j]
 
-
         ''' update data for frame'''
         tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
         for i in range(len_frame):
-            ''' Get tgt world '''
-            # common joints 
+            # Get tgt world
             if is_common:
-                # import pdb; pdb.set_trace()
+                # common joints
+                # src 
                 src_j_origin = src_joints_origin.index(src_joint)
                 src_world_mat = src_world_mats_origin[i, src_j_origin]
 
@@ -238,8 +235,8 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
                 tgt_world_mat = src_world_mat @ trf
                 tgt_world_mats_origin[i, tgt_j_origin] = tgt_world_mat
 
-            # not common joint 
             else:
+                # not common joint: just update world mat
                 # local 
                 tgt_local_mat = tgt_Tpose_rots[tgt_j_origin]
                 # parent world 
@@ -251,10 +248,9 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
                 tgt_world_mats_origin[i, tgt_j_origin] = tgt_world_mat
                 continue # not common joint: end for loop 
             
-            
-            """ tgt angle """
-            # tgt parent world rot
+            # tgt angle
             if j==0:
+                # tgt parent world rot
                 # locator
                 if tgt_locator_rot is not None:
                     tgt_parent_world_rot = E_to_R(np.array(tgt_locator_rot))
@@ -270,5 +266,6 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
             tgt_perjoint_local_angle[i] = tgt_local_angle
 
         # update by joint
+        # import pdb; pdb.set_trace()
         if is_common:
             set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)

@@ -32,7 +32,7 @@ def get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joints_rename
 
 def get_locator(tgt_locator):
     # get locator 
-    tgt_locator = tgt_locator[0].replace("Shape","")
+    tgt_locator = tgt_locator.replace("Shape","")
 
     # rotation 
     tgt_locator_rot = cmds.xform(tgt_locator, q=True, ws=True, ro=True)
