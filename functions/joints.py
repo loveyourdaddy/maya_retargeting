@@ -158,35 +158,64 @@ def select_joints(joints, template_joints):
 def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_origin): # tgt_joints_renamed, tgt_joints
     ''' origin: 이름이 원래 것 '''
     
-    # get division 
+    # get division
     def get_division(joint_hierarchy):
-        division = []
+        ''' 
+        division 조건
+        - children이 1개 초과
+        '''
+        
+        def check_joint_by_template_names(joint_name, template_names):
+            for template_name in template_names:
+                if joint_name.lower() in template_name.lower() or template_name.lower() in joint_name.lower():
+                    return True
+            return False
+        
+        # division = []
+        root_names = ["Root", "hip", "Pelvis", "LowerTorso"]
+        spine_names = ["spine", "chest", "UpperTorso"]
+
+        root_joints, spine_joints = [], []
         for i, joint_name in enumerate(joint_hierarchy):
+            check = False 
             children = cmds.listRelatives(joint_name, children=True, type='joint')
+
+            # 예외처리: 조인트가 ee 
             if children is None:
                 continue
-            # 예외처리: 만약 child의 child가 없다면, 제외해주기. 
-            for child in children:
-                if cmds.listRelatives(child, children=True, type='joint') is None:
-                    children.remove(child)
 
-            if children is not None and len(children)>1 and src_joint_hierarchy[i]:
-                # diuvision0: 
-                division.append(joint_name)
-                if len(division)==1:
-                    root_name = joint_name
-                    root_jid = i
-                # division1 : spine joint 
-                elif len(division)==2:
-                    spine_name = joint_name
-                    spine_jid = i
-                    return root_jid, root_name, spine_jid, spine_name
-                else: 
-                    raise ValueError("division not found")
-                
-        # if spine not found 
-        raise ValueError("division not found")
-    
+            # 만약 child의 child가 없다면, children에서 제외해주기. 
+            filtered_children = []
+            for child in children:
+                print(child)
+                if cmds.listRelatives(child, children=True, type='joint') is not None:
+                    filtered_children.append(child)
+            children = filtered_children
+
+            # division0: root 
+            if children is not None and len(children)>1:
+                if check_joint_by_template_names(joint_name, root_names):
+                    root_joints.append(joint_name)
+                    check = True
+            if check:
+                continue
+
+            # division1: spine 
+            if children is not None and len(children)>1:
+                if check_joint_by_template_names(joint_name, spine_names):
+                    spine_joints.append(joint_name)
+                    check = True
+            if check:
+                continue
+
+        # 가장 마지막을 division으로 설정
+        root_name = root_joints[-1]
+        root_jid = joint_hierarchy.index(root_name)
+        spine_name = spine_joints[-1]
+        spine_jid = joint_hierarchy.index(spine_name)
+
+        return root_jid, root_name, spine_jid, spine_name
+
     # jid, name
     tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = get_division(tgt_joint_hierarchy_origin)
     src_root_div_jid, src_root_div, src_spine_div_jid, src_spine_div = get_division(src_joint_hierarchy)
@@ -213,7 +242,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
             # 2. 이미 list에 포함되어있지 않음
             if (src_joint_renamed.lower() in tgt_joint_renamed.lower() or tgt_joint_renamed.lower() in src_joint_renamed.lower()) \
                     and src_joint not in src_common_joint and tgt_joint not in tgt_common_joint: 
-                # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
+                print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
 
                 """
                 Divison 예외처리: 

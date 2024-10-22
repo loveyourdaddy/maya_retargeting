@@ -157,7 +157,6 @@ def main():
 
 
     ''' retarget '''
-    # import pdb; pdb.set_trace()
     if src_locator is not None or tgt_locator is not None:
         print(">> retarget with locator")
         # 예외처리
