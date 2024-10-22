@@ -84,10 +84,10 @@ def main():
     # rename joints
     # if namespace not exist in tgt joints
     if ":" not in tgt_joints[0]:
-        tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
+        tgt_joints_origin_namespace = add_namespace_for_joints(tgt_joints, "tgt")
+        tgt_joints = tgt_joints_origin_namespace
     # renamed by template
-    tgt_joints_original = tgt_joints # copy.deepcopy(tgt_joints)
-    tgt_joint_renamed = rename_joint_by_template(tgt_joints)
+    tgt_joints_renamed_by_template = rename_joint_by_template(tgt_joints)
 
     # meshes
     tgt_meshes = cmds.ls(type='mesh')
@@ -104,7 +104,7 @@ def main():
         src_Tpose_rots = get_Tpose_local_rotations(src_joints)
         src_joints_origin = src_joints
 
-        src_joints, tgt_joints, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joint_renamed)
+        src_joints, tgt_joints, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joints_renamed_by_template)
         
         if tgt_locator is not None:
             prerotations = get_prerotations(tgt_joints, tgt_locator, tgt_locator_rot)
@@ -125,7 +125,7 @@ def main():
         src_joints = get_src_joints(tgt_joints)
         src_Tpose_rots = get_Tpose_local_rotations(src_joints)
 
-        src_joints, tgt_joints, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joint_renamed)
+        src_joints, tgt_joints, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joints_renamed_by_template)
 
         # Tpose trf
         Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
@@ -176,7 +176,7 @@ def main():
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale,\
                                             height_ratio)
         # rot
-        retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_original, 
+        retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_origin_namespace, 
                           Tpose_trfs, parent_indices, 
                           src_Tpose_rots, tgt_Tpose_rots,
                           len(trans_data), src_locator_rot, tgt_locator_rot,\
@@ -188,7 +188,7 @@ def main():
         trans_data = retarget_translation(src_joints[0], tgt_joints[0],
                                           height_ratio)
         # rot
-        retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_original,
+        retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_origin_namespace,
                           Tpose_trfs, parent_indices, tgt_Tpose_rots,
                             len(trans_data)) # TODO 아래 코드에 대한 경우를 확인.  
     
@@ -204,7 +204,7 @@ def main():
     cmds.delete(src_meshes)
 
     # rename tgt joints
-    tgt_joints = remove_namespace_for_joints(tgt_joint_renamed) # tgt_joints TODO: CHECK 
+    tgt_joints = remove_namespace_for_joints(tgt_joints_renamed_by_template)
 
     # Run the function
     delete_all_transform_nodes()

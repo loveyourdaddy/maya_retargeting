@@ -97,7 +97,6 @@ def get_top_level_nodes():
 # joint name -> template name (alter)
 def rename_joint_by_template(joints): 
     ret_joints = [] 
-    # print("alter_joint_name", alter_joint_name)
     for joint in joints:
         # if joint name in namespace, remove namespace
         if ":" in joint:
