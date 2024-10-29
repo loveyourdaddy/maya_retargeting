@@ -65,13 +65,16 @@ def get_joint_hierarchy(root_joint):
 def find_root_joints(all_joints):
     root_joints = []
     
-    # find root joint 
+    # find root joint
     for joint in all_joints:
         parents = cmds.listRelatives(joint, parent=True)
-        if not parents or cmds.nodeType(parents[0]) != 'joint': 
+        # print("joint {}, parents {}".format(joint, parents))
+
+        # parent가 없거나, parent가 joint가 아니면, root joint에 추가
+        if not parents or (cmds.nodeType(parents[0]) != 'joint'):
             root_joints.append(joint)
 
-    # find best root joint
+    # find best root joint: TODO 여러 skeleton chain에서 best chain을 고르는 방법.
     children_of_roots = [[] for _ in range(len(root_joints))]
     list_index = []
     for i, root_joint in enumerate(root_joints):

@@ -17,7 +17,7 @@ def main():
     maya.standalone.initialize(name='python')
 
     # Load the FBX plugin
-    print(">> retargeting start")
+    print(">> Retargeting start")
     if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
         cmds.loadPlugin('fbxmaya')
     
@@ -46,6 +46,7 @@ def main():
     # .fbm 폴더 경로
     path = "./models/" + targetChar + "/" + targetChar
     fbm_folder = path + ".fbm"
+    print("import done")
     
     # import texture
     # 모든 파일 노드 가져오기

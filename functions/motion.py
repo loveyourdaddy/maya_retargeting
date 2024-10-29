@@ -266,6 +266,5 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
             tgt_perjoint_local_angle[i] = tgt_local_angle
 
         # update by joint
-        # import pdb; pdb.set_trace()
         if is_common:
             set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
