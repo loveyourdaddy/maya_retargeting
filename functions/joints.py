@@ -381,9 +381,13 @@ def add_namespace(joint, namespace):
     return cmds.rename(joint, new_name)
 
 def remove_namespace(joint):
-    short_name = joint.split(':')[-1]
-    new_name = f"{short_name}"
-    return cmds.rename(joint, new_name) 
+    if joint.find(":") != -1:
+        short_name = joint.split(':')[-1]
+        new_name = f"{short_name}"
+        return cmds.rename(joint, new_name) 
+    else:
+        return joint
+    
 
 def add_namespace_for_joints(joints, namespace):
     if not cmds.namespace(exists=namespace):
@@ -406,11 +410,12 @@ def add_namespace_for_meshes(meshes, namespace):
 def remove_namespace_for_joints(joints):
     new_joints = []
     for joint in joints:
-        # if joint exist 
+        # if joint exist
         if cmds.objExists(joint):
             new_joints.append(remove_namespace(joint))
+        else:
+            new_joints.append(joint)
     return new_joints
-# 이미 head가 있기 때문에 neck|head로 나오는건가?
 
 # def normalize_vector(v):
 #     return v / np.linalg.norm(v)

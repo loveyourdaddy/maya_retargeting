@@ -13,10 +13,11 @@ def freeze_and_bake(top_joint):
         if connections:
             incoming_connections[attr] = connections[0]
             cmds.disconnectAttr(connections[0], full_attr)
+
     # bake
     cmds.bakeResults("{}".format(top_joint), simulation=True, t=(cmds.playbackOptions(q=True, min=True), cmds.playbackOptions(q=True, max=True)), sampleBy=1, oversamplingRate=1, disableImplicitControl=True, preserveOutsideKeys=True, sparseAnimCurveBake=False, removeBakedAnimFromLayer=False, bakeOnOverrideLayer=False, minimizeRotation=True, controlPoints=False, shape=True)
 
-# export 
+# export
 def export(args, target_char, targetMotion):
     output_dir = args.tgt_motion_path + target_char
     os.makedirs(output_dir, exist_ok=True)

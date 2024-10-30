@@ -68,15 +68,22 @@ def main():
     tgt_Tpose_rots = get_Tpose_local_rotations(tgt_joints)
 
     # parent of root 
-    parent_node = cmds.listRelatives(tgt_root_joint, parent=True)[0]
-    if parent_node!=None:
+    parent_node = cmds.listRelatives(tgt_root_joint, parent=True, shapes=True)[-1]
+    if parent_node is not None:
         tgt_locator, tgt_locator_rot, tgt_locator_scale = get_locator(parent_node)
-        node_type = cmds.nodeType(parent_node)
+        
+        # shape_node = cmds.listRelatives(parent_node, shapes=True)
+        # if shape_node:
+        #     node_type = cmds.nodeType(shape_node[0])
+        # else:
+        #     node_type = cmds.nodeType(parent_node)
+            
         # locator list 
-        if node_type == 'locator':
-            tgt_locator_list = cmds.ls(type='locator')
-        elif node_type == 'transform':
-            tgt_locator_list = cmds.ls(type='transform')
+        # if node_type == 'locator':
+        #     tgt_locator_list = cmds.ls(type='locator')
+        # elif node_type == 'transform':
+        #     # transform만 있을 경우 transform을 locator로 사용
+        #     tgt_locator_list = cmds.ls(type='transform')
     else:
         tgt_locator = None
         tgt_locator_list = []
@@ -85,10 +92,16 @@ def main():
     # rename joints
     # if namespace not exist in tgt joints
     if ":" not in tgt_joints[0]:
+        # locator
+        tgt_locator = add_namespace_for_joints([tgt_locator], "tgt")[0]
+        # tgt_locator_list = add_namespace_for_joints(tgt_locator_list, "tgt")
+        tgt_locator_list = [tgt_locator, tgt_locator+'Shape']
+
+        # joints
         tgt_joints_origin_namespace = add_namespace_for_joints(tgt_joints, "tgt")
         tgt_joints = tgt_joints_origin_namespace
     # renamed by template
-    tgt_joints_renamed_by_template = rename_joint_by_template(tgt_joints)
+    tgt_joints_renamed_by_template = rename_joint_by_template(tgt_joints) # copy.deepcopy(tgt_joints)
 
     # meshes
     tgt_meshes = cmds.ls(type='mesh')
@@ -191,9 +204,8 @@ def main():
         # rot
         retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_origin_namespace,
                           Tpose_trfs, parent_indices, tgt_Tpose_rots,
-                            len(trans_data)) # TODO 아래 코드에 대한 경우를 확인.  
+                            len(trans_data))
     
-
     ''' export '''
     # Remove source locator
     if src_locator is not None:
@@ -205,7 +217,9 @@ def main():
     cmds.delete(src_meshes)
 
     # rename tgt joints
-    tgt_joints = remove_namespace_for_joints(tgt_joints_renamed_by_template)
+    tgt_locator = remove_namespace_for_joints([tgt_locator])[0]
+    import pdb; pdb.set_trace()
+    tgt_joints = remove_namespace_for_joints(tgt_joints)
 
     # Run the function
     delete_all_transform_nodes()
@@ -216,9 +230,9 @@ def main():
     # else:
     #     tgt_root_joint = tgt_joints[0]
     #     top_joint = tgt_root_joint
-    # freeze_and_bake(top_joint)
+    # freeze_and_bake(top_joint) 
 
-    # export 
+    # export
     print(">> retargeting from source: (char {}, motion {})".format(sourceChar, sourceMotion))
     export(args, targetChar, targetMotion)
     
