@@ -218,7 +218,6 @@ def main():
 
     # rename tgt joints
     tgt_locator = remove_namespace_for_joints([tgt_locator])[0]
-    import pdb; pdb.set_trace()
     tgt_joints = remove_namespace_for_joints(tgt_joints)
 
     # Run the function
