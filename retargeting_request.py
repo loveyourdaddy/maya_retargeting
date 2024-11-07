@@ -10,8 +10,8 @@ from functions.parser import *
 import sys
 
 class Mingle_API(): 
-    def __init__(self, url='http://127.0.0.1:5000/'): #http://127.0.0.1:5000 http://192.168.1.19:5000
-        # 127.0.0.1 local
+    def __init__(self, url='http://183.107.15.4:5000/'):
+        # http://127.0.0.1:5000 local
         # 183.107.15.4 window server 
         self.base_url = url
 
@@ -31,7 +31,7 @@ class Mingle_API():
         headers = {'Content-Type': 'application/json'}
         download_data = {'transaction_id': transaction_id}
         download_response = requests.post(download_url, json=download_data, headers=headers)
-        print("Download response:", download_response)
+        print(f"Download response: {download_response} transaction id {transaction_id}")
 
         if download_response.status_code == 200:
             # 파일 저장
