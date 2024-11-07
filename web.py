@@ -177,12 +177,7 @@ def upload_form():
 # 파일 업로드를 처리하는 라우트
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    # print("upload file")
-    # print("Form Data:", request.form)  # 디버깅을 위해 추가
-    # print("Files Data:", request.files)  # 디버깅을 위해 추가
-    # global file1_path, file3_path
     character_select = request.form.get('characterSelect')
-    # print("character_select: ", character_select)
 
     # 'ETC'가 선택되지 않은 경우 해당 캐릭터의 파일 경로 설정
     if character_select != "ETC":
@@ -232,7 +227,7 @@ def upload_file_api():
         return jsonify({'message': 'No file parts'})
 
     file1 = request.files['file1'] # target char 
-    file2 = request.files['file2'] # source char
+    file2 = request.files['file2'] # source char-
     file3 = request.files['file3'] # source motion 
 
     if file1.filename == '' or file2.filename == '' or file3.filename == '':
@@ -247,7 +242,7 @@ def upload_file_api():
         file3.save(file3_path)
 
         # transaction_id 생성
-        import uuid 
+        import uuid
         transaction_id = str(uuid.uuid4())
         print("transaction_id in upload:", transaction_id)
         # transaction_folder = os.path.join(app.config['UPLOAD_FOLDER'], transaction_id)
@@ -280,9 +275,10 @@ def run_maya_script(target_char_path, source_char_path, source_motion_path):
 
     # window 
     script_path = "retargeting_different_axis.py"
-    target_char = target_char_path.split('/')[-1].split('.')[0]
-    source_char = source_char_path.split('/')[-1].split('.')[0]
-    source_motion = source_motion_path.split('/')[-1].split('.')[0]
+    target_char = target_char_path.split('/')[-1][:-len('.fbx')]
+    source_char = source_char_path.split('/')[-1][:-len('.fbx')]
+    source_motion = source_motion_path.split('/')[-1][:-len('.fbx')]
+    print(f"Retargetring: source_char {source_char} source_motion {source_motion} -> target_char {target_char}")
 
     # mkdir 
     os.makedirs('./models/' + target_char + '/', exist_ok=True)
@@ -293,14 +289,13 @@ def run_maya_script(target_char_path, source_char_path, source_motion_path):
     path_target_char = './models/' + target_char + '/'+ target_char + '.fbx'
     path_source_char = './models/' + source_char + '/'+ source_char + '.fbx'
     path_source_motion = './motions/' + source_char + '/' + source_motion + '.fbx'
-
-    # print("target_char", path_target_char)
-    # print("source_char", path_source_char)
-    # print("source_motion", path_source_motion)
     
     shutil.copy(target_char_path, path_target_char)
     shutil.copy(source_char_path, path_source_char)
     shutil.copy(source_motion_path, path_source_motion)
+
+    import datetime
+    print("Date: ", datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
 
     command = [
         maya_executable,
@@ -311,6 +306,7 @@ def run_maya_script(target_char_path, source_char_path, source_motion_path):
     ]
     print("command:", command)
     process = subprocess.run(command, capture_output=True, text=True)
+    print("retargeting end")
     if process.returncode != 0:
         print("Error on run maya script")
         raise Exception(process.stderr)
@@ -344,7 +340,7 @@ def download_file_api():
     # Get the transaction ID from the request data
     data = request.json
     transaction_id = data.get('transaction_id')
-    print("transaction_id in download:", transaction_id)
+    # print("transaction_id in download:", transaction_id)
 
     if not transaction_id or transaction_id not in transactions:
         return jsonify({'message': 'Invalid transaction ID'}), 400
@@ -360,6 +356,7 @@ def download_file_api():
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
             response.headers["X-Filename"] = file3_path.split('/')[-1]
+            print("download end")
             return response
         else:
             return jsonify({'message': 'File not found'}), 404
