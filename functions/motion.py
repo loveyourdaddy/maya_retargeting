@@ -156,6 +156,7 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
                 src_local_mat = E_to_R(src_local_angle)
                 
                 if src_j_origin==0:
+                    # import pdb; pdb.set_trace()
                     if src_locator_rot is not None:
                         src_parent_rot_mat = E_to_R(np.array(src_locator_rot))
                     else:
@@ -213,10 +214,7 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
             j = tgt_joints.index(tgt_joint_origin)
             src_joint = src_joints[j]
             tgt_joint = tgt_joints[j]
-            # tgt_parent_j = parent_indices[j]
-            # tgt_parent_name = tgt_joints[tgt_parent_j]
-            # print("     {} {} {}, parent {} {}".format(j, src_joint, tgt_joint, tgt_parent_j, tgt_parent_name))
-
+            
             # trf
             trf = Tpose_trfs[j]
 
@@ -234,7 +232,6 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
                 # world pure rot. world rot = prerot @ pure rot
                 tgt_world_mat = src_world_mat @ trf
                 tgt_world_mats_origin[i, tgt_j_origin] = tgt_world_mat
-
             else:
                 # not common joint: just update world mat
                 # local 

@@ -189,7 +189,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
             # 만약 child의 child가 없다면, children에서 제외해주기. 
             filtered_children = []
             for child in children:
-                print(child)
+                # print(child)
                 if cmds.listRelatives(child, children=True, type='joint') is not None:
                     filtered_children.append(child)
             children = filtered_children
@@ -367,7 +367,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
             # import pdb; pdb.set_trace()
             if (src_joint_renamed.lower() in tgt_joint_renamed.lower() or tgt_joint_renamed.lower() in src_joint_renamed.lower()) \
                     and src_joint not in src_common_joint and tgt_joint not in tgt_common_joint: 
-                print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
+                # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
 
                 # import pdb; pdb.set_trace()
                 """
@@ -501,9 +501,16 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
 
 """ namespace """
 def add_namespace(joint, namespace):
+    old_name = joint
+
+    # 만약 이미 namespace가 있다면, 제거해주기.
+    if joint.find(":") != -1:
+        joint = joint.split(":")[-1]
+
     new_name = f"{namespace}:{joint}"
-    # print("{} -> {}".format(joint, new_name))
-    return cmds.rename(joint, new_name)
+    
+    # print("{} -> {}".format(old_name, new_name))
+    return cmds.rename(old_name, new_name)
 
 def remove_namespace(joint):
     if joint.find(":") != -1:
