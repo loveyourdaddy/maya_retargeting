@@ -3,7 +3,7 @@ Usage:
 mayapy retargeting_different_axis.py --sourceMotion "" --targetChar ""
 
 example:
-mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"\
+mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
 """
 
 import maya.cmds as cmds
@@ -66,46 +66,32 @@ def main():
     # joints
     tgt_joints, tgt_root_joint = get_tgt_joints()
     tgt_Tpose_rots = get_Tpose_local_rotations(tgt_joints)
-
-    # parent of root 
     parent_node = cmds.listRelatives(tgt_root_joint, parent=True, shapes=True)[-1]
+
+
+    # rename joint
+    # add namespace joints (in maya also)
+    tgt_joints_origin_namespace = add_namespace_for_joints(tgt_joints, "tgt")
+    tgt_joints = tgt_joints_origin_namespace
+
+    # renamed by template
+    tgt_joints_renamed_by_template = rename_joint_by_template(tgt_joints)
+
+
+    # locator
+    # import pdb; pdb.set_trace()
     if parent_node is not None:
         tgt_locator, tgt_locator_rot, tgt_locator_scale = get_locator(parent_node)
-        
-        # shape_node = cmds.listRelatives(parent_node, shapes=True)
-        # if shape_node:
-        #     node_type = cmds.nodeType(shape_node[0])
-        # else:
-        #     node_type = cmds.nodeType(parent_node)
-            
-        # locator list 
-        # if node_type == 'locator':
-        #     tgt_locator_list = cmds.ls(type='locator')
-        # elif node_type == 'transform':
-        #     # transform만 있을 경우 transform을 locator로 사용
-        #     tgt_locator_list = cmds.ls(type='transform')
     else:
         tgt_locator = None
-        tgt_locator_list = []
-    print(">> tgt loaded")
+    tgt_locator = add_namespace_for_joints([tgt_locator], "tgt")[0]
+    tgt_locator_list = [tgt_locator, tgt_locator+'Shape']
 
-    # rename joints
-    # if namespace not exist in tgt joints
-    if ":" not in tgt_joints[0]:
-        # locator
-        tgt_locator = add_namespace_for_joints([tgt_locator], "tgt")[0]
-        # tgt_locator_list = add_namespace_for_joints(tgt_locator_list, "tgt")
-        tgt_locator_list = [tgt_locator, tgt_locator+'Shape']
-
-        # joints
-        tgt_joints_origin_namespace = add_namespace_for_joints(tgt_joints, "tgt")
-        tgt_joints = tgt_joints_origin_namespace
-    # renamed by template
-    tgt_joints_renamed_by_template = rename_joint_by_template(tgt_joints) # copy.deepcopy(tgt_joints)
 
     # meshes
     tgt_meshes = cmds.ls(type='mesh')
     tgt_meshes = add_namespace_for_meshes(tgt_meshes, "tgt_mesh")
+    print(">> tgt loaded")
 
 
     ''' src '''
@@ -178,6 +164,7 @@ def main():
     # 둘 중 하나라도  cloator가 있는 경우 
     if src_locator is not None or tgt_locator is not None:
         print(">> retarget with locator")
+
         # 예외처리
         if src_locator is None:
             src_locator_rot, src_locator_scale = None, None
