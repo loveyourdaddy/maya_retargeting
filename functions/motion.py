@@ -58,6 +58,7 @@ def retarget_translation(src_hip, tgt_hip,
         if src_locator==None and tgt_locator==None:
             # no locator
             print(">> no locator")
+
         elif src_locator!=None and tgt_locator==None:
             # src
             print(">> src locator {} ".format(src_locator))
@@ -68,6 +69,7 @@ def retarget_translation(src_hip, tgt_hip,
             # scale translation
             for i in range(3): # x, y, z
                 tgt_trans_data[:, i] *= src_locator_scale[i]
+
         elif src_locator==None and tgt_locator!=None:
             # tgt
             print(">> tgt locator {} ".format(tgt_locator))
@@ -75,9 +77,15 @@ def retarget_translation(src_hip, tgt_hip,
             tgt_locator_rot_mat = tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0)
             tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat, trans_data)
             
+            # translation of locator
+            tgt_locator_pos = np.array(tgt_locator_pos)[None, :].repeat(len_frame, axis=0)
+            tgt_locator_pos = np.einsum('ijk,ik->ij', tgt_locator_rot_mat, tgt_locator_pos)
+            tgt_trans_data = tgt_trans_data - tgt_locator_pos
+
             # scale translation
             for i in range(3): # x, y, z
                 tgt_trans_data[:, i] /= tgt_locator_scale[i]
+
         elif src_locator!=None and tgt_locator!=None:
             # both src and tgt
             print(">> src locator {} tgt locator {}".format(src_locator, tgt_locator))
