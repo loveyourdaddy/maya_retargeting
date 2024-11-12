@@ -53,65 +53,54 @@ def retarget_translation(src_hip, tgt_hip,
     trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
     len_frame = len(trans_data)
 
-    # set root position (by locator)
-    if len_frame!=0:
-        if src_locator==None and tgt_locator==None:
-            # no locator
-            print(">> no locator")
+    if len_frame == 0:
+        return trans_data
+    
+    """위치 데이터를 locator 기반으로 변환하는 함수"""
+    def apply_rotation(rot_mat, data):
+        return np.einsum('ijk,ik->ij', rot_mat, data)
+    
+    def repeat_matrix(matrix):
+        return matrix[None, :].repeat(len_frame, axis=0)
+    
+    def get_rotation_matrix(rot_values, inverse=False):
+        if rot_values is None:
+            return None
+        rot_mat = E_to_R(np.array(rot_values))
+        if inverse:
+            rot_mat = np.linalg.inv(rot_mat)
+        return repeat_matrix(rot_mat)
+    
+    def apply_scale(data, scale, inverse=False):
+        if scale is not None:
+            for i in range(3):
+                data[:, i] *= (1/scale[i] if inverse else scale[i])
+        return data
 
-        elif src_locator!=None and tgt_locator==None:
-            # src
-            print(">> src locator {} ".format(src_locator))
-            src_locator_rot_mat = E_to_R(np.array(src_locator_rot))
-            src_locator_rot_mat = src_locator_rot_mat[None, :].repeat(len_frame, axis=0)
-            tgt_trans_data = np.einsum('ijk,ik->ij', src_locator_rot_mat, trans_data)
-            
-            # scale translation
-            for i in range(3): # x, y, z
-                tgt_trans_data[:, i] *= src_locator_scale[i]
+    # 초기 데이터 설정
+    tgt_trans_data = trans_data
+    locator_status = f">> {'src locator: ' if src_locator else ''}{src_locator or ''} {', tgt locator: ' if tgt_locator else ''}{tgt_locator or ''}"
+    print(locator_status.strip() or ">> no locator")
 
-        elif src_locator==None and tgt_locator!=None:
-            # tgt
-            print(">> tgt locator {} ".format(tgt_locator))
-            tgt_locator_rot_mat = E_to_R(-1 * np.array(tgt_locator_rot))
-            tgt_locator_rot_mat = tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0)
-            tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat, trans_data)
-            
-            # translation of locator
-            tgt_locator_pos = np.array(tgt_locator_pos)[None, :].repeat(len_frame, axis=0)
-            tgt_locator_pos = np.einsum('ijk,ik->ij', tgt_locator_rot_mat, tgt_locator_pos)
-            tgt_trans_data = tgt_trans_data - tgt_locator_pos
+    # Source locator 처리
+    if src_locator:
+        src_rot_mat = get_rotation_matrix(src_locator_rot)
+        tgt_trans_data = apply_rotation(src_rot_mat, tgt_trans_data)
+        tgt_trans_data = apply_scale(tgt_trans_data, src_locator_scale)
 
-            # scale translation
-            for i in range(3): # x, y, z
-                tgt_trans_data[:, i] /= tgt_locator_scale[i]
-
-        elif src_locator!=None and tgt_locator!=None:
-            # both src and tgt
-            print(">> src locator {} tgt locator {}".format(src_locator, tgt_locator))
-
-            # rotation of locator 
-            src_locator_rot_mat = E_to_R(np.array(src_locator_rot))
-            src_locator_rot_mat = src_locator_rot_mat[None, :].repeat(len_frame, axis=0)
-
-            tgt_locator_rot_mat = np.linalg.inv(E_to_R(np.array(tgt_locator_rot)))
-            tgt_locator_rot_mat = tgt_locator_rot_mat[None, :].repeat(len_frame, axis=0)
-
-            tgt_trans_data = np.einsum('ijk,ik->ij', src_locator_rot_mat, trans_data)
-            tgt_trans_data = np.einsum('ijk,ik->ij', tgt_locator_rot_mat, tgt_trans_data)
-
-            # translation of locator
-            tgt_locator_pos = np.array(tgt_locator_pos)[None, :].repeat(len_frame, axis=0)
-            tgt_locator_pos = np.einsum('ijk,ik->ij', src_locator_rot_mat, tgt_locator_pos)
-            tgt_locator_pos = np.einsum('ijk,ik->ij', tgt_locator_rot_mat, tgt_locator_pos)
-            tgt_trans_data = tgt_trans_data - tgt_locator_pos
-
-            # scale of locator 
-            for i in range(3): # x, y, z
-                tgt_trans_data[:, i] *= src_locator_scale[i]
-                tgt_trans_data[:, i] /= tgt_locator_scale[i]
-        else:
-            raise ValueError("locator error")
+    # Target locator 처리
+    if tgt_locator:
+        tgt_rot_mat = get_rotation_matrix(tgt_locator_rot, inverse=True)
+        tgt_trans_data = apply_rotation(tgt_rot_mat, tgt_trans_data)
+        
+        if tgt_locator_pos is not None:
+            tgt_pos = repeat_matrix(np.array(tgt_locator_pos))
+            if src_locator:
+                tgt_pos = apply_rotation(src_rot_mat, tgt_pos)
+            tgt_pos = apply_rotation(tgt_rot_mat, tgt_pos)
+            tgt_trans_data = tgt_trans_data - tgt_pos
+        
+        tgt_trans_data = apply_scale(tgt_trans_data, tgt_locator_scale, inverse=True)
 
         tgt_trans_data *= height_ratio
         set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
