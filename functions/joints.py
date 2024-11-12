@@ -400,7 +400,6 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
                         print("add tgt spine div")
                     spine_check_flag = True
 
-                # import pdb; pdb.set_trace()
                 src_common_joint.append(src_joint)
                 tgt_common_joint.append(tgt_joint)
                 src_indices.append(src_idx)

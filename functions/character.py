@@ -94,9 +94,9 @@ def get_locator(tgt_locator):
     # scale 
     tgt_locator_scale = cmds.xform(tgt_locator, q=True, ws=True, scale=True)
     # position
-    # tgt_locator_pos = cmds.xform(tgt_locator, q=True, ws=True, translation=True)
+    tgt_locator_pos = cmds.xform(tgt_locator, q=True, ws=True, translation=True)
 
-    return tgt_locator, tgt_locator_rot, tgt_locator_scale
+    return tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos
 
 ''' delete '''
 def delete_locator_and_hierarchy(locator_name):

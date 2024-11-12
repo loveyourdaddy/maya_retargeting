@@ -81,7 +81,7 @@ def main():
     # locator
     # import pdb; pdb.set_trace()
     if parent_node is not None:
-        tgt_locator, tgt_locator_rot, tgt_locator_scale = get_locator(parent_node)
+        tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos = get_locator(parent_node)
     else:
         tgt_locator = None
     tgt_locator = add_namespace_for_joints([tgt_locator], "tgt")[0]
@@ -150,7 +150,7 @@ def main():
     locators_list = cmds.ls(type='locator')
     src_locator_list = list(set(locators_list) - set(tgt_locator_list))
     if len(src_locator_list)!=0:
-        src_locator, src_locator_rot, src_locator_scale = get_locator(src_locator_list[0])
+        src_locator, src_locator_rot, src_locator_scale, src_locator_pos = get_locator(src_locator_list[0])
     else:
         src_locator = None
 
@@ -161,8 +161,8 @@ def main():
 
 
     ''' retarget '''
-    # 둘 중 하나라도  cloator가 있는 경우 
     if src_locator is not None or tgt_locator is not None:
+        # 둘 중 하나라도  cloator가 있는 경우 
         print(">> retarget with locator")
 
         # 예외처리
@@ -171,10 +171,10 @@ def main():
         if tgt_locator is None:
             tgt_locator_rot, tgt_locator_scale = None, None
         
-        # trans 
+        # trans
         trans_data = retarget_translation(src_joints[0], tgt_joints[0],\
                                           src_locator, src_locator_rot, src_locator_scale,\
-                                          tgt_locator, tgt_locator_rot, tgt_locator_scale,\
+                                          tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,\
                                             height_ratio)
         # rot
         retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_origin_namespace, 
@@ -182,9 +182,10 @@ def main():
                           src_Tpose_rots, tgt_Tpose_rots,
                           len(trans_data), src_locator_rot, tgt_locator_rot,\
                             prerotations)
-    # 둘다 locator가 없는 경우 TODO: 합치기. 
     else:
+        # 둘다 locator가 없는 경우 TODO: 합치기. 
         print(">> retarget without locator")
+
         # trans
         trans_data = retarget_translation(src_joints[0], tgt_joints[0],
                                           height_ratio)
