@@ -17,7 +17,7 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 if not os.path.exists(app.config['OUTPUT_FOLDER']):
     os.makedirs(app.config['OUTPUT_FOLDER'])
 
-# key: tranaction_id, value: file1_path, file3_path
+# key: tranaction_id, value: target_character, source_character, source_motion
 transactions = {}
 
 
@@ -135,7 +135,7 @@ def upload_form():
 
             function toggleFileInput() {
                 var etcOption = document.getElementById('etc');
-                var fileInput = document.getElementById('file1');
+                var fileInput = document.getElementById('target_character');
                 fileInput.disabled = !etcOption.checked;
             }
         </script>
@@ -147,10 +147,10 @@ def upload_form():
         <form id="uploadForm" enctype="multipart/form-data" onsubmit="uploadFiles(event)">
             <div class="step">
                 <div class="step-title">STEP 1: Source</div>
-                <label for="file2">Source Character:</label><br>
-                <input type="file" id="file2" name="file2" class="file-input"><br>
-                <label for="file3">Source Motion:</label><br>
-                <input type="file" id="file3" name="file3" class="file-input"><br>
+                <label for="source_character">Source Character:</label><br>
+                <input type="file" id="source_character" name="source_character" class="file-input"><br>
+                <label for="source_motion">Source Motion:</label><br>
+                <input type="file" id="source_motion" name="source_motion" class="file-input"><br>
             </div>
             <div class="step">
                 <div class="step-title">STEP 2: Target</div>
@@ -161,8 +161,8 @@ def upload_form():
                     <label><input type="radio" name="characterSelect" value="Roblox" onclick="toggleFileInput()"> Roblox</label><br>
                     <label><input type="radio" id="etc" name="characterSelect" value="ETC" onclick="toggleFileInput()"> ETC (User Upload)</label>
                 </div>
-                <label for="file1">Target Character:</label><br>
-                <input type="file" id="file1" name="file1" class="file-input" disabled><br>
+                <label for="target_character">Target Character:</label><br>
+                <input type="file" id="target_character" name="target_character" class="file-input" disabled><br>
                 <input type="submit" value="Upload and Process" class="button">
             </div>
         </form>
@@ -183,34 +183,34 @@ def upload_file():
 
     # 'ETC'가 선택되지 않은 경우 해당 캐릭터의 파일 경로 설정
     if character_select != "ETC":
-        file1_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{character_select}.fbx")
+        target_character_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{character_select}.fbx")
     else:
-        if 'file1' not in request.files or 'file2' not in request.files or 'file3' not in request.files:
+        if 'target_character' not in request.files or 'source_character' not in request.files or 'source_motion' not in request.files:
             print("error: no file")
             return jsonify({'message': 'No file parts'})
 
-        file1 = request.files['file1']
-        file1_path = os.path.join(app.config['UPLOAD_FOLDER'], file1.filename)
-        file1.save(file1_path)
+        target_character = request.files['target_character']
+        target_character_path = os.path.join(app.config['UPLOAD_FOLDER'], target_character.filename)
+        target_character.save(target_character_path)
 
-    file2 = request.files['file2']
-    file3 = request.files['file3']
+    source_character = request.files['source_character']
+    source_motion = request.files['source_motion']
 
-    if file2.filename == '' or file3.filename == '':
+    if source_character.filename == '' or source_motion.filename == '':
         return jsonify({'message': 'No selected files'})
 
-    file2_path = os.path.join(app.config['UPLOAD_FOLDER'], file2.filename)
-    file3_path = os.path.join(app.config['UPLOAD_FOLDER'], file3.filename)
-    file2.save(file2_path)
-    file3.save(file3_path)
+    source_character_path = os.path.join(app.config['UPLOAD_FOLDER'], source_character.filename)
+    source_motion_path = os.path.join(app.config['UPLOAD_FOLDER'], source_motion.filename)
+    source_character.save(source_character_path)
+    source_motion.save(source_motion_path)
 
     # 저장한 파일 경로를 세션에 저장
-    session['file1_path'] = file1_path
-    session['file3_path'] = file3_path
+    session['target_character_path'] = target_character_path
+    session['source_motion_path'] = source_motion_path
     
     try:
         print("run")
-        result = run_maya_script(file1_path, file2_path, file3_path)
+        result = run_maya_script(target_character_path, source_character_path, source_motion_path)
         print(result)
         return jsonify({'message': 'Processing complete. You can download the file.'})
     except Exception as e:
@@ -219,25 +219,25 @@ def upload_file():
 
 @app.route('/upload_api', methods=['POST'])
 def upload_file_api():
-    global file1_path, file3_path
+    global target_character_path, source_motion_path
     # print("here1")
-    if 'file1' not in request.files or 'file2' not in request.files or 'file3' not in request.files:
+    if 'target_character' not in request.files or 'source_character' not in request.files or 'source_motion' not in request.files:
         return jsonify({'message': 'No file parts'})
 
-    file1 = request.files['file1'] # target_character
-    file2 = request.files['file2'] # source_character
-    file3 = request.files['file3'] # source_motion 
+    target_character = request.files['target_character'] # target_character
+    source_character = request.files['source_character'] # source_character
+    source_motion = request.files['source_motion'] # source_motion 
 
-    if file1.filename == '' or file2.filename == '' or file3.filename == '':
+    if target_character.filename == '' or source_character.filename == '' or source_motion.filename == '':
         return jsonify({'message': 'No selected files'})
 
-    if file1 and file2 and file3:
-        file1_path = os.path.join(app.config['UPLOAD_FOLDER'], file1.filename)
-        file2_path = os.path.join(app.config['UPLOAD_FOLDER'], file2.filename)
-        file3_path = os.path.join(app.config['UPLOAD_FOLDER'], file3.filename)
-        file1.save(file1_path)
-        file2.save(file2_path)
-        file3.save(file3_path)
+    if target_character and source_character and source_motion:
+        target_character_path = os.path.join(app.config['UPLOAD_FOLDER'], target_character.filename)
+        source_character_path = os.path.join(app.config['UPLOAD_FOLDER'], source_character.filename)
+        source_motion_path = os.path.join(app.config['UPLOAD_FOLDER'], source_motion.filename)
+        target_character.save(target_character_path)
+        source_character.save(source_character_path)
+        source_motion.save(source_motion_path)
 
         # transaction_id 생성
         import uuid
@@ -246,14 +246,14 @@ def upload_file_api():
 
         # 저장한 파일 경로를 세션에 저장
         transactions[transaction_id] = {
-            'file1_path': file1_path,
-            'file2_path': file2_path,
-            'file3_path': file3_path,
+            'target_character_path': target_character_path,
+            'source_character_path': source_character_path,
+            'source_motion_path': source_motion_path,
         }
         
         try:
             print("run")
-            result = run_maya_script(file1_path, file2_path, file3_path)
+            result = run_maya_script(target_character_path, source_character_path, source_motion_path)
             return jsonify({'message': 'Processing complete. You can download the file.', 'transaction_id': transaction_id})
         except Exception as e:
             print("error")
@@ -314,19 +314,19 @@ def run_maya_script(target_char_path, source_char_path, source_motion_path):
 ''' download '''
 @app.route('/download', methods=['POST'])
 def download_file():
-    file1_path = session.get('file1_path')
-    file3_path = session.get('file3_path')
-    print("target char", file1_path)
-    print("source char", file3_path)
+    target_character_path = session.get('target_character_path')
+    source_motion_path = session.get('source_motion_path')
+    print("target char", target_character_path)
+    print("source char", source_motion_path)
 
-    if file1_path and file3_path:
+    if target_character_path and source_motion_path:
         # Determine the output file path based on the uploaded file
-        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], file1_path.split('/')[-1].split('.')[0], file3_path.split('/')[-1])
+        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_character_path.split('/')[-1].split('.')[0], source_motion_path.split('/')[-1])
         print(file_to_download)
         
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
-            response.headers["X-Filename"] = file3_path.split('/')[-1]
+            response.headers["X-Filename"] = source_motion_path.split('/')[-1]
             return response
         else:
             return jsonify({'message': 'File not found'}), 404
@@ -343,16 +343,16 @@ def download_file_api():
         return jsonify({'message': 'Invalid transaction ID'}), 400
 
     transaction = transactions[transaction_id]
-    file1_path = transaction['file1_path']
-    file3_path = transaction['file3_path']
+    target_character_path = transaction['target_character_path']
+    source_motion_path = transaction['source_motion_path']
 
     # load 
-    if file1_path and file3_path:
-        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], file1_path.split('/')[-1].split('.')[0], file3_path.split('/')[-1])
+    if target_character_path and source_motion_path:
+        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_character_path.split('/')[-1].split('.')[0], source_motion_path.split('/')[-1])
 
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
-            response.headers["X-Filename"] = file3_path.split('/')[-1]
+            response.headers["X-Filename"] = source_motion_path.split('/')[-1]
             print("download end")
             return response
         else:

@@ -19,9 +19,9 @@ class Mingle_API():
         # retarget api 
         upload_url = os.path.join(self.base_url, "upload_api")
         files = {
-            'file1': open(target_character, 'rb'),
-            'file2': open(source_character, 'rb'),
-            'file3': open(source_motion, 'rb')
+            'target_character': open(target_character, 'rb'),
+            'source_character': open(source_character, 'rb'),
+            'source_motion': open(source_motion, 'rb')
         }
         response = requests.post(upload_url, files=files)
         transaction_id = response.json().get('transaction_id')
