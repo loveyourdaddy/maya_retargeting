@@ -7,7 +7,7 @@ app = Flask(__name__)
 app.secret_key = 'supersecretkey'  # 세션을 사용하기 위해 필요한 비밀키
 app.config['UPLOAD_FOLDER'] = './Server_datas/'  # 파일을 저장할 경로
 app.config['OUTPUT_FOLDER'] = './output/' # 파일을 불러올 경로
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 파일 크기 제한 (16 MB)
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 파일 크기 제한 (1024 MB)
 
 
 # 업로드 폴더가 없으면 생성
@@ -220,7 +220,6 @@ def upload_file():
 @app.route('/upload_api', methods=['POST'])
 def upload_file_api():
     global target_character_path, source_motion_path
-    # print("here1")
     if 'target_character' not in request.files or 'source_character' not in request.files or 'source_motion' not in request.files:
         return jsonify({'message': 'No file parts'})
 
@@ -350,7 +349,11 @@ def download_file_api():
 
     # load 
     if target_character_path and source_motion_path:
-        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_character_path.split('/')[-1].split('.')[0], source_motion_path.split('/')[-1])
+        # import pdb; pdb.set_trace()
+        target_char_name = target_character_path.split('/')[-1][:-len('.fbx')] # .split('.')[0]
+        motion_name = source_motion_path.split('/')[-1]
+        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, motion_name)
+        # file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_character_path.split('/')[-1].split('.')[0], source_motion_path.split('/')[-1])
 
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
