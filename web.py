@@ -20,6 +20,8 @@ if not os.path.exists(app.config['OUTPUT_FOLDER']):
 # key: tranaction_id, value: file1_path, file3_path
 transactions = {}
 
+
+''' upload '''
 # 파일 업로드를 위한 HTML 폼을 제공하는 라우트
 @app.route('/')
 def upload_form():
@@ -181,10 +183,8 @@ def upload_file():
 
     # 'ETC'가 선택되지 않은 경우 해당 캐릭터의 파일 경로 설정
     if character_select != "ETC":
-        # print("selected: ", file1_path)
         file1_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{character_select}.fbx")
     else:
-        # print("etc: ")
         if 'file1' not in request.files or 'file2' not in request.files or 'file3' not in request.files:
             print("error: no file")
             return jsonify({'message': 'No file parts'})
@@ -207,8 +207,6 @@ def upload_file():
     # 저장한 파일 경로를 세션에 저장
     session['file1_path'] = file1_path
     session['file3_path'] = file3_path
-    # print("target char", file1_path)
-    # print("source char", file3_path)
     
     try:
         print("run")
@@ -226,9 +224,9 @@ def upload_file_api():
     if 'file1' not in request.files or 'file2' not in request.files or 'file3' not in request.files:
         return jsonify({'message': 'No file parts'})
 
-    file1 = request.files['file1'] # target char 
-    file2 = request.files['file2'] # source char-
-    file3 = request.files['file3'] # source motion 
+    file1 = request.files['file1'] # target_character
+    file2 = request.files['file2'] # source_character
+    file3 = request.files['file3'] # source_motion 
 
     if file1.filename == '' or file2.filename == '' or file3.filename == '':
         return jsonify({'message': 'No selected files'})
@@ -245,7 +243,6 @@ def upload_file_api():
         import uuid
         transaction_id = str(uuid.uuid4())
         print("transaction_id in upload:", transaction_id)
-        # transaction_folder = os.path.join(app.config['UPLOAD_FOLDER'], transaction_id)
 
         # 저장한 파일 경로를 세션에 저장
         transactions[transaction_id] = {
@@ -262,6 +259,7 @@ def upload_file_api():
             print("error")
             return jsonify({'message': 'An error occurred: ' + str(e)})
 
+''' run maya script '''
 import shutil
 def run_maya_script(target_char_path, source_char_path, source_motion_path):
     import platform
@@ -313,6 +311,7 @@ def run_maya_script(target_char_path, source_char_path, source_motion_path):
         
     return process.stdout
 
+''' download '''
 @app.route('/download', methods=['POST'])
 def download_file():
     file1_path = session.get('file1_path')
@@ -327,7 +326,6 @@ def download_file():
         
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
-            # response.headers["X-Filename"] = os.path.basename(file_to_download)  # Custom header for filename
             response.headers["X-Filename"] = file3_path.split('/')[-1]
             return response
         else:
@@ -340,7 +338,6 @@ def download_file_api():
     # Get the transaction ID from the request data
     data = request.json
     transaction_id = data.get('transaction_id')
-    # print("transaction_id in download:", transaction_id)
 
     if not transaction_id or transaction_id not in transactions:
         return jsonify({'message': 'Invalid transaction ID'}), 400
