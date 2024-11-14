@@ -5,6 +5,8 @@
 *.pyc
 *.tif
 *.swp
+*.log
+*.txt
 /videos/*
 /ppts/*
 /output/*
@@ -14,3 +16,5 @@ __pycache__/retargeting_different_axis.cpython-39.pyc
 /models/*
 /etc/*
 /flask_session/*
+
+*.swatch
