@@ -321,8 +321,10 @@ def download_file():
 
     if target_character_path and source_motion_path:
         # Determine the output file path based on the uploaded file
-        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_character_path.split('/')[-1].split('.')[0], source_motion_path.split('/')[-1])
-        print(file_to_download)
+        target_char_name = target_character_path.split('/')[-1][:-len('.fbx')] # .split('.')[0]
+        motion_name = source_motion_path.split('/')[-1]
+        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, motion_name)
+        print("file_to_download:", file_to_download)
         
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
