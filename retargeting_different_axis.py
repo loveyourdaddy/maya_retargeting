@@ -221,7 +221,7 @@ def main():
 
     # rename tgt joints
     tgt_locator = remove_namespace_for_joints([tgt_locator])[0]
-    tgt_joints_common = remove_namespace_for_joints(tgt_joints_common) # tgt_joints_original_renamed
+    tgt_joints_origin = remove_namespace_for_joints(tgt_joints_origin) # tgt_joints_common 
 
     # Run the function
     delete_all_transform_nodes()
@@ -235,7 +235,8 @@ def main():
     # freeze_and_bake(top_joint) 
 
     # export
-    print(">> retargeting from source: (char {}, motion {})".format(sourceChar, sourceMotion))
+    # print(">> retargeting from source: (char {}, motion {})".format(sourceChar, sourceMotion))
+    print(">>({}, {}) ->  {}".format(sourceChar, sourceMotion, targetChar))
     export(args, targetChar, targetMotion)
     
     # end

@@ -23,7 +23,7 @@ def get_keyframe_data(joint):
     
     return trans_data, rot_data
 
-def get_array_from_keyframe_data(keyframe_data, rot_attr):
+def get_array_from_keyframe_data(keyframe_data, rot_attr, node):
     min_time = 0
     max_time = 0
     # first_data = np.array([None, None, None])
@@ -32,7 +32,8 @@ def get_array_from_keyframe_data(keyframe_data, rot_attr):
         
         # time 
         if len(data)==0:
-            print("no data for", attr)
+            print(f"no data for {attr} of {node}")
+            # import pdb; pdb.set_trace()
             continue
         time = int(data[-1][0])
         if max_time < time:

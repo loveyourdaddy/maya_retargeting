@@ -50,7 +50,7 @@ def retarget_translation(src_hip, tgt_hip,
     # translation data
     trans_data, _ = get_keyframe_data(src_hip)
     trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
-    trans_data = get_array_from_keyframe_data(trans_data, trans_attr)
+    trans_data = get_array_from_keyframe_data(trans_data, trans_attr, src_hip)
     len_frame = len(trans_data)
 
     if len_frame == 0:
@@ -136,7 +136,7 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
 
             # tgt angle from src
             rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
-            rot_data = get_array_from_keyframe_data(rot_data, rot_attr)
+            rot_data = get_array_from_keyframe_data(rot_data, rot_attr, src_joint)
             if rot_data.shape[0]!=len_frame:
                 print("rot_data {} of joint {} is not matched with len_frame{}".format(rot_data.shape, src_joint, len_frame))
                 continue

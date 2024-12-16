@@ -111,7 +111,7 @@ def rename_joint_by_template(joints):
                 # list 안에 있고, 이미 등록되지 않다면
                 if (joint.lower() in alter_joint.lower() or alter_joint.lower() in joint.lower()) and key_joint not in ret_joints:
                     joint = key_joint
-                    print("find")
+                    # print("find")
         
         ret_joints.append(joint)
 
@@ -371,8 +371,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, 
             # 2. 이미 list에 포함되어있지 않음
             if (src_joint_renamed.lower() in tgt_joint_renamed.lower() or tgt_joint_renamed.lower() in src_joint_renamed.lower()) \
                     and src_joint not in src_common_joint and tgt_joint not in tgt_common_joint: 
-                print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
-                # import pdb; pdb.set_trace()
+                # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
 
                 # add root division TODO check
                 if root_check_flag==False and src_idx > src_root_div_jid and tgt_idx > tgt_root_div_jid:
@@ -410,8 +409,6 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, 
                 tgt_common_joint.append(tgt_joint)
                 src_indices.append(src_idx)
                 tgt_indices.append(tgt_idx)
-                # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
-                # import pdb; pdb.set_trace()
                 check = True
                 break
         if check:
