@@ -28,12 +28,12 @@ alter_joint_name = {
      "Neck":["neck_01",], 
      "Head":["head",], 
 
-     "LeftShoulder": ["LFBXASC032Clavicle", "LeftUpperArm", "shoulder_L", "upperarm_l"],
+     "LeftShoulder": ["LFBXASC032Clavicle", "LeftUpperArm", "shoulder_L", "upperarm_l"], # "Clavicle_l",
      "LeftArm":["LFBXASC032UpperArm", "LeftLowerArm", "upperArm_L", "lowerarm_l"],
      "LeftForeArm":["LFBXASC032Forearm", "lowerArm_L", "lowerarm_in_l"],
      "LeftHand": ["LFBXASC032Hand", "hand_L", "lowerarm_out_l"],
 
-     "RightShoulder":["RFBXASC032Clavicle", "RightUpperArm", "shoulder_R", "upperarm_r"], 
+     "RightShoulder":["RFBXASC032Clavicle", "RightUpperArm", "shoulder_R", "upperarm_r"], # "Clavicle_r", 
      "RightArm":["RFBXASC032UpperArm", "RightLowerArm", "upperArm_R", "lowerarm_r"], 
      "RightForeArm":["RFBXASC032Forearm", "lowerArm_R", "lowerarm_in_r"], 
      "RightHand":["RFBXASC032Hand", "hand_R", "lowerarm_out_r"], 
@@ -157,7 +157,7 @@ def select_joints(joints, template_joints):
     
     return refined_joints
 
-def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy, tgt_joint_hierarchy_origin): # tgt_joints_renamed, tgt_joints
+def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, tgt_joints_template): 
     ''' origin: 이름이 원래 것 '''
     
     # get division
@@ -223,7 +223,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
         return root_jid, root_name, spine_jid, spine_name
 
     # jid, name
-    tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = get_division(tgt_joint_hierarchy_origin)
+    tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = get_division(tgt_joints_origin)
     src_root_div_jid, src_root_div, src_spine_div_jid, src_spine_div = get_division(src_joint_hierarchy)
 
     # 만약 root joint을 찾을 수 없다면, 분기점으로 name을 바꿔주기
@@ -339,7 +339,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
         return joints_wo_name, root_div_jid, root_div, spine_div_jid, spine_div
 
     if tgt_root_div_jid==-1:
-        tgt_joint_hierarchy, tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div= find_skeleton_by_hierarchy(tgt_joint_hierarchy_origin)
+        tgt_joints_template, tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = find_skeleton_by_hierarchy(tgt_joints_origin)
 
     # remove namespace
     src_root_div = src_root_div.split(':')[-1]
@@ -347,44 +347,48 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
     src_spine_div = src_spine_div.split(':')[-1]
     tgt_spine_div = tgt_spine_div.split(':')[-1]
 
-    # get common joints 
+    ''' get common joints 
+    Divison 예외처리: 
+    - 만약 joint가 spine div조인트를 넘어갔고, 리스트에 없다면 
+    - 마지막 조인트를 1개 빼주고(spine이 1개 이상있다고 가정.) division joint을 넣어주기
+    '''
     src_common_joint = []
     tgt_common_joint = []
     src_indices = []
     tgt_indices = []
-    # by name 
     root_check_flag = False
     spine_check_flag = False
     for src_idx, src_joint in enumerate(src_joint_hierarchy):
         check = False
-        for tgt_idx, tgt_joint in enumerate(tgt_joint_hierarchy):
+        for tgt_idx, tgt_joint in enumerate(tgt_joints_template):
             src_joint_renamed = src_joint.split(':')[-1]
             tgt_joint_renamed = tgt_joint.split(':')[-1]
 
             # find common joint
             # 1. 이름 겹치는 부분이 있음
             # 2. 이미 list에 포함되어있지 않음
-            # import pdb; pdb.set_trace()
             if (src_joint_renamed.lower() in tgt_joint_renamed.lower() or tgt_joint_renamed.lower() in src_joint_renamed.lower()) \
                     and src_joint not in src_common_joint and tgt_joint not in tgt_common_joint: 
-                # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
-
+                print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
                 # import pdb; pdb.set_trace()
-                """
-                Divison 예외처리: 
-                - 만약 joint가 spine div조인트를 넘어갔고, 리스트에 없다면 
-                - 마지막 조인트를 1개 빼주고(spine이 1개 이상있다고 가정.) division joint을 넣어주기
-                """
 
-                # add root division TODO check 
+                # add root division TODO check
                 if root_check_flag==False and src_idx > src_root_div_jid and tgt_idx > tgt_root_div_jid:
                     if src_joint not in src_common_joint:
-                        src_common_joint[-1] = src_root_div
-                        src_indices[-1] = src_root_div_jid
+                        if len(src_common_joint)==0:
+                            src_common_joint.append(src_root_div)
+                            src_indices.append(src_root_div_jid)
+                        else:
+                            src_common_joint[-1] = src_root_div
+                            src_indices[-1] = src_root_div_jid
                         print("add src root div")
                     if tgt_joint not in tgt_common_joint:
-                        tgt_common_joint[-1] = tgt_root_div
-                        tgt_indices[-1] = tgt_root_div_jid
+                        if len(tgt_common_joint)==0:
+                            tgt_common_joint.append(tgt_root_div)
+                            tgt_indices.append(tgt_root_div_jid)
+                        else:
+                            tgt_common_joint[-1] = tgt_root_div
+                            tgt_indices[-1] = tgt_root_div_jid
                         print("add tgt root div")
                     root_check_flag = True
 
@@ -404,38 +408,40 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
                 tgt_common_joint.append(tgt_joint)
                 src_indices.append(src_idx)
                 tgt_indices.append(tgt_idx)
+                # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
+                # import pdb; pdb.set_trace()
                 check = True
                 break
         if check:
             continue
 
-    # Updated joint hierarchy by selected ones 
+
+    ''' Updated joint hierarchy by selected ones '''
     src_select_hierarchy, tgt_select_hierarchy = [], []
     src_name2index = {}
     tgt_name2index = {}
     for i in range(len(src_indices)):
         src_name = src_joint_hierarchy[src_indices[i]]
-        tgt_name = tgt_joint_hierarchy_origin[tgt_indices[i]]
+        tgt_name = tgt_joints_origin[tgt_indices[i]]
 
         src_select_hierarchy.append(src_name)
-        tgt_select_hierarchy.append(tgt_joint_hierarchy[tgt_indices[i]])
+        tgt_select_hierarchy.append(tgt_joints_template[tgt_indices[i]])
 
         src_name2index[src_name] = i
         tgt_name2index[tgt_name] = i
     src_joint_hierarchy = src_select_hierarchy
-    tgt_joint_hierarchy = tgt_select_hierarchy
+    tgt_joints_template = tgt_select_hierarchy
 
     # origin name
     tgt_select_hierarchy_origin = []
     for i in range(len(src_indices)):
-        tgt_select_hierarchy_origin.append(tgt_joint_hierarchy_origin[tgt_indices[i]])
-    tgt_joint_hierarchy_origin = tgt_select_hierarchy_origin
+        tgt_select_hierarchy_origin.append(tgt_joints_origin[tgt_indices[i]])
+    tgt_joints_origin = tgt_select_hierarchy_origin
 
     
     """ ee joints """
-    # ee joints
     ee_joints = []
-    for i, joint in enumerate(tgt_joint_hierarchy_origin):
+    for i, joint in enumerate(tgt_joints_origin):
         children = cmds.listRelatives(joint, children=True, type='joint')
         if children is None:
             ee_joints.append(joint)
@@ -451,7 +457,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
         # print("src standard")
     else:
         joint_indices = tgt_indices
-        joint_hierarchy = tgt_joint_hierarchy_origin
+        joint_hierarchy = tgt_joints_origin
         name2index = tgt_name2index
         # print("tgt standard")
     
@@ -496,7 +502,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joint_hierarchy
             division.append(division_j)
             child_of_divisions.append(children_index)
     
-    return src_joint_hierarchy, tgt_joint_hierarchy, parent_indices, src_indices, tgt_indices
+    return src_joint_hierarchy, tgt_joints_template, parent_indices, src_indices, tgt_indices
 
 """ namespace """
 def add_namespace(joint, namespace):

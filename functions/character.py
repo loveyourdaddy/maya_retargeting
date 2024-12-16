@@ -75,15 +75,15 @@ def get_tgt_joints():
 
     return tgt_joints, tgt_root_joint
 
-def get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joints_renamed):
+def get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints_origin, tgt_joints_template):
     # refine joint hierarchy
-    src_joints, tgt_joints_renamed, parent_indices, _, tgt_indices = get_common_hierarchy_bw_src_and_tgt(src_joints, tgt_joints_renamed, tgt_joints) 
+    src_joints, tgt_joints_template, parent_indices, _, tgt_indices = get_common_hierarchy_bw_src_and_tgt(src_joints, tgt_joints_origin, tgt_joints_template) 
 
     # tgt_joints
     # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
-    tgt_joints = [tgt_joints[i] for i in tgt_indices]
+    tgt_joints_templated = [tgt_joints_origin[i] for i in tgt_indices]
 
-    return src_joints, tgt_joints, tgt_joints_renamed, parent_indices
+    return src_joints, tgt_joints_templated, tgt_joints_template, parent_indices
 
 def get_locator(tgt_locator):
     # get locator 

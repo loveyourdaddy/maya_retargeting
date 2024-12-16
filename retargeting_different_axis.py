@@ -43,9 +43,18 @@ def main():
 
 
     ''' tgt '''
+    '''
+    naming:
+    tgt_joints: not namespace, origin
+
+    아래는 전부 namespace 추가
+    tgt_joints_origin: origin
+    tgt_joints_template: templated 
+    tgt_joints_common: common 
+    '''
+    
     # character
     mel.eval('FBXImportSmoothingGroups -v true')
-    # import pdb; pdb.set_trace()
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
     # .fbm 폴더 경로
     path = "./models/" + targetChar + "/" + targetChar
@@ -73,17 +82,15 @@ def main():
     parent_node = cmds.listRelatives(tgt_root_joint, parent=True, shapes=True)[-1]
 
 
-    # rename joint
+    ''' rename joint '''
     # add namespace joints (in maya also)
-    tgt_joints_origin_namespace = add_namespace_for_joints(tgt_joints, "tgt")
-    tgt_joints = tgt_joints_origin_namespace
+    tgt_joints_origin = add_namespace_for_joints(tgt_joints, "tgt")
 
     # renamed by template
-    tgt_joints_renamed_by_template = rename_joint_by_template(tgt_joints)
+    tgt_joints_template = rename_joint_by_template(tgt_joints_origin)
 
 
     # locator
-    # import pdb; pdb.set_trace()
     if parent_node is not None:
         tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos = get_locator(parent_node)
     else:
@@ -100,57 +107,61 @@ def main():
 
     ''' src '''
     sourceChar_path = './models/' + sourceChar + '/' + sourceChar + '.fbx'
-    # if source character exist 
     if os.path.exists(sourceChar_path):
+        # if source character exist 
         mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
         
-        src_joints = get_src_joints(tgt_joints)
-        src_Tpose_rots = get_Tpose_local_rotations(src_joints)
-        src_joints_origin = src_joints
+        # import pdb; pdb.set_trace()
+        src_joints_origin = get_src_joints(tgt_joints_origin)
+        src_Tpose_rots = get_Tpose_local_rotations(src_joints_origin)
 
-        src_joints, tgt_joints, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joints_renamed_by_template)
+        # common skeleton 
+        src_joints_common, tgt_joints_common, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints_origin, tgt_joints_origin, tgt_joints_template)
         
         if tgt_locator is not None:
-            prerotations = get_prerotations(tgt_joints, tgt_locator, tgt_locator_rot)
+            prerotations = get_prerotations(tgt_joints_common, tgt_locator, tgt_locator_rot)
         else:
-            prerotations = get_prerotations(tgt_joints)
+            prerotations = get_prerotations(tgt_joints_common)
 
         # Tpose trf
-        Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints, prerotations)
+        Tpose_trfs = get_Tpose_trf(src_joints_common, tgt_joints_common, prerotations)
 
         # import src motion
         mel.eval('FBXImport -f"{}"'.format(sourceMotion))
-    else: # args.sourceChar == "": 
+    else:
         # source character가 없을때, 0 frame을 Tpose로 사용. 
         print(">> no source character")
     
         # import src motion
         mel.eval('FBXImport -f"{}"'.format(sourceMotion))
-        src_joints = get_src_joints(tgt_joints)
-        src_Tpose_rots = get_Tpose_local_rotations(src_joints)
+        src_joints_origin = get_src_joints(tgt_joints_origin)
+        src_Tpose_rots = get_Tpose_local_rotations(src_joints_origin)
 
-        src_joints, tgt_joints, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints, tgt_joints_renamed_by_template)
+        # common skeleton
+        src_joints_common, tgt_joints_common, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints_origin, tgt_joints_origin, tgt_joints_template)
 
         # Tpose trf
-        Tpose_trfs = get_Tpose_trf(src_joints, tgt_joints)
+        Tpose_trfs = get_Tpose_trf(src_joints_common, tgt_joints_common)
 
+
+    ''' Root, height '''
     # get root height scale
-    src_root = src_joints[0]
+    src_root = src_joints_common[0]
     src_hip_height = cmds.xform(src_root, query=True, translation=True, worldSpace=True)[1]
-    tgt_root = tgt_joints[0]
+    tgt_root = tgt_joints_common[0]
     tgt_hip_height = cmds.xform(tgt_root, query=True, translation=True, worldSpace=True)[1]
 
     # 만약 hip height가 0이면 발끝부터 root 까지의 거리를 계산
     # if src_hip_height < 0.01:
-    #     src_hip_height = get_distance_from_toe_to_root(src_joints)
+    #     src_hip_height = get_distance_from_toe_to_root(src_joints_common)
     if tgt_hip_height < 0.01:
-        tgt_hip_height = get_distance_from_toe_to_root(tgt_joints, tgt_root)
+        tgt_hip_height = get_distance_from_toe_to_root(tgt_joints_common, tgt_root)
 
     # ratio
     height_ratio = tgt_hip_height / src_hip_height
 
 
-    # locator and joints
+    ''' locator and meshes '''
     locators_list = cmds.ls(type='locator')
     src_locator_list = list(set(locators_list) - set(tgt_locator_list))
     if len(src_locator_list)!=0:
@@ -176,25 +187,25 @@ def main():
             tgt_locator_rot, tgt_locator_scale = None, None
         
         # trans
-        trans_data = retarget_translation(src_joints[0], tgt_joints[0],\
+        trans_data = retarget_translation(src_joints_common[0], tgt_joints_common[0],\
                                           src_locator, src_locator_rot, src_locator_scale,\
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,\
                                             height_ratio)
         # rot
-        retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_origin_namespace, 
+        retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_origin, 
                           Tpose_trfs, parent_indices, 
                           src_Tpose_rots, tgt_Tpose_rots,
                           len(trans_data), src_locator_rot, tgt_locator_rot,\
                             prerotations)
     else:
-        # 둘다 locator가 없는 경우 TODO: 합치기. 
+        # 둘다 locator가 없는 경우 TODO: 합치기.
         print(">> retarget without locator")
 
         # trans
-        trans_data = retarget_translation(src_joints[0], tgt_joints[0],
+        trans_data = retarget_translation(src_joints_common[0], tgt_joints_common[0],
                                           height_ratio)
         # rot
-        retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_origin_namespace,
+        retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_origin,
                           Tpose_trfs, parent_indices, tgt_Tpose_rots,
                             len(trans_data))
     
@@ -203,14 +214,14 @@ def main():
     if src_locator is not None:
         delete_locator_and_hierarchy(src_locator)
     else:
-        delete_locator_and_hierarchy(src_joints[0])
+        delete_locator_and_hierarchy(src_joints_common[0])
     
     # meshes
     cmds.delete(src_meshes)
 
     # rename tgt joints
     tgt_locator = remove_namespace_for_joints([tgt_locator])[0]
-    tgt_joints = remove_namespace_for_joints(tgt_joints)
+    tgt_joints_common = remove_namespace_for_joints(tgt_joints_common) # tgt_joints_original_renamed
 
     # Run the function
     delete_all_transform_nodes()
@@ -219,7 +230,7 @@ def main():
     # if tgt_locator is not None:
     #     top_joint = tgt_locator
     # else:
-    #     tgt_root_joint = tgt_joints[0]
+    #     tgt_root_joint = tgt_joints_common[0]
     #     top_joint = tgt_root_joint
     # freeze_and_bake(top_joint) 
 
@@ -235,8 +246,7 @@ def main():
     execution_time = end_time - start_time
     minutes = int(execution_time // 60)
     seconds = execution_time % 60
-    print(">> Execution time: ", execution_time)
-    print(">> Execution time: {}m {}s".format(minutes, seconds))
+    print(f">> Execution time: {execution_time}, {minutes}m {seconds}s")
 
 if __name__=="__main__":
     main()

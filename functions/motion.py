@@ -189,8 +189,6 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
 
     # rotation
     for tgt_j_origin, tgt_joint_origin in enumerate(tgt_joints_origin_namespace):
-        # print(f"tgt joint {tgt_j_origin} {tgt_joint_origin}")
-
         ''' all joint '''
         # parent 
         tgt_parent_name_origin = cmds.listRelatives(tgt_joint_origin, parent=True)[0]
@@ -221,13 +219,12 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
             
             # trf
             trf = Tpose_trfs[j]
+        # print("src joint origin {src_joint_origin} -> ", )
 
         ''' update data for frame'''
         tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
         for i in range(len_frame):
             # print(f"frame {i}")
-            
-            
             # Get tgt world
             if is_common:
                 # common joints
