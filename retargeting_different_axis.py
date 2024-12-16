@@ -165,6 +165,10 @@ def main():
     locators_list = cmds.ls(type='locator')
     src_locator_list = list(set(locators_list) - set(tgt_locator_list))
     if len(src_locator_list)!=0:
+        # Select right locator: 가장 많은 자식을 가진 locator를 선택하기 위해 0을 선택 
+        src_locator_list = sorted(src_locator_list, key=lambda x: len(cmds.listRelatives(x, children=True) or []), reverse=True)
+
+        # Get locator info 
         src_locator, src_locator_rot, src_locator_scale, src_locator_pos = get_locator(src_locator_list[0])
     else:
         src_locator = None
@@ -235,7 +239,6 @@ def main():
     # freeze_and_bake(top_joint) 
 
     # export
-    # print(">> retargeting from source: (char {}, motion {})".format(sourceChar, sourceMotion))
     print(">>({}, {}) ->  {}".format(sourceChar, sourceMotion, targetChar))
     export(args, targetChar, targetMotion)
     
