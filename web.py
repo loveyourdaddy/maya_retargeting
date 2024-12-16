@@ -1,6 +1,7 @@
 from flask import Flask, request, send_file, session, jsonify
 import os
 import subprocess
+import time 
 
 # Flask 앱 초기화
 app = Flask(__name__)
@@ -302,8 +303,16 @@ def run_maya_script(target_char_path, source_char_path, source_motion_path):
         "--sourceMotion", path_source_motion,
     ]
     print("command:", command)
+
+    # Retargeting
+    start_time = time.time()
     process = subprocess.run(command, capture_output=True, text=True)
     print("retargeting end")
+    #end time 
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print("execution_time: ", execution_time)
+
     if process.returncode != 0:
         print("Error on run maya script")
         raise Exception(process.stderr)

@@ -4,6 +4,7 @@ mayapy retargeting_different_axis.py --sourceMotion "" --targetChar ""
 
 example:
 mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
+mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/ADORI2.1_1119/ADORI2.1_1119.fbx"
 """
 
 import maya.cmds as cmds
@@ -12,8 +13,10 @@ from functions.parser import *
 from functions.character import *
 from functions.motion import *
 from functions.maya import *
+import time
 
 def main():
+    start_time = time.time()
     maya.standalone.initialize(name='python')
 
     # Load the FBX plugin
@@ -42,6 +45,7 @@ def main():
     ''' tgt '''
     # character
     mel.eval('FBXImportSmoothingGroups -v true')
+    # import pdb; pdb.set_trace()
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
     # .fbm 폴더 경로
     path = "./models/" + targetChar + "/" + targetChar
@@ -225,6 +229,14 @@ def main():
     
     # end
     maya.standalone.uninitialize()
+
+    # end time     
+    end_time = time.time()
+    execution_time = end_time - start_time
+    minutes = int(execution_time // 60)
+    seconds = execution_time % 60
+    print(">> Execution time: ", execution_time)
+    print(">> Execution time: {}m {}s".format(minutes, seconds))
 
 if __name__=="__main__":
     main()
