@@ -28,12 +28,12 @@ alter_joint_name = {
      "Neck":["neck_01",], 
      "Head":["head",], 
 
-     "LeftShoulder": ["LFBXASC032Clavicle", "LeftUpperArm", "shoulder_L", "upperarm_l"], # "Clavicle_l",
+     "LeftShoulder": ["LFBXASC032Clavicle", "Clavicle_l", "LeftUpperArm", "shoulder_L", "upperarm_l"],
      "LeftArm":["LFBXASC032UpperArm", "LeftLowerArm", "upperArm_L", "lowerarm_l"],
      "LeftForeArm":["LFBXASC032Forearm", "lowerArm_L", "lowerarm_in_l"],
      "LeftHand": ["LFBXASC032Hand", "hand_L", "lowerarm_out_l"],
 
-     "RightShoulder":["RFBXASC032Clavicle", "RightUpperArm", "shoulder_R", "upperarm_r"], # "Clavicle_r", 
+     "RightShoulder":["RFBXASC032Clavicle", "Clavicle_r", "RightUpperArm", "shoulder_R", "upperarm_r"],
      "RightArm":["RFBXASC032UpperArm", "RightLowerArm", "upperArm_R", "lowerarm_r"], 
      "RightForeArm":["RFBXASC032Forearm", "lowerArm_R", "lowerarm_in_r"], 
      "RightHand":["RFBXASC032Hand", "hand_R", "lowerarm_out_r"], 
@@ -99,18 +99,20 @@ def get_top_level_nodes():
 """ rename """
 # joint name -> template name (alter)
 def rename_joint_by_template(joints): 
-    ret_joints = [] 
+    ret_joints = []
     for joint in joints:
         # if joint name in namespace, remove namespace
         if ":" in joint:
             joint = joint.split(":")[-1]
 
         # replace joint name to template key name
-        for temp_joint, alter_joints in alter_joint_name.items():
+        for key_joint, alter_joints in alter_joint_name.items():
             for alter_joint in alter_joints:
-                if (joint in alter_joint or alter_joint in joint) and temp_joint not in ret_joints:
-                    joint = temp_joint
-                    
+                # list 안에 있고, 이미 등록되지 않다면
+                if (joint.lower() in alter_joint.lower() or alter_joint.lower() in joint.lower()) and key_joint not in ret_joints:
+                    joint = key_joint
+                    print("find")
+        
         ret_joints.append(joint)
 
     return ret_joints
