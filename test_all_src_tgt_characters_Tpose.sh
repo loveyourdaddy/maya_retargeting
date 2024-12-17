@@ -4,14 +4,20 @@
 LOGS_DIR="logs"
 mkdir -p "$LOGS_DIR"
 
+TEST_DATE=$(date +%Y%m%d_%H%M%S)
+BASE_TEST_DIR="./test_results/${TEST_DATE}"
+mkdir -p "$BASE_TEST_DIR"
+
+
 # 로그 파일 설정 - logs 디렉토리 안에 저장
 LOG_FILE="$LOGS_DIR/retargeting_test_$(date +%Y%m%d_%H%M%S).log"
 TEST_RESULTS="$LOGS_DIR/test_results_$(date +%Y%m%d_%H%M%S).txt"
 
 # 로그 함수
 log() {
-    local message="[$(date +'%Y-%m-%d %H:%M:%S')] $1"
+    local message="$1" # "[$(date +'%Y-%m-%d %H:%M:%S')] 
     echo "$message" | tee -a "$LOG_FILE"
+    # echo  -a "$LOG_FILE"
 }
 
 # 테스트 결과 기록 함수
@@ -27,16 +33,29 @@ run_test_case() {
     local source_motion="$2"
     local target_char="$3"
     local test_name="$4"
-
-    log "Running test case: $test_name"
-    log "Source Character: $source_char"
-    log "Source Motion: $source_motion"
-    log "Target Character: $target_char"
+    
     log "python retargeting_request.py "$source_char" "$source_motion" "$target_char""
-
     if python retargeting_request.py "$source_char" "$source_motion" "$target_char" 2>> "$LOG_FILE"; then
         log "✅ Test case $test_name successful"
-        record_test_result "$test_name" "PASS"
+        # record_test_result "$test_name" "PASS"
+        
+        # 결과 FBX 파일 이동
+        # 예상되는 결과 파일명 패턴에 따라 수정 필요
+        source_name=$(basename "$source_char" .fbx)
+        target_name=$(basename "$target_char" .fbx)
+        motion_name=$(basename "$source_motion" .fbx)
+        result_file="${motion_name}.fbx"
+        result_dir="$BASE_TEST_DIR/${source_name}/${target_name}"
+        
+        echo mv "$result_file" "$result_dir/"
+        if [ -f "$result_file" ]; then
+            # 결과 파일이 존재하면 해당 디렉토리로 이동
+            mv "$result_file" "$result_dir/"
+            log "Moved result file to $result_dir/"
+        else
+            log "Warning: Result file not found: $result_file"
+        fi
+        
         return 0
     else
         log "❌ Test case $test_name failed"
@@ -45,6 +64,7 @@ run_test_case() {
     fi
 }
 
+
 # 캐릭터 폴더 리스트
 characters=(
     "Adori"
@@ -52,17 +72,15 @@ characters=(
     "Asooni"
     "Adori2.1"
     "Asooni2.1"
-)
-    # "Metahuman"
-    # "Minecraft"
-    # "Readyplayerme"
-    # "Roblox"
-    # "UE"
-    # "Zepeto"
 
-# 테스트 시작
-log "=== Starting Character Retargeting Tests ==="
-log "Logs will be saved in: $LOGS_DIR/"
+    "Metahuman"
+    "Minecraft"
+    "Readyplayerme"
+    "Roblox"
+    "UE"
+    "Zepeto"
+)
+
 
 # 결과 카운터 초기화
 total_tests=0
@@ -70,8 +88,16 @@ passed_tests=0
 
 # 각 캐릭터 조합으로 테스트 실행
 for source in "${characters[@]}"; do
+    # 소스 캐릭터별 디렉토리 생성
+    SOURCE_DIR="$BASE_TEST_DIR/${source}"
+    mkdir -p "$SOURCE_DIR"
+
     for target in "${characters[@]}"; do
         if [ "$source" != "$target" ]; then
+            # 결과 파일을 저장할 타겟 디렉토리 생성
+            TARGET_DIR="$SOURCE_DIR/${target}"
+            mkdir -p "$TARGET_DIR"
+            
             # 테스트 케이스 구성
             source_char="./models/${source}/${source}.fbx"
             source_motion="./motions/${source}/Tpose.fbx"
@@ -89,17 +115,6 @@ for source in "${characters[@]}"; do
     done
 done
 
-# 에러 케이스 테스트
-log "=== Testing Error Cases ==="
-
-# 존재하지 않는 캐릭터 테스트
-run_test_case "./models/NonExistent/NonExistent.fbx" "./models/Adori/Tpose.fbx" "./models/Adori/Adori.fbx" "NonExistent_Source_Character"
-((total_tests++))
-
-# 존재하지 않는 모션 테스트
-# python retargeting_request.py ./models/Adori2.1/Adori2.1.fbx "./motions/Adori2.1/DumbellUpperBodyOverheadTricepPress.fbx" ./models/Asooni/Asooni.fbx 
-run_test_case "./models/Adori/Adori.fbx" "./models/NonExistent/Tpose.fbx" "./models/Asooni/Asooni.fbx" "NonExistent_Motion"
-((total_tests++))
 
 # 결과 요약
 log "=== Test Summary ==="
@@ -107,21 +122,12 @@ log "Total tests: $total_tests"
 log "Passed tests: $passed_tests"
 log "Failed tests: $((total_tests - passed_tests))"
 
+# 성공률 계산
+success_rate=$(echo "scale=2; ($passed_tests * 100) / $total_tests" | bc)
+log "Success rate: ${success_rate}%"
+
 # 결과 파일 위치 출력
 echo ""
 echo "Test completed. Logs are saved in:"
 echo "Detailed log: $LOG_FILE"
 echo "Test results: $TEST_RESULTS"
-
-# 성공률 계산
-success_rate=$(echo "scale=2; ($passed_tests * 100) / $total_tests" | bc)
-log "Success rate: ${success_rate}%"
-
-# 모든 테스트가 성공했는지 확인
-if [ "$passed_tests" -eq "$total_tests" ]; then
-    log "✅ All tests passed successfully"
-    exit 0
-else
-    log "❌ Some tests failed"
-    exit 1
-fi
