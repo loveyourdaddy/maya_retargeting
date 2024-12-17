@@ -501,7 +501,8 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, 
             division.append(division_j)
             child_of_divisions.append(children_index)
     
-    return src_joint_hierarchy, tgt_joints_template, parent_indices, src_indices, tgt_indices
+    return src_joint_hierarchy, tgt_joints_template, parent_indices, src_indices, tgt_indices,\
+        src_common_joint, tgt_common_joint
 
 """ namespace """
 def add_namespace(joint, namespace):

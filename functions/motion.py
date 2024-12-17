@@ -192,6 +192,7 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
         ''' all joint '''
         # parent 
         tgt_parent_name_origin = cmds.listRelatives(tgt_joint_origin, parent=True)[0]
+        # import pdb; pdb.set_trace()
 
         # root인 경우 (parent joint가 locator)
         # tgt_world_mats: I
@@ -250,6 +251,7 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
                 continue # not common joint: end for loop 
             
             # tgt angle
+            import pdb; pdb.set_trace()
             if j==0:
                 # tgt parent world rot
                 # locator

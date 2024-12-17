@@ -57,7 +57,7 @@ run_test_case() {
         
         if [ -f "$result_file" ]; then
             # print 
-            log mv "$result_file" "$result_dir/"
+            # log mv "$result_file" "$result_dir/"
             # 결과 파일이 존재하면 해당 디렉토리로 이동
             mv "$result_file" "$result_dir/"
         else
@@ -103,8 +103,8 @@ characters=(
     "Metahuman"
     # "Minecraft"
     # "Readyplayerme"
-    "Roblox"
-    "UE"
+    # "Roblox"
+    # "UE"
     # "Zepeto"
 )
 

@@ -116,7 +116,8 @@ def main():
         src_Tpose_rots = get_Tpose_local_rotations(src_joints_origin)
 
         # common skeleton 
-        src_joints_common, tgt_joints_common, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints_origin, tgt_joints_origin, tgt_joints_template)
+        src_joints_common, tgt_joints_common, _, parent_indices, src_common_joint, tgt_common_joint\
+            = get_common_src_tgt_joint_hierarchy(src_joints_origin, tgt_joints_origin, tgt_joints_template)
         
         if tgt_locator is not None:
             prerotations = get_prerotations(tgt_joints_common, tgt_locator, tgt_locator_rot)
@@ -138,17 +139,33 @@ def main():
         src_Tpose_rots = get_Tpose_local_rotations(src_joints_origin)
 
         # common skeleton
-        src_joints_common, tgt_joints_common, _, parent_indices = get_common_src_tgt_joint_hierarchy(src_joints_origin, tgt_joints_origin, tgt_joints_template)
+        src_joints_common, tgt_joints_common, _, parent_indice, src_common_joint, tgt_common_joint\
+            = get_common_src_tgt_joint_hierarchy(src_joints_origin, tgt_joints_origin, tgt_joints_template)
 
         # Tpose trf
         Tpose_trfs = get_Tpose_trf(src_joints_common, tgt_joints_common)
 
 
     ''' Root, height '''
-    # get root height scale
-    src_root = src_joints_common[0]
+    # find root joint index
+    def get_root_joint(joints_common):
+        hip_index = 0
+        for i, joint in enumerate(joints_common):
+            if joint.lower().find("hips") != -1:
+                hip_index = i
+                continue
+            if joint.lower().find("spine") != -1:
+                break
+        return hip_index
+    
+    src_hip_index = get_root_joint(src_joints_common)
+    tgt_hip_index = get_root_joint(tgt_joints_common)
+
+    src_root = src_joints_common[src_hip_index]
+    tgt_root = tgt_joints_common[tgt_hip_index]
+
+    # hip height
     src_hip_height = cmds.xform(src_root, query=True, translation=True, worldSpace=True)[1]
-    tgt_root = tgt_joints_common[0]
     tgt_hip_height = cmds.xform(tgt_root, query=True, translation=True, worldSpace=True)[1]
 
     # 만약 hip height가 0이면 발끝부터 root 까지의 거리를 계산
@@ -159,7 +176,7 @@ def main():
 
     # ratio
     height_ratio = tgt_hip_height / src_hip_height
-
+    
 
     ''' locator and meshes '''
     locators_list = cmds.ls(type='locator')
