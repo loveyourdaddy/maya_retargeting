@@ -50,13 +50,15 @@ characters=(
     "Adori"
     "Adori2.0"
     "Asooni"
-    "Metahuman"
-    "Minecraft"
-    "Readyplayerme"
-    "Roblox"
-    "UE"
-    "Zepeto"
+    "Adori2.1"
+    "Asooni2.1"
 )
+    # "Metahuman"
+    # "Minecraft"
+    # "Readyplayerme"
+    # "Roblox"
+    # "UE"
+    # "Zepeto"
 
 # 테스트 시작
 log "=== Starting Character Retargeting Tests ==="
@@ -95,6 +97,7 @@ run_test_case "./models/NonExistent/NonExistent.fbx" "./models/Adori/Tpose.fbx" 
 ((total_tests++))
 
 # 존재하지 않는 모션 테스트
+# python retargeting_request.py ./models/Adori2.1/Adori2.1.fbx "./motions/Adori2.1/DumbellUpperBodyOverheadTricepPress.fbx" ./models/Asooni/Asooni.fbx 
 run_test_case "./models/Adori/Adori.fbx" "./models/NonExistent/Tpose.fbx" "./models/Asooni/Asooni.fbx" "NonExistent_Motion"
 ((total_tests++))
 
