@@ -4,7 +4,7 @@ mayapy retargeting_different_axis.py --sourceMotion "" --targetChar ""
 
 example:
 mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
-mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/ADORI2.1_1119/ADORI2.1_1119.fbx"
+mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Adori.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
 """
 
 import maya.cmds as cmds

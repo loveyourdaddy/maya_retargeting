@@ -2,8 +2,7 @@
 Usage 
 source char, source motion, target char, 
 python retargeting_request.py ./models/Asooni/Asooni.fbx "./motions/Asooni/0048_Basic Roll_01_RT0104.fbx" ./models/Adori/Adori.fbx 
-python retargeting_request.py ./models/Adori2.1/Adori2.1.fbx "./motions/Adori2.1/DumbellUpperBodyOverheadTricepPress.fbx" ./models/Asooni/Asooni.fbx 
-
+python retargeting_request.py ./models/Adori2.0/Adori2.0.fbx "./motions/Adori2.0/DumbellUpperBodyOverheadTricepPress.fbx" ./models/Asooni/Asooni.fbx 
 """
 
 import requests
@@ -12,9 +11,9 @@ from functions.parser import *
 import sys
 
 class Mingle_API(): 
-    def __init__(self, url='http://183.107.15.4:5000/'):
+    def __init__(self, url='http://127.0.0.1:5000/'):
         # http://127.0.0.1:5000 local
-        # 183.107.15.4 window server 
+        # http://183.107.15.4:5000 window server 
         self.base_url = url
 
     def call_retargeting_api(self, target_character, source_character, source_motion): 

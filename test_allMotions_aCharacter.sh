@@ -4,6 +4,10 @@
 LOGS_DIR="logs"
 mkdir -p "$LOGS_DIR"
 
+# IFS 백업
+OLDIFS="$IFS"
+IFS=$'\n'
+
 # 로그 파일 설정 - logs 디렉토리 안에 저장
 LOG_FILE="$LOGS_DIR/motion_test_$(date +%Y%m%d_%H%M%S).log"
 TEST_RESULTS="$LOGS_DIR/test_results_$(date +%Y%m%d_%H%M%S).txt"
@@ -61,10 +65,6 @@ target_characters=(
 # 결과 카운터 초기화
 total_tests=0
 passed_tests=0
-
-# IFS 백업
-OLDIFS="$IFS"
-IFS=$'\n'
 
 # 모든 모션 파일 찾기
 motion_files=($(find "./motions/${SOURCE_CHARACTER}" -type f -name "*.fbx"))
