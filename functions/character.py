@@ -77,7 +77,11 @@ def get_tgt_joints():
 
 def get_common_src_tgt_joint_hierarchy(src_joints, tgt_joints_origin, tgt_joints_template):
     # refine joint hierarchy
-    src_joints, tgt_joints_common, parent_indices, _, tgt_indices, src_common_joint, tgt_common_joint = get_common_hierarchy_bw_src_and_tgt(src_joints, tgt_joints_origin, tgt_joints_template) 
+    src_joints, tgt_joints_common, parent_indices, _, tgt_indices, src_common_joint, tgt_common_joint \
+        = get_common_hierarchy_bw_src_and_tgt(src_joints, tgt_joints_origin, tgt_joints_template)
+    
+    # remove overlapped joint TODO
+    # import pdb; pdb.set_trace()
 
     # tgt_joints
     # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기

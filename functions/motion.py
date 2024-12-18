@@ -185,24 +185,25 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
 
 
     ''' tgt '''
-    tgt_world_mats_origin = np.full((len_frame, len(tgt_joints_origin_namespace), 3, 3), None, dtype=np.float32)
+    # parent 조인트의 rotation을 찾아야하기 때문에, full을 넣어주기. 
+    tgt_joints_ = tgt_joints_origin_namespace # tgt_joints_origin_namespace
 
     # rotation
-    for tgt_j_origin, tgt_joint_origin in enumerate(tgt_joints_origin_namespace):
+    tgt_world_mats_origin = np.full((len_frame, len(tgt_joints_), 3, 3), None, dtype=np.float32) # tgt_joints_origin_namespace
+    for tgt_j_origin, tgt_joint_origin in enumerate(tgt_joints_): # tgt_joints_origin_namespace
         ''' all joint '''
         # parent 
         tgt_parent_name_origin = cmds.listRelatives(tgt_joint_origin, parent=True)[0]
-        # import pdb; pdb.set_trace()
 
         # root인 경우 (parent joint가 locator)
         # tgt_world_mats: I
-        if tgt_parent_name_origin not in tgt_joints_origin_namespace:
+        if tgt_parent_name_origin not in tgt_joints_:
             tgt_parent_j_origin = None 
             tgt_parent_name_origin = ''
         # 일반 조인트 
         else:
-            tgt_parent_j_origin = tgt_joints_origin_namespace.index(tgt_parent_name_origin)
-            tgt_parent_name_origin = tgt_joints_origin_namespace[tgt_parent_j_origin]
+            tgt_parent_j_origin = tgt_joints_.index(tgt_parent_name_origin)
+            tgt_parent_name_origin = tgt_joints_[tgt_parent_j_origin]
         # print("{} {}, parent {} {}".format(tgt_j_origin, tgt_joint_origin, tgt_parent_j_origin, tgt_parent_name_origin))
 
 
@@ -251,7 +252,9 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
                 continue # not common joint: end for loop 
             
             # tgt angle
-            import pdb; pdb.set_trace()
+            # if i==0:
+            #     import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             if j==0:
                 # tgt parent world rot
                 # locator

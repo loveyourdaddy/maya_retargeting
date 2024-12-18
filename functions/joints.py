@@ -82,7 +82,7 @@ def find_root_joints(all_joints):
         hierarchy = rename_joint_by_template(hierarchy)
         children_of_roots[i] = select_joints(hierarchy, template_joints)
         list_index.append(len(children_of_roots[i]))
-        
+    
     max_index = list_index.index(max(list_index))
     return root_joints[max_index]
 
@@ -138,6 +138,7 @@ def select_joints(joints, template_joints):
                     del alter_joint_name_[temp_name]
                     break
 
+            # import pdb; pdb.set_trace()
             # 1. joint in template joint,
             # 2. not finger
             # 3. not already exist in the list
@@ -155,6 +156,7 @@ def select_joints(joints, template_joints):
 
                 # 체크가 되었으면 joints에서 제거하기
                 joints.remove(joint)
+                # print(f"joint {joint} removed")
                 break
     
     return refined_joints
@@ -348,7 +350,33 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, 
     tgt_root_div = tgt_root_div.split(':')[-1]
     src_spine_div = src_spine_div.split(':')[-1]
     tgt_spine_div = tgt_spine_div.split(':')[-1]
+    # import pdb; pdb.set_trace() 
 
+    def get_common_substring(str1, str2):
+        m = len(str1)
+        n = len(str2)
+        dp = [[0] * (n + 1) for _ in range(m + 1)]
+        max_length = 0
+        end_position = 0
+        
+        for i in range(1, m + 1):
+            for j in range(1, n + 1):
+                if str1[i-1] == str2[j-1]:
+                    dp[i][j] = dp[i-1][j-1] + 1
+                    if dp[i][j] > max_length:
+                        max_length = dp[i][j]
+                        end_position = i
+                        
+        return str1[end_position - max_length:end_position]
+    
+    def check_string_in_list(string, string_list):
+        string_list_lower = [value.lower() for value in string_list]
+        string_lower = string.lower()
+        if string_lower in string_list_lower or any(val in string_lower for val in string_list_lower):
+            return True
+        else:
+            return False
+        
     ''' get common joints 
     Divison 예외처리: 
     - 만약 joint가 spine div조인트를 넘어갔고, 리스트에 없다면 
@@ -373,6 +401,33 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, 
                     and src_joint not in src_common_joint and tgt_joint not in tgt_common_joint: 
                 # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
 
+                ''' 다른 조인트에 속하는 경우, 제외해주기.'''
+                common_string = get_common_substring(src_joint, tgt_joint)
+                # 본인의 키를 찾기. alter_joint_name의 values에 있는지 확인 src_joint와 tgt_joint중 같은 부분 찾기
+                check_find_key = False
+                for key_common, values in alter_joint_name.items():
+                    values_lower = [value.lower() for value in values]
+                    if common_string.lower() in values_lower:
+                        check_find_key = True
+                        break
+
+                # 다른 키에 속하는 경우, 제외해주기.
+                if check_find_key:
+                    check_other_key = False
+                    for key, values in alter_joint_name.items():
+                        # 찾은 key는 제외
+                        if key==key_common:
+                            continue
+
+                        # 다른 key 확인 
+                        values_wo_lr = [value[:-2] for value in values] # left, right 제외
+                        if check_string_in_list(src_joint, values) or check_string_in_list(tgt_joint, values) or\
+                            check_string_in_list(src_joint, values_wo_lr) or check_string_in_list(tgt_joint, values_wo_lr):
+                            check_other_key = True
+                            break
+                    if check_other_key:
+                        continue 
+
                 # add root division TODO check
                 if root_check_flag==False and src_idx > src_root_div_jid and tgt_idx > tgt_root_div_jid:
                     if src_joint not in src_common_joint:
@@ -391,6 +446,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, 
                             tgt_common_joint[-1] = tgt_root_div
                             tgt_indices[-1] = tgt_root_div_jid
                         print("add tgt root div")
+                    # import pdb; pdb.set_trace()
                     root_check_flag = True
 
                 # add spine division
@@ -409,6 +465,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, 
                 tgt_common_joint.append(tgt_joint)
                 src_indices.append(src_idx)
                 tgt_indices.append(tgt_idx)
+                # import pdb; pdb.set_trace()
                 check = True
                 break
         if check:
