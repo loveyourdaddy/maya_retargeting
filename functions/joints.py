@@ -161,9 +161,7 @@ def select_joints(joints, template_joints):
     
     return refined_joints
 
-def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, tgt_joints_template): 
-    ''' origin: 이름이 원래 것 '''
-    
+def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, tgt_joints_template):
     # get division
     def get_division(joint_hierarchy):
         ''' 
@@ -229,6 +227,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, 
     # jid, name
     tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = get_division(tgt_joints_origin)
     src_root_div_jid, src_root_div, src_spine_div_jid, src_spine_div = get_division(src_joint_hierarchy)
+
 
     # 만약 root joint을 찾을 수 없다면, 분기점으로 name을 바꿔주기
     def find_skeleton_by_hierarchy(joints_wo_name):
@@ -345,6 +344,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, 
     if tgt_root_div_jid==-1:
         tgt_joints_template, tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = find_skeleton_by_hierarchy(tgt_joints_origin)
 
+
     # remove namespace
     src_root_div = src_root_div.split(':')[-1]
     tgt_root_div = tgt_root_div.split(':')[-1]
@@ -352,6 +352,11 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, 
     tgt_spine_div = tgt_spine_div.split(':')[-1]
 
 
+    ''' get common joints 
+    Divison 예외처리: 
+    - 만약 joint가 spine div조인트를 넘어갔고, 리스트에 없다면 
+    - 마지막 조인트를 1개 빼주고(spine이 1개 이상있다고 가정.) division joint을 넣어주기
+    '''
     def get_common_substring(str1_, str2_):
         str1 = str1_.lower() 
         str2 = str2_.lower() 
@@ -497,7 +502,6 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, 
         tgt_name2index[tgt_name] = i
     src_joint_hierarchy = src_select_hierarchy
     tgt_joints_template = tgt_select_hierarchy
-    # import pdb; pdb.set_trace()
 
     # origin name
     tgt_select_hierarchy_origin = []
