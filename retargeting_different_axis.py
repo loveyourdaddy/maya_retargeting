@@ -75,7 +75,6 @@ def main():
             print(f">>Texture loaded: {node} -> {new_path}")
         else:
             print(f">>No texture: {new_path}")
-
     # joints
     tgt_joints, tgt_root_joint = get_tgt_joints()
     tgt_Tpose_rots = get_Tpose_local_rotations(tgt_joints)
@@ -218,6 +217,9 @@ def main():
                           src_Tpose_rots, tgt_Tpose_rots,
                           len(trans_data), src_locator_rot, tgt_locator_rot,\
                             prerotations)
+        
+        # if other locator, retarget also
+        # tgt_locator_list
     else:
         # 둘다 locator가 없는 경우 TODO: 합치기.
         print(">> retarget without locator")

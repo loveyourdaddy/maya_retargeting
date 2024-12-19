@@ -254,7 +254,6 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
             # tgt angle
             # if i==0:
             #     import pdb; pdb.set_trace()
-            # import pdb; pdb.set_trace()
             if j==0:
                 # tgt parent world rot
                 # locator
