@@ -56,10 +56,17 @@ SOURCE_CHAR_PATH="./models/${SOURCE_CHARACTER}/${SOURCE_CHARACTER}.fbx"
 # 타겟 캐릭터 리스트
 target_characters=(
     # "Adori"
-    "Adori2.0"
+    # "Adori2.0"
     # "Asooni"
     # "Adori2.1"
     # "Asooni2.1"
+
+    "Metahuman"
+    "Minecraft"
+    "Readyplayerme"
+    "Roblox"
+    "UE"
+    "Zepeto"
 )
 
 # 결과 카운터 초기화

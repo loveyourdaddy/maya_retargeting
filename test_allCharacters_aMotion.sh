@@ -87,25 +87,25 @@ get_first_motion() {
 
 # 캐릭터 폴더 리스트
 src_characters=(
-    # "Asooni"
+    "Asooni"
     "Adori2.0"
-    # "Asooni2.1"
-    # "Adori2.0"
+    "Asooni2.1"
+    "Adori2.0"
 )
 
 characters=(
-    # "Adori"
-    # "Adori2.0"
-    # "Asooni"
-    # "Adori2.1"
-    # "Asooni2.1"
+    "Adori"
+    "Adori2.0"
+    "Asooni"
+    "Adori2.1"
+    "Asooni2.1"
 
     "Metahuman"
-    # "Minecraft"
-    # "Readyplayerme"
-    # "Roblox"
-    # "UE"
-    # "Zepeto"
+    "Minecraft"
+    "Readyplayerme"
+    "Roblox"
+    "UE"
+    "Zepeto"
 )
 
 # src_characters=("${characters[@]}")
@@ -123,6 +123,7 @@ for source in "${src_characters[@]}"; do
     mkdir -p "$SOURCE_DIR"
 
     # 소스 캐릭터의 첫 번째 모션 파일 찾기
+    # CHANGE This: First motion 
     first_motion=$(get_first_motion "$source")
     echo ">> First motion for $source: $first_motion"
 

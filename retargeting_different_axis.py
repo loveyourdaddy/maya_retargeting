@@ -159,9 +159,10 @@ def main():
                 break
         return hip_index
     
-    src_hip_index = get_root_joint(src_joints_common)
+    # root 
     tgt_hip_index = get_root_joint(tgt_joints_common)
-
+    src_hip_index = get_root_joint(src_joints_common)
+    # src_joints_common
     src_root = src_joints_common[src_hip_index]
     tgt_root = tgt_joints_common[tgt_hip_index]
 
@@ -209,7 +210,7 @@ def main():
             tgt_locator_rot, tgt_locator_scale = None, None
         
         # trans
-        trans_data = retarget_translation(src_joints_common[0], tgt_joints_common[0],\
+        trans_data = retarget_translation(src_root, tgt_root,\
                                           src_locator, src_locator_rot, src_locator_scale,\
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,\
                                             height_ratio)
@@ -221,13 +222,13 @@ def main():
                             prerotations)
         
         # if other locator, retarget also
-        # tgt_locator_list
+        # tgt_locator_list TODO
     else:
         # 둘다 locator가 없는 경우 TODO: 합치기.
         print(">> retarget without locator")
 
         # trans
-        trans_data = retarget_translation(src_joints_common[0], tgt_joints_common[0],
+        trans_data = retarget_translation(src_root, tgt_root,
                                           height_ratio)
         # rot
         retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_origin,
@@ -236,10 +237,10 @@ def main():
     
     ''' export '''
     # Remove source locator
-    # if src_locator is not None:
-    #     delete_locator_and_hierarchy(src_locator)
-    # else:
-    #     delete_locator_and_hierarchy(src_joints_common[0])
+    if src_locator is not None:
+        delete_locator_and_hierarchy(src_locator)
+    else:
+        delete_locator_and_hierarchy(src_joints_common[0])
     
     # meshes
     cmds.delete(src_meshes)
@@ -250,14 +251,6 @@ def main():
 
     # Run the function
     delete_all_transform_nodes()
-
-    # free
-    # if tgt_locator is not None:
-    #     top_joint = tgt_locator
-    # else:
-    #     tgt_root_joint = tgt_joints_common[0]
-    #     top_joint = tgt_root_joint
-    # freeze_and_bake(top_joint) 
 
     # export
     print(">>({}, {}) ->  {}".format(sourceChar, sourceMotion, targetChar))

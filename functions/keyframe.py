@@ -33,7 +33,6 @@ def get_array_from_keyframe_data(keyframe_data, rot_attr, node):
         # time 
         if len(data)==0:
             print(f"no data for {attr} of {node}")
-            # import pdb; pdb.set_trace()
             continue
         time = int(data[-1][0])
         if max_time < time:
