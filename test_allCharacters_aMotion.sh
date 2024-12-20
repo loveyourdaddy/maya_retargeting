@@ -80,17 +80,19 @@ get_first_motion() {
     if [ -n "$first_motion" ]; then
         echo "$first_motion"
     else
-        # echo "No motion found for $character"
+        echo "No motion found for $character"
         echo "./motions/${character}/Tpose.fbx"  # 기본값
     fi
 }
 
 # 캐릭터 폴더 리스트
 src_characters=(
-    "Asooni"
-    "Adori2.0"
+    # "Adori"
+    # "Adori2.0"
+    "Adori2.1"
+
+    # "Asooni"
     "Asooni2.1"
-    "Adori2.0"
 )
 
 characters=(
@@ -105,7 +107,7 @@ characters=(
     "Readyplayerme"
     "Roblox"
     "UE"
-    "Zepeto"
+    # "Zepeto"
 )
 
 # src_characters=("${characters[@]}")

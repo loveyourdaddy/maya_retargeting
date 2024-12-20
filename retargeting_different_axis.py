@@ -264,7 +264,7 @@ def main():
     execution_time = end_time - start_time
     minutes = int(execution_time // 60)
     seconds = execution_time % 60
-    print(f">> Execution time: {execution_time}, {minutes}m {seconds}s")
+    print(f">> Execution time: {execution_time:.3f}, {minutes}m {seconds:.3f}s")
 
 if __name__=="__main__":
     main()
