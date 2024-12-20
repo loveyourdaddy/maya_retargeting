@@ -83,7 +83,10 @@ def main():
 
     ''' rename joint '''
     # add namespace joints (in maya also)
-    tgt_joints_origin = add_namespace_for_joints(tgt_joints, "tgt")
+    # import pdb; pdb.set_trace()
+    # tgt_joints_origin = add_namespace_for_joints(tgt_joints, "tgt")
+    tgt_joints_origin = tgt_joints
+
 
     # renamed by template
     tgt_joints_template = rename_joint_by_template(tgt_joints_origin)
@@ -110,7 +113,6 @@ def main():
         # if source character exist 
         mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
         
-        # import pdb; pdb.set_trace()
         src_joints_origin = get_src_joints(tgt_joints_origin)
         src_Tpose_rots = get_Tpose_local_rotations(src_joints_origin)
 
@@ -234,10 +236,10 @@ def main():
     
     ''' export '''
     # Remove source locator
-    if src_locator is not None:
-        delete_locator_and_hierarchy(src_locator)
-    else:
-        delete_locator_and_hierarchy(src_joints_common[0])
+    # if src_locator is not None:
+    #     delete_locator_and_hierarchy(src_locator)
+    # else:
+    #     delete_locator_and_hierarchy(src_joints_common[0])
     
     # meshes
     cmds.delete(src_meshes)

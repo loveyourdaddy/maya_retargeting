@@ -43,7 +43,7 @@ def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy, tgt_prerotations=Non
     
     return Tpose_trfs
 
-def retarget_translation(src_hip, tgt_hip, 
+def retarget_translation(src_hip, tgt_hip,
                          src_locator=None, src_locator_rot=None, src_locator_scale=None,
                          tgt_locator=None, tgt_locator_rot=None, tgt_locator_scale=None, tgt_locator_pos=None, 
                          height_ratio=1):
@@ -56,7 +56,7 @@ def retarget_translation(src_hip, tgt_hip,
     if len_frame == 0:
         return trans_data
     
-    """위치 데이터를 locator 기반으로 변환하는 함수"""
+    """ 위치 데이터를 locator 기반으로 변환하는 함수 """
     def apply_rotation(rot_mat, data):
         return np.einsum('ijk,ik->ij', rot_mat, data)
     

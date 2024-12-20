@@ -54,11 +54,13 @@ def get_joint_hierarchy(root_joint):
     hierarchy = []
 
     def traverse_joint(joint):
+        # import pdb; pdb.set_trace()
         children = cmds.listRelatives(joint, children=True, type='joint') or []
         hierarchy.append(joint)
         for child in children:
             traverse_joint(child)
 
+    # import pdb; pdb.set_trace()
     traverse_joint(root_joint)
     return hierarchy
 
@@ -74,7 +76,7 @@ def find_root_joints(all_joints):
         if not parents or (cmds.nodeType(parents[0]) != 'joint'):
             root_joints.append(joint)
 
-    # find best root joint: TODO 여러 skeleton chain에서 best chain을 고르는 방법.
+    # find best root joint: 
     children_of_roots = [[] for _ in range(len(root_joints))]
     list_index = []
     for i, root_joint in enumerate(root_joints):
@@ -82,6 +84,10 @@ def find_root_joints(all_joints):
         hierarchy = rename_joint_by_template(hierarchy)
         children_of_roots[i] = select_joints(hierarchy, template_joints)
         list_index.append(len(children_of_roots[i]))
+
+    # TODO 여러 skeleton chain에서 best chain을 고르는 방법. -> list로 해도 될까?
+    # max_index = list_index.index(max(list_index))
+    # return root_joints #[max_index]
     
     max_index = list_index.index(max(list_index))
     return root_joints[max_index]
@@ -462,7 +468,6 @@ def get_common_hierarchy_bw_src_and_tgt(src_joint_hierarchy, tgt_joints_origin, 
                             tgt_common_joint[-1] = tgt_root_div
                             tgt_indices[-1] = tgt_root_div_jid
                         print("add tgt root div")
-                    # import pdb; pdb.set_trace()
                     root_check_flag = True
 
                 # add spine division

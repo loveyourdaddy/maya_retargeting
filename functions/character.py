@@ -70,6 +70,11 @@ def get_tgt_joints():
 
     # tgt joint hierarchy
     tgt_joints = cmds.ls(type='joint')
+
+    # add namespace joints (in maya also)
+    tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
+
+    # root joint
     tgt_root_joint = find_root_joints(tgt_joints)
     tgt_joints = get_joint_hierarchy(tgt_root_joint)
 
@@ -110,6 +115,7 @@ def delete_locator_and_hierarchy(locator_name):
         
         # Add the locator itself to the list
         descendants.append(locator_name)
+        # import pdb; pdb.set_trace()
         
         # Delete the locator and its hierarchy
         cmds.delete(descendants)
