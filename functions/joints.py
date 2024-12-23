@@ -430,7 +430,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
     tgt_common_joint = []
     src_indices = []
     tgt_indices = []
-    root_check_flag = False
+    # root_check_flag = False
     spine_check_flag = False
     for src_idx, src_joint in enumerate(src_joints_template):
         check = False
@@ -443,8 +443,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
             # 2. 이미 list에 포함되어있지 않음
             if (src_joint_renamed.lower() in tgt_joint_renamed.lower() or tgt_joint_renamed.lower() in src_joint_renamed.lower()) \
                     and src_joint not in src_common_joint and tgt_joint not in tgt_common_joint: 
-                print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
-                # import pdb; pdb.set_trace()
+                # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
                 # 다른 조인트에 속하는 경우, 제외해주기
                 if check_string_in_other_list(src_joint, tgt_joint):
                     continue

@@ -96,9 +96,9 @@ src_characters=(
 )
 
 characters=(
-    # "Adori"
-    # "Adori2.0"
-    # "Asooni"
+    "Adori"
+    "Adori2.0"
+    "Asooni"
     "Adori2.1"
     "Asooni2.1"
 
