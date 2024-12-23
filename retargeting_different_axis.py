@@ -114,12 +114,17 @@ def main():
         mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
         
         src_joints_origin = get_src_joints(tgt_joints_origin)
-        src_Tpose_rots = get_Tpose_local_rotations(src_joints_origin)
+        src_Tpose_rots = get_Tpose_local_rotations(src_joints_origin) # TODO: check if src joint templated
+
+        # src joint template
+        src_joints_template = rename_joint_by_template(src_joints_origin)
+
 
         # common skeleton 
-        src_joints_common, tgt_joints_common, _, parent_indices, src_common_joint, tgt_common_joint\
-            = get_common_src_tgt_joint_hierarchy(src_joints_origin, tgt_joints_origin, tgt_joints_template)
-        
+        src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices\
+            = get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template)
+
+        # prerot
         if tgt_locator is not None:
             prerotations = get_prerotations(tgt_joints_common, tgt_locator, tgt_locator_rot)
         else:
@@ -216,15 +221,14 @@ def main():
                                             height_ratio)
         # rot
         retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_origin, 
-                          Tpose_trfs, parent_indices, 
-                          src_Tpose_rots, tgt_Tpose_rots,
-                          len(trans_data), src_locator_rot, tgt_locator_rot,\
+                          Tpose_trfs, 
+                          src_Tpose_rots, tgt_Tpose_rots, src_indices, tgt_indices, 
+                          len(trans_data), src_locator_rot, tgt_locator_rot,
                             prerotations)
         
         # if other locator, retarget also
         # tgt_locator_list TODO
     else:
-        # 둘다 locator가 없는 경우 TODO: 합치기.
         print(">> retarget without locator")
 
         # trans
@@ -232,7 +236,8 @@ def main():
                                           height_ratio)
         # rot
         retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_origin,
-                          Tpose_trfs, parent_indices, tgt_Tpose_rots,
+                          Tpose_trfs, 
+                          src_Tpose_rots, tgt_Tpose_rots, src_indices, tgt_indices, 
                             len(trans_data))
     
     ''' export '''
@@ -259,7 +264,7 @@ def main():
     # end
     maya.standalone.uninitialize()
 
-    # end time     
+    # end time
     end_time = time.time()
     execution_time = end_time - start_time
     minutes = int(execution_time // 60)
