@@ -76,7 +76,10 @@ get_first_motion() {
     local character="$1"
     local motion_dir="./motions/${character}"
     
-    local first_motion=$(find "$motion_dir" -name "*.fbx" | sort | head -n 5 | tail -n 1)
+    # local first_motion=$(find "$motion_dir" -name "*.fbx" | sort | head -n 5 | tail -n 1)
+    local first_motion=$(find "$motion_dir" -name "*.fbx" | grep -iv "Tpose\|t-pose\|t_pose" | sort | head -n 5 | tail -n 1)
+    # Tpose 제외해주기
+
     if [ -n "$first_motion" ]; then
         echo "$first_motion"
     else
@@ -87,12 +90,17 @@ get_first_motion() {
 
 # 캐릭터 폴더 리스트
 src_characters=(
-    "Adori"
-    "Adori2.0"
-    "Adori2.1"
+    # "Adori"
+    # "Adori2.0"
+    # "Adori2.1"
+    # "Asooni"
+    # "Asooni2.1"
 
-    "Asooni"
-    "Asooni2.1"
+    "Metahuman"
+    "Minecraft"
+    "Readyplayerme"
+    "Roblox"
+    "UE"
 )
 
 characters=(

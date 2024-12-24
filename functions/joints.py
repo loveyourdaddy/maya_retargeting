@@ -430,7 +430,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
     tgt_common_joint = []
     src_indices = []
     tgt_indices = []
-    # root_check_flag = False
+    root_check_flag = False
     spine_check_flag = False
     for src_idx, src_joint in enumerate(src_joints_template):
         check = False
@@ -448,27 +448,26 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
                 if check_string_in_other_list(src_joint, tgt_joint):
                     continue
 
-                # add root division TODO check
-                # if root_check_flag==False and src_idx > src_root_div_jid and tgt_idx > tgt_root_div_jid:
-                #     # TODO: function으로 빼기
-                #     if src_joint not in src_common_joint:
-                #         if len(src_common_joint)==0:
-                #             src_common_joint.append(src_root_div)
-                #             src_indices.append(src_root_div_jid)
-                #         else:
-                #             src_common_joint[-1] = src_root_div
-                #             src_indices[-1] = src_root_div_jid
-                #         print("add src root div")
+                # add root division
+                if root_check_flag==False and src_idx > src_root_div_jid and tgt_idx > tgt_root_div_jid:
+                    if src_joint not in src_common_joint:
+                        if len(src_common_joint)==0:
+                            src_common_joint.append(src_root_div)
+                            src_indices.append(src_root_div_jid)
+                        else:
+                            src_common_joint[-1] = src_root_div
+                            src_indices[-1] = src_root_div_jid
+                        print("add src root div")
 
-                #     if tgt_joint not in tgt_common_joint:
-                #         if len(tgt_common_joint)==0:
-                #             tgt_common_joint.append(tgt_root_div)
-                #             tgt_indices.append(tgt_root_div_jid)
-                #         else:
-                #             tgt_common_joint[-1] = tgt_root_div
-                #             tgt_indices[-1] = tgt_root_div_jid
-                #         print("add tgt root div")
-                #     root_check_flag = True
+                    if tgt_joint not in tgt_common_joint:
+                        if len(tgt_common_joint)==0:
+                            tgt_common_joint.append(tgt_root_div)
+                            tgt_indices.append(tgt_root_div_jid)
+                        else:
+                            tgt_common_joint[-1] = tgt_root_div
+                            tgt_indices[-1] = tgt_root_div_jid
+                        print("add tgt root div")
+                    root_check_flag = True
 
                 # add spine division
                 if spine_check_flag==False and src_idx > src_spine_div_jid and tgt_idx > tgt_spine_div_jid:
@@ -483,7 +482,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
                     spine_check_flag = True
 
                 # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
-                print("done")
+                # print("done")
                 src_common_joint.append(src_joint)
                 tgt_common_joint.append(tgt_joint)
                 src_indices.append(src_idx)

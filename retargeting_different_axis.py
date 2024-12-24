@@ -83,7 +83,6 @@ def main():
 
     ''' rename joint '''
     # add namespace joints (in maya also)
-    # import pdb; pdb.set_trace()
     # tgt_joints_origin = add_namespace_for_joints(tgt_joints, "tgt")
     tgt_joints_origin = tgt_joints
 
