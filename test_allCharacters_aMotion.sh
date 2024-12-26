@@ -90,17 +90,17 @@ get_first_motion() {
 
 # 캐릭터 폴더 리스트
 src_characters=(
-    # "Adori"
-    # "Adori2.0"
-    # "Adori2.1"
-    # "Asooni"
-    # "Asooni2.1"
+    "Adori"
+    "Adori2.0"
+    "Adori2.1"
+    "Asooni"
+    "Asooni2.1"
 
-    "Metahuman"
-    "Minecraft"
-    "Readyplayerme"
-    "Roblox"
-    "UE"
+    # "Metahuman"
+    # "Minecraft"
+    # "Readyplayerme"
+    # "Roblox"
+    # "UE"
 )
 
 characters=(

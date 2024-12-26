@@ -53,6 +53,10 @@ def main():
     tgt_joints_common: common 
     '''
     
+    # # FBX 임포트 옵션 설정
+    # mel.eval('FBXImportAxisConversionEnable -v true;')
+    # mel.eval('FBXImportUpAxis "Z";')
+    
     # character
     mel.eval('FBXImportSmoothingGroups -v true')
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
@@ -118,7 +122,6 @@ def main():
         # src joint template
         src_joints_template = rename_joint_by_template(src_joints_origin)
 
-
         # common skeleton 
         src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices\
             = get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template)
@@ -164,8 +167,8 @@ def main():
         return hip_index
     
     # root 
-    tgt_hip_index = get_root_joint(tgt_joints_common)
     src_hip_index = get_root_joint(src_joints_common)
+    tgt_hip_index = get_root_joint(tgt_joints_common)
     # src_joints_common
     src_root = src_joints_common[src_hip_index]
     tgt_root = tgt_joints_common[tgt_hip_index]
@@ -175,8 +178,8 @@ def main():
     tgt_hip_height = cmds.xform(tgt_root, query=True, translation=True, worldSpace=True)[1]
 
     # 만약 hip height가 0이면 발끝부터 root 까지의 거리를 계산
-    # if src_hip_height < 0.01:
-    #     src_hip_height = get_distance_from_toe_to_root(src_joints_common)
+    if src_hip_height < 0.01:
+        src_hip_height = get_distance_from_toe_to_root(src_joints_common, src_root)
     if tgt_hip_height < 0.01:
         tgt_hip_height = get_distance_from_toe_to_root(tgt_joints_common, tgt_root)
 

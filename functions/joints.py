@@ -630,13 +630,6 @@ def remove_namespace_for_joints(joints):
             new_joints.append(joint)
     return new_joints
 
-# def normalize_vector(v):
-#     return v / np.linalg.norm(v)
-
-# def normalize_rotmat_in_col(rotmat):
-#     # Normalize each column of the rotation matrix
-#     return np.column_stack([normalize_vector(rotmat[:,i]) for i in range(3)])
-
 """ Get prerot """
 def get_prerotations(tgt_joints, tgt_locator=None, tgt_locator_rot=None):
     # (locator, joint들의) local rotation을 저장 후 나중에 복원.
@@ -659,6 +652,7 @@ def get_prerotations(tgt_joints, tgt_locator=None, tgt_locator_rot=None):
         prerot = np.transpose(np.array(cmds.xform(joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
         prerot = normalize_rotmat(prerot)
         prerotations.append(prerot)
+        # print(f"joint {j} {joint} angle {angle_origin} prerot \n{prerot}")
 
     # 기존 값으로 돌려주기
     if tgt_locator is not None:
