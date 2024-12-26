@@ -254,7 +254,7 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
 
             # tgt local angle
             tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ (tgt_world_mat)
-            tgt_local_mat = np.linalg.inv(tgt_prerotations[tgt_j]) @ np.linalg.inv(tgt_parent_world_rot) @ (tgt_world_mat)
+            # tgt_local_mat = np.linalg.inv(tgt_prerotations[tgt_j]) @ np.linalg.inv(tgt_parent_world_rot) @ (tgt_world_mat)
             # tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ (tgt_world_mat)
             tgt_local_angle = R_to_E(tgt_local_mat)
             tgt_perjoint_local_angle[i] = tgt_local_angle

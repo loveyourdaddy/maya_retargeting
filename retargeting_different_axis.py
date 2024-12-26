@@ -147,7 +147,7 @@ def main():
         src_Tpose_rots = get_Tpose_local_rotations(src_joints_origin)
 
         # common skeleton
-        src_joints_common, tgt_joints_common, _, parent_indice, src_common_joint, tgt_common_joint\
+        src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices\
             = get_common_src_tgt_joint_hierarchy(src_joints_origin, tgt_joints_origin, tgt_joints_template)
 
         # Tpose trf

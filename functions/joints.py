@@ -6,6 +6,7 @@ from functions.rotations import normalize_rotmat
 
 # joints
 # 22 = 4+2+4+4+4+4
+# TODO: alter_joint_name의 키을 가지기. 정말 필요한건지 확인.
 template_joints = [
      "Hips","Spine","Spine1","Spine2",
      "Neck","Head", 
@@ -15,39 +16,79 @@ template_joints = [
      "RightUpLeg","RightLeg","RightFoot","RightToeBase"
     ]
 
-# ee_joints = [
-#     "LeftHand", "RightHand", "LeftToeBase", "RightToeBase"
-#     ]
-
 alter_joint_name = {
-     "Hips":["Root", "Pelvis", "LowerTorso"], 
-     "Spine":["UpperTorso",], 
-     "Spine1":["chest", "spine_1", "spine_01"], 
-     "Spine2":["chestUpper", "spine_2", "spine_02"], 
+    "Hips":["Root", "Pelvis", "LowerTorso"], 
+    "Spine":["UpperTorso",], 
+    "Spine1":["chest", "spine_1", "spine_01"], 
+    "Spine2":["chestUpper", "spine_2", "spine_02"], 
 
-     "Neck":["neck_01",], 
-     "Head":["head",], 
+    "Neck":["neck_01",], 
+    "Head":["head",], 
 
-     "LeftShoulder": ["LFBXASC032Clavicle", "Clavicle_l", "LeftUpperArm", "shoulder_L", "upperarm_l"],
-     "LeftArm":["LFBXASC032UpperArm", "LeftLowerArm", "upperArm_L", "lowerarm_l"],
-     "LeftForeArm":["LFBXASC032Forearm", "lowerArm_L", "lowerarm_in_l"],
-     "LeftHand": ["LFBXASC032Hand", "hand_L", "lowerarm_out_l"],
+    "LeftShoulder": ["LFBXASC032Clavicle", "Clavicle_l", "LeftUpperArm", "shoulder_L", "upperarm_l"],
+    "LeftArm":["LFBXASC032UpperArm", "LeftLowerArm", "upperArm_L", "lowerarm_l"],
+    "LeftForeArm":["LFBXASC032Forearm", "lowerArm_L", "lowerarm_in_l"],
+    "LeftHand": ["LFBXASC032Hand", "hand_L", "lowerarm_out_l"],
 
-     "RightShoulder":["RFBXASC032Clavicle", "Clavicle_r", "RightUpperArm", "shoulder_R", "upperarm_r"],
-     "RightArm":["RFBXASC032UpperArm", "RightLowerArm", "upperArm_R", "lowerarm_r"], 
-     "RightForeArm":["RFBXASC032Forearm", "lowerArm_R", "lowerarm_in_r"], 
-     "RightHand":["RFBXASC032Hand", "hand_R", "lowerarm_out_r"], 
+    "RightShoulder":["RFBXASC032Clavicle", "Clavicle_r", "RightUpperArm", "shoulder_R", "upperarm_r"],
+    "RightArm":["RFBXASC032UpperArm", "RightLowerArm", "upperArm_R", "lowerarm_r"], 
+    "RightForeArm":["RFBXASC032Forearm", "lowerArm_R", "lowerarm_in_r"], 
+    "RightHand":["RFBXASC032Hand", "hand_R", "lowerarm_out_r"], 
 
-     "LeftUpLeg":['LFBXASC032Thigh', 'upperLeg_L', 'upperReg_L', 'LeftUpperLeg', 'thigh_l'],
-     "LeftLeg":  ['LFBXASC032Calf',  'lowerLeg_L', 'lowerReg_L', 'LeftLowerLeg', 'calf_l'], 
-     "LeftFoot":['LFBXASC032Foot', 'foot_L'], 
-     "LeftToeBase":['LFBXASC032Toe0', 'toes_L'], 
+    "LeftUpLeg":['LFBXASC032Thigh', 'upperLeg_L', 'upperReg_L', 'LeftUpperLeg', 'thigh_l'],
+    "LeftLeg":  ['LFBXASC032Calf',  'lowerLeg_L', 'lowerReg_L', 'LeftLowerLeg', 'calf_l'], 
+    "LeftFoot":['LFBXASC032Foot', 'foot_L'], 
+    "LeftToeBase":['LFBXASC032Toe0', 'toes_L'], 
 
-     "RightUpLeg":['RFBXASC032Thigh', 'upperLeg_R', 'upperReg_R', 'RightUpperLeg', 'thigh_r'], 
-     "RightLeg":  ['RFBXASC032Calf',  'lowerLeg_R', 'lowerReg_R', 'RightLowerLeg', 'calf_r'], 
-     "RightFoot":['RFBXASC032Foot', 'foot_R'], 
-     "RightToeBase":['RFBXASC032Toe0', 'toes_R'], 
+    "RightUpLeg":['RFBXASC032Thigh', 'upperLeg_R', 'upperReg_R', 'RightUpperLeg', 'thigh_r'], 
+    "RightLeg":  ['RFBXASC032Calf',  'lowerLeg_R', 'lowerReg_R', 'RightLowerLeg', 'calf_r'], 
+    "RightFoot":['RFBXASC032Foot', 'foot_R'], 
+    "RightToeBase":['RFBXASC032Toe0', 'toes_R'], 
     }
+
+finger_alter_joint_name = {
+    # finger 
+    "LeftHandThumb1":["LeftHandThumb1", "Thumb_01_l"], 
+    "LeftHandThumb2":["LeftHandThumb2", "Thumb_02_l"], 
+    "LeftHandThumb3":["LeftHandThumb3", "Thumb_03_l"], 
+
+    "LeftHandIndex1":["LeftHandIndex1", "Index_01_l"], 
+    "LeftHandIndex2":["LeftHandIndex2", "Index_02_l"], 
+    "LeftHandIndex3":["LeftHandIndex3", "Index_03_l"], 
+
+    "LeftHandMiddle1":["LeftHandMiddle1", "Middle_01_l"], 
+    "LeftHandMiddle2":["LeftHandMiddle2", "Middle_02_l"], 
+    "LeftHandMiddle3":["LeftHandMiddle3", "Middle_03_l"], 
+    
+    "LeftHandRing1":["LeftHandRing1", "Ring_01_l"], 
+    "LeftHandRing2":["LeftHandRing2", "Ring_02_l"], 
+    "LeftHandRing3":["LeftHandRing3", "Ring_03_l"], 
+    
+    "LeftHandPinky1":["LeftHandPinky1", "Pinky_01_l"], 
+    "LeftHandPinky2":["LeftHandPinky2", "Pinky_02_l"], 
+    "LeftHandPinky3":["LeftHandPinky3", "Pinky_03_l"], 
+
+    # right hand
+    "RightHandThumb1":["RightHandThumb1", "Thumb_01_r"],
+    "RightHandThumb2":["RightHandThumb2", "Thumb_02_r"],
+    "RightHandThumb3":["RightHandThumb3", "Thumb_03_r"],
+
+    "RightHandIndex1":["RightHandIndex1", "Index_01_r"],
+    "RightHandIndex2":["RightHandIndex2", "Index_02_r"],
+    "RightHandIndex3":["RightHandIndex3", "Index_03_r"],
+
+    "RightHandMiddle1":["RightHandMiddle1", "Middle_01_r"],
+    "RightHandMiddle2":["RightHandMiddle2", "Middle_02_r"],
+    "RightHandMiddle3":["RightHandMiddle3", "Middle_03_r"],
+
+    "RightHandRing1":["RightHandRing1", "Ring_01_r"],
+    "RightHandRing2":["RightHandRing2", "Ring_02_r"],
+    "RightHandRing3":["RightHandRing3", "Ring_03_r"],
+
+    "RightHandPinky1":["RightHandPinky1", "Pinky_01_r"],
+    "RightHandPinky2":["RightHandPinky2", "Pinky_02_r"],
+    "RightHandPinky3":["RightHandPinky3", "Pinky_03_r"],
+}
 
 """ hierarchy """
 def get_joint_hierarchy(root_joint):
@@ -60,7 +101,6 @@ def get_joint_hierarchy(root_joint):
         for child in children:
             traverse_joint(child)
 
-    # import pdb; pdb.set_trace()
     traverse_joint(root_joint)
     return hierarchy
 
@@ -82,7 +122,7 @@ def find_root_joints(all_joints):
     for i, root_joint in enumerate(root_joints):
         hierarchy = get_joint_hierarchy(root_joint)
         hierarchy = rename_joint_by_template(hierarchy)
-        children_of_roots[i] = select_joints(hierarchy, template_joints)
+        children_of_roots[i] = select_joints_by_template(hierarchy)
         list_index.append(len(children_of_roots[i]))
 
     # TODO 여러 skeleton chain에서 best chain을 고르는 방법. -> list로 해도 될까?
@@ -112,20 +152,30 @@ def rename_joint_by_template(joints):
             joint = joint.split(":")[-1]
 
         # replace joint name to template key name
+        check = False
         for key_joint, alter_joints in alter_joint_name.items():
             for alter_joint in alter_joints:
                 # list 안에 있고, 이미 등록되지 않다면
                 if (joint.lower() in alter_joint.lower() or alter_joint.lower() in joint.lower()) and key_joint not in ret_joints:
                     joint = key_joint
+                    check = True
                     # print("find")
         
+        # finger 조인트: finger_포함하기
+        if check==False:
+            for key_joint, alter_joints in finger_alter_joint_name.items():
+                for alter_joint in alter_joints:
+                    # list 안에 있고, 이미 등록되지 않다면
+                    if (joint.lower() in alter_joint.lower() or alter_joint.lower() in joint.lower()) and key_joint not in ret_joints:
+                        joint = "finger_"+key_joint
+                    
         ret_joints.append(joint)
 
     return ret_joints
 
 """ refine hierarchy """
-# select by template
-def select_joints(joints, template_joints):
+# select body skeleton (not finger) 
+def select_joints_by_template(joints):
     refined_joints = []
     added_template_joints = []
     alter_joint_name_ = copy.deepcopy(alter_joint_name)
@@ -144,7 +194,6 @@ def select_joints(joints, template_joints):
                     del alter_joint_name_[temp_name]
                     break
 
-            # import pdb; pdb.set_trace()
             # 1. joint in template joint,
             # 2. not finger
             # 3. not already exist in the list
@@ -162,7 +211,6 @@ def select_joints(joints, template_joints):
 
                 # 체크가 되었으면 joints에서 제거하기
                 joints.remove(joint)
-                # print(f"joint {joint} removed")
                 break
     
     return refined_joints
@@ -234,129 +282,125 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
     tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = get_division(tgt_joints_origin)
     src_root_div_jid, src_root_div, src_spine_div_jid, src_spine_div = get_division(src_joints_origin)
 
-
     # 만약 root joint을 찾을 수 없다면, 분기점으로 name을 바꿔주기
-    def find_skeleton_by_hierarchy(joints_wo_name):
-        # 가정: root -> spine (-> left arm -> right arm) -> left leg -> right leg 
-        root_div_jid = -1
-        spine_div_jid = -1
-        ee_joints = []
-        for jid, tgt_joint in enumerate(joints_wo_name):
-            children = cmds.listRelatives(tgt_joint, children=True)
-            if children is not None:
-                children = [child for child in children if children and cmds.nodeType(child) == 'joint']
-                if len(children)==0:
-                    children = None
-            # print("tgt joint {} children {}".format(tgt_joint, children))
-
-            # root 
-            if children is not None and len(children)>1 and root_div_jid==-1 and spine_div_jid==-1:
-                name = "tgt:Hips"
-                cmds.rename(tgt_joint, name)
-                joints_wo_name[jid] = name
-                root_div_jid = jid
-                root_div = name
-                # print("tgt root div")
-                continue
-
-            # spine
-            if children is not None and len(children)>1 and root_div_jid!=-1 and spine_div_jid==-1:
-                name = "tgt:Spine"
-                cmds.rename(tgt_joint, name)
-                joints_wo_name[jid] = name
-                spine_div_jid = jid
-                spine_div = name
-                # print("tgt spine div")
-                continue
-            
-            if children is None: # and len(children)==0 
-                if len(ee_joints)==0:
-                    name = "tgt:LeftHand"
-                    joints_wo_name[jid] = name
-                elif len(ee_joints)==1:
-                    name = "tgt:RightHand"
-                    joints_wo_name[jid] = name
-                elif len(ee_joints)==2:
-                    name = "tgt:Head"
-                    joints_wo_name[jid] = name
-                elif len(ee_joints)==3:
-                    name = "tgt:LeftToeBase"
-                    joints_wo_name[jid] = name
-                elif len(ee_joints)==4:
-                    name = "tgt:RightToeBase"
-                    joints_wo_name[jid] = name
-                else:
-                    raise("ee joints are more than 5")
-                ee_joints.append(jid)
-                cmds.rename(tgt_joint, name)
-        
-        # 분기점 사이의 조인트의 이름을 바꿔주기
-        spine_idx = 0
-        for jid, tgt_joint in enumerate(joints_wo_name):
-            name = None 
-
-            # spine 
-            if jid > root_div_jid and jid < spine_div_jid:
-                spine_idx += 1
-                name = "tgt:Spine" + str(spine_idx)
-                joints_wo_name[jid] = name
-            # left arm
-            if jid > spine_div_jid and jid < ee_joints[0]:
-                if jid == spine_div_jid+1:
-                    name = "tgt:LeftShoulder"
-                elif jid == spine_div_jid+2:
-                    name = "tgt:LeftArm"
-                elif jid == spine_div_jid+3:
-                    name = "tgt:LeftForeArm"
-                joints_wo_name[jid] = name
-            # right arm
-            if jid > ee_joints[0] and jid < ee_joints[1]:
-                if jid == spine_div_jid+1:
-                    name = "tgt:RightShoulder"
-                elif jid == spine_div_jid+2:
-                    name  = "tgt:RightArm"
-                elif jid == spine_div_jid+3:
-                    name = "tgt:RightForeArm"
-                joints_wo_name[jid] = name 
-            # neck
-            if jid > ee_joints[1] and jid < ee_joints[2]:
-                if jid == spine_div_jid+1:
-                    name = "tgt:Neck"
-                    joints_wo_name[jid] =name 
-            # left leg
-            if jid > ee_joints[2] and jid < ee_joints[3]:
-                if jid == ee_joints[2]+1:
-                    name = "tgt:LeftUpLeg"
-                elif jid == ee_joints[2]+2:
-                    name=  "tgt:LeftLeg"
-                elif jid == ee_joints[2]+3:
-                    name = "tgt:LeftFoot"
-                joints_wo_name[jid] = name 
-            # right leg
-            if jid > ee_joints[3] and jid < ee_joints[4]:
-                if jid == ee_joints[3]+1:
-                    name = "tgt:RightUpLeg"
-                elif jid == ee_joints[3]+2:
-                    name = "tgt:RightLeg"
-                elif jid == ee_joints[3]+3:
-                    name = "tgt:RightFoot"
-                joints_wo_name[jid] = name 
-            # rename 
-            if name is not None:
-                cmds.rename(tgt_joint, name)
-
-        return joints_wo_name, root_div_jid, root_div, spine_div_jid, spine_div
-
     if tgt_root_div_jid==-1:
-        tgt_joints_template, tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = find_skeleton_by_hierarchy(tgt_joints_origin)
+        def find_skeleton_by_hierarchy(joints_wo_name):
+            # 가정: root -> spine (-> left arm -> right arm) -> left leg -> right leg 
+            root_div_jid = -1
+            spine_div_jid = -1
+            ee_joints = []
+            for jid, tgt_joint in enumerate(joints_wo_name):
+                children = cmds.listRelatives(tgt_joint, children=True)
+                if children is not None:
+                    children = [child for child in children if children and cmds.nodeType(child) == 'joint']
+                    if len(children)==0:
+                        children = None
+                # print("tgt joint {} children {}".format(tgt_joint, children))
 
+                # root 
+                if children is not None and len(children)>1 and root_div_jid==-1 and spine_div_jid==-1:
+                    name = "tgt:Hips"
+                    cmds.rename(tgt_joint, name)
+                    joints_wo_name[jid] = name
+                    root_div_jid = jid
+                    root_div = name
+                    # print("tgt root div")
+                    continue
+
+                # spine
+                if children is not None and len(children)>1 and root_div_jid!=-1 and spine_div_jid==-1:
+                    name = "tgt:Spine"
+                    cmds.rename(tgt_joint, name)
+                    joints_wo_name[jid] = name
+                    spine_div_jid = jid
+                    spine_div = name
+                    # print("tgt spine div")
+                    continue
+                
+                if children is None: # and len(children)==0 
+                    if len(ee_joints)==0:
+                        name = "tgt:LeftHand"
+                        joints_wo_name[jid] = name
+                    elif len(ee_joints)==1:
+                        name = "tgt:RightHand"
+                        joints_wo_name[jid] = name
+                    elif len(ee_joints)==2:
+                        name = "tgt:Head"
+                        joints_wo_name[jid] = name
+                    elif len(ee_joints)==3:
+                        name = "tgt:LeftToeBase"
+                        joints_wo_name[jid] = name
+                    elif len(ee_joints)==4:
+                        name = "tgt:RightToeBase"
+                        joints_wo_name[jid] = name
+                    else:
+                        raise("ee joints are more than 5")
+                    ee_joints.append(jid)
+                    cmds.rename(tgt_joint, name)
+            
+            # 분기점 사이의 조인트의 이름을 바꿔주기
+            spine_idx = 0
+            for jid, tgt_joint in enumerate(joints_wo_name):
+                name = None 
+
+                # spine 
+                if jid > root_div_jid and jid < spine_div_jid:
+                    spine_idx += 1
+                    name = "tgt:Spine" + str(spine_idx)
+                    joints_wo_name[jid] = name
+                # left arm
+                if jid > spine_div_jid and jid < ee_joints[0]:
+                    if jid == spine_div_jid+1:
+                        name = "tgt:LeftShoulder"
+                    elif jid == spine_div_jid+2:
+                        name = "tgt:LeftArm"
+                    elif jid == spine_div_jid+3:
+                        name = "tgt:LeftForeArm"
+                    joints_wo_name[jid] = name
+                # right arm
+                if jid > ee_joints[0] and jid < ee_joints[1]:
+                    if jid == spine_div_jid+1:
+                        name = "tgt:RightShoulder"
+                    elif jid == spine_div_jid+2:
+                        name  = "tgt:RightArm"
+                    elif jid == spine_div_jid+3:
+                        name = "tgt:RightForeArm"
+                    joints_wo_name[jid] = name 
+                # neck
+                if jid > ee_joints[1] and jid < ee_joints[2]:
+                    if jid == spine_div_jid+1:
+                        name = "tgt:Neck"
+                        joints_wo_name[jid] =name 
+                # left leg
+                if jid > ee_joints[2] and jid < ee_joints[3]:
+                    if jid == ee_joints[2]+1:
+                        name = "tgt:LeftUpLeg"
+                    elif jid == ee_joints[2]+2:
+                        name=  "tgt:LeftLeg"
+                    elif jid == ee_joints[2]+3:
+                        name = "tgt:LeftFoot"
+                    joints_wo_name[jid] = name 
+                # right leg
+                if jid > ee_joints[3] and jid < ee_joints[4]:
+                    if jid == ee_joints[3]+1:
+                        name = "tgt:RightUpLeg"
+                    elif jid == ee_joints[3]+2:
+                        name = "tgt:RightLeg"
+                    elif jid == ee_joints[3]+3:
+                        name = "tgt:RightFoot"
+                    joints_wo_name[jid] = name 
+                # rename 
+                if name is not None:
+                    cmds.rename(tgt_joint, name)
+
+            return joints_wo_name, root_div_jid, root_div, spine_div_jid, spine_div
+        tgt_joints_template, tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = find_skeleton_by_hierarchy(tgt_joints_origin)
 
     # remove namespace
     src_root_div = src_root_div.split(':')[-1]
     tgt_root_div = tgt_root_div.split(':')[-1]
     src_spine_div = src_spine_div.split(':')[-1]
     tgt_spine_div = tgt_spine_div.split(':')[-1]
-
 
     ''' get common joints 
     Divison 예외처리: 
@@ -390,36 +434,42 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
             return True
         else:
             return False
-        
-    def check_string_in_other_list(src_joint, tgt_joint):
-        # if tgt_joint=="ik_foot_root":
-        #     import pdb; pdb.set_trace()
+    
+    def check_common_string_in_value_of_other_list(src_joint, tgt_joint):
         common_string = get_common_substring(src_joint, tgt_joint)
-        # 본인의 키를 찾기. alter_joint_name의 values에 있는지 확인 src_joint와 tgt_joint중 같은 부분 찾기
+
+        # 본인의 키를 찾기. 
+        # common string이 alter_joint_name의 values에 있는지 확인 
         check_find_key = False
         for key_common, values in alter_joint_name.items():
             values_lower = [value.lower() for value in values]
             if common_string in values_lower:
                 check_find_key = True
                 break
-
+        
+        # 다른 키에 속하는지 확인
         # 다른 키에 속하는 경우, 제외해주기.
         if check_find_key:
             check_other_key = False
             for key, values in alter_joint_name.items():
-                # 찾은 key는 제외
+                # 본인 key는 서치에서 제외
                 if key==key_common:
                     continue
 
-                # 다른 key 확인 
-                values_wo_lr = [value[:-2] for value in values] # left, right 제외
-                if check_string_in_list(src_joint, values) or check_string_in_list(tgt_joint, values) or\
-                    check_string_in_list(src_joint, values_wo_lr) or check_string_in_list(tgt_joint, values_wo_lr):
+                # 방향 제외 (_l, _r_)
+                values_wo_lr = [value[:-2] for value in values]
+   
+                # 다른 key 확인
+                # 다른 조인트의 values에 속하지 않고, finger가 아닌 경우 
+                if (check_string_in_list(src_joint, values) or check_string_in_list(tgt_joint, values) or\
+                    check_string_in_list(src_joint, values_wo_lr) or check_string_in_list(tgt_joint, values_wo_lr)) and\
+                        "finger" not in common_string:
                     check_other_key = True
                     break
             if check_other_key:
                 return True
-        return False 
+            
+        return False
 
     ''' get common joints 
     Divison 예외처리: 
@@ -439,13 +489,11 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
             tgt_joint_renamed = tgt_joint.split(':')[-1]
 
             # find common joint
-            # 1. 이름 겹치는 부분이 있음
-            # 2. 이미 list에 포함되어있지 않음
             if (src_joint_renamed.lower() in tgt_joint_renamed.lower() or tgt_joint_renamed.lower() in src_joint_renamed.lower()) \
                     and src_joint not in src_common_joint and tgt_joint not in tgt_common_joint: 
                 # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
                 # 다른 조인트에 속하는 경우, 제외해주기
-                if check_string_in_other_list(src_joint, tgt_joint):
+                if check_common_string_in_value_of_other_list(src_joint, tgt_joint):
                     continue
 
                 # add root division
@@ -482,7 +530,6 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
                     spine_check_flag = True
 
                 # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
-                # print("done")
                 src_common_joint.append(src_joint)
                 tgt_common_joint.append(tgt_joint)
                 src_indices.append(src_idx)
@@ -515,14 +562,12 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
         tgt_select_hierarchy_origin.append(tgt_joints_origin[tgt_indices[i]])
     tgt_joints_origin = tgt_select_hierarchy_origin
 
-
     """ ee joints """
     ee_joints = []
     for i, joint in enumerate(tgt_joints_origin):
         children = cmds.listRelatives(joint, children=True, type='joint')
         if children is None:
             ee_joints.append(joint)
-
 
     """ parent index """
     # TODO: remove. 동일함.
