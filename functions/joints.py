@@ -6,9 +6,9 @@ from functions.rotations import normalize_rotmat
 
 # joints
 # 22 = 4+2+4+4+4+4
-# TODO: alter_joint_name의 키을 가지기. 정말 필요한건지 확인.
+# TODO: alter_joint_name의 키을 가지기.
 template_joints = [
-     "Hips","Spine","Spine1","Spine2",
+     "Hips","Spine","Spine1","Spine2","Spine3","Spine4",
      "Neck","Head", 
      "LeftShoulder","LeftArm","LeftForeArm","LeftHand", 
      "RightShoulder","RightArm","RightForeArm","RightHand", 
@@ -21,6 +21,8 @@ alter_joint_name = {
     "Spine":["UpperTorso",], 
     "Spine1":["chest", "spine_1", "spine_01"], 
     "Spine2":["chestUpper", "spine_2", "spine_02"], 
+    "Spine3":["chestUpper", "spine_3", "spine_03"], 
+    "Spine4":["chestUpper", "spine_4", "spine_04"], 
 
     "Neck":["neck_01",], 
     "Head":["head",], 
@@ -159,7 +161,10 @@ def rename_joint_by_template(joints):
                 if (joint.lower() in alter_joint.lower() or alter_joint.lower() in joint.lower()) and key_joint not in ret_joints:
                     joint = key_joint
                     check = True
+                    break
                     # print("find")
+            if check:
+                break
         
         # finger 조인트: finger_포함하기
         if check==False:
