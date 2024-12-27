@@ -215,9 +215,9 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
             trf = Tpose_trfs[tgt_j]
 
         ''' update data for frame'''
-        print(f"origin {tgt_j_origin} {tgt_joint_origin} : common {tgt_j} {tgt_joint}")
-        if is_common:
-            print(f"{tgt_prerotations[tgt_j]}")
+        # print(f"origin {tgt_j_origin} {tgt_joint_origin} : common {tgt_j} {tgt_joint}")
+        # if is_common:
+        #     print(f"{tgt_prerotations[tgt_j]}")
         tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
         for i in range(len_frame):            
             # Set tgt world mat
@@ -263,8 +263,8 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
             tgt_local_angle = R_to_E(tgt_local_mat)
             tgt_perjoint_local_angle[i] = tgt_local_angle
 
-            if (i==0 or i==2263) and tgt_j==6:
-                import pdb; pdb.set_trace()
+            # if (i==0 or i==2263) and tgt_j==6:
+            #     import pdb; pdb.set_trace()
 
         # update by joint
         if is_common:
