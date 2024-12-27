@@ -87,9 +87,7 @@ def main():
 
     ''' rename joint '''
     # add namespace joints (in maya also)
-    # tgt_joints_origin = add_namespace_for_joints(tgt_joints, "tgt")
     tgt_joints_origin = tgt_joints
-
 
     # renamed by template
     tgt_joints_template = rename_joint_by_template(tgt_joints_origin)
@@ -148,7 +146,7 @@ def main():
 
         # common skeleton
         src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices\
-            = get_common_src_tgt_joint_hierarchy(src_joints_origin, tgt_joints_origin, tgt_joints_template)
+            = get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template)
 
         # Tpose trf
         Tpose_trfs = get_Tpose_trf(src_joints_common, tgt_joints_common)

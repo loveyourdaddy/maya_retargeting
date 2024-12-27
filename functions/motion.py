@@ -184,6 +184,8 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
     # rotation
     tgt_world_mats_origin = np.full((len_frame, len(tgt_joints_), 3, 3), None, dtype=np.float32)
     for tgt_j_origin, tgt_joint_origin in enumerate(tgt_joints_):
+        # print(f"tgt joint {tgt_j_origin} {tgt_joint_origin}")
+
         ''' all joint '''
         # parent 
         tgt_parent_name_origin = cmds.listRelatives(tgt_joint_origin, parent=True)[0]
@@ -213,19 +215,23 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
             trf = Tpose_trfs[tgt_j]
 
         ''' update data for frame'''
+        print(f"origin {tgt_j_origin} {tgt_joint_origin} : common {tgt_j} {tgt_joint}")
+        if is_common:
+            print(f"{tgt_prerotations[tgt_j]}")
         tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
         for i in range(len_frame):            
-            # tgt world mat
+            # Set tgt world mat
             # common joints
             if is_common:
                 # src index을 얻기
                 src_j_origin = src_indices[tgt_j]
-                
-                # src_j_origin = tgt_j_origin
                 src_world_mat = src_world_mats_origin[i, src_j_origin]
 
                 # Update tgt world
                 tgt_world_mat = src_world_mat @ trf
+                # remove prerot  # world mat without prerot
+                # tgt_world_mat = tgt_world_mat @ np.linalg.inv(tgt_prerotations[tgt_j])
+                tgt_world_mat = np.linalg.inv(tgt_prerotations[tgt_j]) @ tgt_world_mat
                 tgt_world_mats_origin[i, tgt_j_origin] = tgt_world_mat
             # not common joint: just update world mat
             else:
@@ -237,7 +243,7 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
                 else:
                     tgt_parent_world_mat = tgt_world_mats_origin[i, tgt_parent_j_origin]
                 tgt_world_mat = tgt_parent_world_mat @ tgt_local_mat
-                tgt_world_mats_origin[i, tgt_j_origin] = tgt_world_mat
+                tgt_world_mats_origin[i, tgt_j_origin] = tgt_world_mat # 여기에도 prerot이 들어가야?
                 continue
             
             # Get tgt parent world rot
@@ -254,10 +260,11 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
 
             # tgt local angle
             tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ (tgt_world_mat)
-            # tgt_local_mat = np.linalg.inv(tgt_prerotations[tgt_j]) @ np.linalg.inv(tgt_parent_world_rot) @ (tgt_world_mat)
-            # tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ (tgt_world_mat)
             tgt_local_angle = R_to_E(tgt_local_mat)
             tgt_perjoint_local_angle[i] = tgt_local_angle
+
+            if (i==0 or i==2263) and tgt_j==6:
+                import pdb; pdb.set_trace()
 
         # update by joint
         if is_common:

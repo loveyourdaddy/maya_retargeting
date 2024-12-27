@@ -84,7 +84,7 @@ def get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, t
     # refine joint hierarchy
     src_joints_template, tgt_joints_template, parent_indices, src_indices, tgt_indices,\
         = get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template)
-
+    
     # templated: refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
     src_joints_templated = [src_joints_origin[i] for i in src_indices]
     tgt_joints_templated = [tgt_joints_origin[i] for i in tgt_indices]
@@ -112,7 +112,6 @@ def delete_locator_and_hierarchy(locator_name):
         
         # Add the locator itself to the list
         descendants.append(locator_name)
-        # import pdb; pdb.set_trace()
         
         # Delete the locator and its hierarchy
         cmds.delete(descendants)
