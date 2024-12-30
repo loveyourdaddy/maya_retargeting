@@ -70,6 +70,7 @@ def get_tgt_joints():
 
     # tgt joint hierarchy
     tgt_joints = cmds.ls(type='joint')
+    tgt_joints_real_origin = copy.deepcopy(tgt_joints)
 
     # add namespace joints (in maya also)
     tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
@@ -78,7 +79,7 @@ def get_tgt_joints():
     tgt_root_joint = find_root_joints(tgt_joints)
     tgt_joints = get_joint_hierarchy(tgt_root_joint)
 
-    return tgt_joints, tgt_root_joint
+    return tgt_joints, tgt_root_joint, tgt_joints_real_origin
 
 def get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template):
     # refine joint hierarchy

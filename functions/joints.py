@@ -29,12 +29,12 @@ alter_joint_name = {
 
     "LeftShoulder": ["LFBXASC032Clavicle", "Clavicle_l", "shoulder_L", ],
     "LeftArm":["LFBXASC032UpperArm", "LeftUpperArm", "upperArm_L", ],
-    "LeftForeArm":["LFBXASC032Forearm", "LeftLowerArm", "lowerArm_L", "lowerarm_in_l"],
+    "LeftForeArm":["LFBXASC032Forearm", "LeftForearm", "LeftLowerArm", "lowerArm_L", "lowerarm_in_l"],
     "LeftHand": ["LFBXASC032Hand", "hand_L", "lowerarm_out_l"],
 
     "RightShoulder":["RFBXASC032Clavicle", "Clavicle_r", "shoulder_R", ],
     "RightArm":["RFBXASC032UpperArm",  "RightUpperArm", "upperArm_R", ], 
-    "RightForeArm":["RFBXASC032Forearm", "RightLowerArm",  "lowerArm_R", "lowerarm_in_r"], 
+    "RightForeArm":["RFBXASC032Forearm", "RightForearm", "RightLowerArm",  "lowerArm_R", "lowerarm_in_r"], 
     "RightHand":["RFBXASC032Hand", "hand_R", "lowerarm_out_r"], 
 
     "LeftUpLeg":['LFBXASC032Thigh', 'upperLeg_L', 'upperReg_L', 'LeftUpperLeg', 'thigh_l'],
@@ -97,7 +97,6 @@ def get_joint_hierarchy(root_joint):
     hierarchy = []
 
     def traverse_joint(joint):
-        # import pdb; pdb.set_trace()
         children = cmds.listRelatives(joint, children=True, type='joint') or []
         hierarchy.append(joint)
         for child in children:
@@ -175,7 +174,6 @@ def rename_joint_by_template(joints):
                         joint = "finger_"+key_joint
                     
         ret_joints.append(joint)
-
     return ret_joints
 
 """ refine hierarchy """
@@ -399,6 +397,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
                     cmds.rename(tgt_joint, name)
 
             return joints_wo_name, root_div_jid, root_div, spine_div_jid, spine_div
+        
         tgt_joints_template, tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = find_skeleton_by_hierarchy(tgt_joints_origin)
 
     # remove namespace
@@ -683,6 +682,7 @@ def remove_namespace_for_joints(joints):
 """ Get prerot """
 def get_prerotations(tgt_joints, tgt_locator=None, tgt_locator_rot=None):
     # (locator, joint들의) local rotation을 저장 후 나중에 복원.
+    # TODO: 모든 조인트들을 zero rotation 만들어주기.
 
     # set zero 
     if tgt_locator is not None:
@@ -692,8 +692,7 @@ def get_prerotations(tgt_joints, tgt_locator=None, tgt_locator_rot=None):
     angle_origins = []
     prerotations = []
     for j, joint in enumerate(tgt_joints):
-        # print("{} joint {}".format(j, joint))
-        # zero rotation을 만들어야하는게 아닐까?
+        print("{} joint {}".format(j, joint))
         angle_origin = cmds.xform(joint, q=True, ws=False, ro=True)
         angle_origins.append(angle_origin)
 

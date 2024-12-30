@@ -261,6 +261,8 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
             tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ (tgt_world_mat)
             tgt_local_angle = R_to_E(tgt_local_mat)
             tgt_perjoint_local_angle[i] = tgt_local_angle
+            # if (i==0) and tgt_j==0:
+            #     import pdb; pdb.set_trace()
 
         # update by joint
         if is_common:
