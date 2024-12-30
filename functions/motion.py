@@ -229,9 +229,8 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
 
                 # Update tgt world
                 tgt_world_mat = src_world_mat @ trf
-                # remove prerot  # world mat without prerot
-                # tgt_world_mat = tgt_world_mat @ np.linalg.inv(tgt_prerotations[tgt_j])
-                tgt_world_mat = np.linalg.inv(tgt_prerotations[tgt_j]) @ tgt_world_mat
+                # remove prerot
+                # tgt_world_mat = np.linalg.inv(tgt_prerotations[tgt_j]) @ tgt_world_mat
                 tgt_world_mats_origin[i, tgt_j_origin] = tgt_world_mat
             # not common joint: just update world mat
             else:
@@ -262,9 +261,6 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
             tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ (tgt_world_mat)
             tgt_local_angle = R_to_E(tgt_local_mat)
             tgt_perjoint_local_angle[i] = tgt_local_angle
-
-            # if (i==0 or i==2263) and tgt_j==6:
-            #     import pdb; pdb.set_trace()
 
         # update by joint
         if is_common:

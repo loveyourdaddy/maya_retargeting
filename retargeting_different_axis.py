@@ -183,7 +183,6 @@ def main():
 
     # ratio
     height_ratio = tgt_hip_height / src_hip_height
-    
 
     ''' locator and meshes '''
     locators_list = cmds.ls(type='locator')
@@ -205,7 +204,7 @@ def main():
 
     ''' retarget '''
     if src_locator is not None or tgt_locator is not None:
-        # 둘 중 하나라도  cloator가 있는 경우 
+        # 둘 중 하나라도 locator가 있는 경우 
         print(">> retarget with locator")
 
         # 예외처리
