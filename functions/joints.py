@@ -569,8 +569,6 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
 
         src_name2index[src_name] = i
         tgt_name2index[tgt_name] = i
-    src_joints_template = src_select_hierarchy
-    tgt_joints_template = tgt_select_hierarchy
 
     # origin name
     tgt_select_hierarchy_origin = []
@@ -639,7 +637,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
             division.append(division_j)
             child_of_divisions.append(children_index)
     
-    return src_joints_template, tgt_joints_template, parent_indices, src_indices, tgt_indices
+    return parent_indices, src_indices, tgt_indices
 
 """ namespace """
 def add_namespace(joint, namespace):
