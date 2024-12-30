@@ -538,7 +538,7 @@ def update_root_to_locator_rotation(tgt_joints_origin, tgt_root, tgt_locator_rot
     while(parent_joint in tgt_joints_origin):
         # get rotation 
         parent_index = tgt_joints_origin.index(parent_joint)
-        rotation = get_rotation_matrix_of_joint(tgt_joints_origin[parent_index])
+        rotation = get_local_rotation_matrix_of_joint(tgt_joints_origin[parent_index])
         parent_rotation = parent_rotation @ rotation
 
         # parent index 

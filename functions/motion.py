@@ -9,6 +9,10 @@ def get_rotation_matrix_of_joint(joint):
     rot_mat =  np.transpose(np.array(cmds.xform(joint, q=True, ws=True, matrix=True)).reshape(4,4)[:3,:3])
     return normalize_rotmat(rot_mat)
 
+def get_local_rotation_matrix_of_joint(joint):
+    rot_mat = np.transpose(np.array(cmds.xform(joint, q=True, ws=False, matrix=True)).reshape(4,4)[:3,:3])
+    return normalize_rotmat(rot_mat)
+
 """ Trf between characters """
 def get_Tpose_local_rotations(joints):
     # get Tpose

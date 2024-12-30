@@ -119,10 +119,10 @@ src_characters=(
 
 tgt_characters=(
     "Adori"
-    # "Adori2.0"
-    # "Asooni"
-    # "Adori2.1"
-    # "Asooni2.1"
+    "Adori2.0"
+    "Asooni"
+    "Adori2.1"
+    "Asooni2.1"
 
     "Metahuman"
     "Minecraft"

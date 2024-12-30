@@ -195,6 +195,7 @@ def main():
             tgt_locator_rot, tgt_locator_scale = None, None
         
         # trans
+        # import pdb; pdb.set_trace()
         trans_data = retarget_translation(src_root, tgt_root,\
                                           src_locator, src_locator_rot, src_locator_scale,\
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,\
@@ -237,6 +238,7 @@ def main():
 
     # rename tgt joints
     tgt_locator = remove_namespace_for_joints([tgt_locator])[0]
+    # tgt_joints_origin = remove_namespace_for_joints(tgt_joints_origin) # tgt_joints_common 
 
     # Run the function
     delete_all_transform_nodes()
