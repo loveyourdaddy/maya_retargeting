@@ -7,6 +7,17 @@ mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/Super shy 
 mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Adori.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
 """
 
+''' 
+Naming
+원본 이름 
+tgt_joints_real_origin
+
+namespace 수정됨
+tgt_joints_origin: 원본 hierarchy, 네임스페이스만 바뀐것. 
+tgt_joints_template: 원본 Hier, template joint만 renamed된것
+tgt_joints_common: Hierarchy가 바뀐것.
+'''
+
 import maya.cmds as cmds
 import maya.standalone
 from functions.parser import *
@@ -24,13 +35,6 @@ def main():
     if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
         cmds.loadPlugin('fbxmaya')
     
-    def get_name(name):
-        # path 제거 
-        name = name.split('/')[-1]
-        # format 제거
-        format = "." + name.split('.')[-1]
-        return name.replace(format, "")
-
     # name
     args = get_args()
     # tgt
@@ -42,16 +46,7 @@ def main():
     print(">>({}, {}) ->  {}".format(sourceChar, sourceMotion, targetChar))
 
 
-    ''' tgt
-    naming:
-    tgt_joints: not namespace, origin
-
-    아래는 전부 namespace 추가
-    tgt_joints_origin: origin
-    tgt_joints_template: templated 
-    tgt_joints_common: common 
-    '''
-    
+    ''' tgt '''    
     # # FBX 임포트 옵션 설정
     # mel.eval('FBXImportAxisConversionEnable -v true;')
     # mel.eval('FBXImportUpAxis "Z";')
@@ -78,15 +73,13 @@ def main():
             print(f">>Texture loaded: {node} -> {new_path}")
         else:
             print(f">>No texture: {new_path}")
+
     # joints
-    tgt_joints, tgt_root_joint, tgt_joints_real_origin = get_tgt_joints()
-    tgt_Tpose_rots = get_Tpose_local_rotations(tgt_joints)
+    tgt_joints_origin, tgt_root_joint, tgt_joints_original_name = get_tgt_joints()
+    tgt_Tpose_rots = get_Tpose_local_rotations(tgt_joints_origin)
     parent_node = cmds.listRelatives(tgt_root_joint, parent=True, shapes=True)[-1]
 
     ''' rename joint '''
-    # origin
-    tgt_joints_origin = tgt_joints
-
     # renamed by template
     tgt_joints_template = rename_joint_by_template(tgt_joints_origin)
 
@@ -118,14 +111,6 @@ def main():
         ''' common skeleton '''
         src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices\
             = get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template)
-        # import pdb; pdb.set_trace() # tgt_joints
-
-        # update tgt_joints 
-        # for idx, joint in enumerate(tgt_joints_common):
-        #     tgt_index = tgt_indices[idx]
-        #     tgt_joints[tgt_index] = joint
-        # tgt_joints = tgt_joints_common
-        # import pdb; pdb.set_trace() # tgt_joints
 
         # prerot
         if tgt_locator is not None:
@@ -155,17 +140,6 @@ def main():
         Tpose_trfs = get_Tpose_trf(src_joints_common, tgt_joints_common)
 
     ''' Root, height '''
-    # find root joint index
-    def get_root_joint(joints_common):
-        hip_index = 0
-        for i, joint in enumerate(joints_common):
-            if joint.lower().find("hips") != -1:
-                hip_index = i
-                continue
-            if joint.lower().find("spine") != -1:
-                break
-        return hip_index
-    
     # root 
     src_hip_index = get_root_joint(src_joints_common)
     tgt_hip_index = get_root_joint(tgt_joints_common)
@@ -186,29 +160,10 @@ def main():
     # ratio
     height_ratio = tgt_hip_height / src_hip_height
 
-    # locator rotation 업데이트:  (locator ~ root 위 조인트 포함)
+    # locator rotation 업데이트
     if tgt_locator is not None:
-        # 조인트들: root joint -> locator
-        # import pdb; pdb.set_trace()
-        index = tgt_joints.index(tgt_root)
-        parent_rotation = np.eye(3)
-        parent_joint = cmds.listRelatives(tgt_joints[index], parent=True, shapes=True)[0]
-
-        # get parent
-        while(parent_joint in tgt_joints):
-            # get rotation 
-            parent_index = tgt_joints.index(parent_joint)
-            rotation = get_rotation_matrix_of_joint(tgt_joints[parent_index])
-            parent_rotation = parent_rotation @ rotation
-
-            # parent index 
-            index = parent_index
-            parent_joint = cmds.listRelatives(tgt_joints[index], parent=True, shapes=True)[0]
-
-        # E to R
-        tgt_locator_rot = E_to_R(np.array(tgt_locator_rot))
-        tgt_locator_rot = parent_rotation @ tgt_locator_rot
-        tgt_locator_rot = R_to_E(tgt_locator_rot)
+        # locator ~ root 위 조인트 포함
+        tgt_locator_rot = update_root_to_locator_rotation(tgt_joints_origin, tgt_root, tgt_locator_rot)
 
     ''' locator and meshes '''
     locators_list = cmds.ls(type='locator')
@@ -268,7 +223,7 @@ def main():
     ''' export '''
     # rename tgt joint
     for jid, joint in enumerate(tgt_joints_origin):
-        cmds.rename(joint, tgt_joints_real_origin[jid]) 
+        cmds.rename(joint, tgt_joints_original_name[jid]) 
 
     # Remove source locator
     if src_locator is not None:

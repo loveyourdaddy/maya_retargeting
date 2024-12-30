@@ -3,9 +3,10 @@ import maya.cmds as cmds
 from functions.joints import *
 from functions.keyframe import *
 from functions.rotations import *
+from functions.motion import *
 
 
-''' import ''' # move to joints
+''' import '''
 def get_src_joints(tgt_joints):
     src_joints = cmds.ls(type='joint')
     src_joints = list(set(src_joints) - set(tgt_joints))
@@ -70,14 +71,17 @@ def get_tgt_joints():
 
     # tgt joint hierarchy
     tgt_joints = cmds.ls(type='joint')
-    tgt_joints_real_origin = copy.deepcopy(tgt_joints)
-
-    # add namespace joints (in maya also)
-    tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
 
     # root joint
     tgt_root_joint = find_root_joints(tgt_joints)
     tgt_joints = get_joint_hierarchy(tgt_root_joint)
+
+    # add namespace joints (in maya also)
+    tgt_joints_real_origin = copy.deepcopy(tgt_joints)
+    tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
+
+    # update root 
+    tgt_root_joint = "tgt:" + tgt_root_joint.split(":")[-1]
 
     return tgt_joints, tgt_root_joint, tgt_joints_real_origin
 
@@ -104,6 +108,30 @@ def get_locator(tgt_locator):
     tgt_locator_pos = cmds.xform(tgt_locator, q=True, ws=True, translation=True)
 
     return tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos
+
+""" joint hierarchy """
+def update_root_to_locator_rotation(tgt_joints_origin, tgt_root, tgt_locator_rot):
+    # 조인트들: root joint -> locator
+    index = tgt_joints_origin.index(tgt_root)
+    parent_rotation = np.eye(3)
+    parent_joint = cmds.listRelatives(tgt_joints_origin[index], parent=True, shapes=True)[0]
+
+    # get parent
+    while(parent_joint in tgt_joints_origin):
+        # get rotation 
+        parent_index = tgt_joints_origin.index(parent_joint)
+        rotation = get_rotation_matrix_of_joint(tgt_joints_origin[parent_index])
+        parent_rotation = parent_rotation @ rotation
+
+        # parent index 
+        index = parent_index
+        parent_joint = cmds.listRelatives(tgt_joints_origin[index], parent=True, shapes=True)[0]
+
+    # E to R
+    tgt_locator_rot = E_to_R(np.array(tgt_locator_rot))
+    tgt_locator_rot = parent_rotation @ tgt_locator_rot
+    tgt_locator_rot = R_to_E(tgt_locator_rot)
+    return tgt_locator_rot
 
 ''' delete '''
 def delete_locator_and_hierarchy(locator_name):

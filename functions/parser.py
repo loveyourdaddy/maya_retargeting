@@ -12,3 +12,10 @@ def get_parser():
 def get_args():
     parser = get_parser()
     return parser.parse_args()
+
+def get_name(name):
+    # path 제거 
+    name = name.split('/')[-1]
+    # format 제거
+    format = "." + name.split('.')[-1]
+    return name.replace(format, "")

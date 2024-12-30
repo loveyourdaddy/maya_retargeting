@@ -176,6 +176,18 @@ def rename_joint_by_template(joints):
         ret_joints.append(joint)
     return ret_joints
 
+"""Root """
+# find root joint index
+def get_root_joint(joints_common):
+    hip_index = 0
+    for i, joint in enumerate(joints_common):
+        if joint.lower().find("hips") != -1:
+            hip_index = i
+            continue
+        if joint.lower().find("spine") != -1:
+            break
+    return hip_index
+
 """ refine hierarchy """
 # select body skeleton (not finger) 
 def select_joints_by_template(joints):
@@ -564,11 +576,10 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
     tgt_select_hierarchy_origin = []
     for i in range(len(src_indices)):
         tgt_select_hierarchy_origin.append(tgt_joints_origin[tgt_indices[i]])
-    tgt_joints_origin = tgt_select_hierarchy_origin
 
     """ ee joints """
     ee_joints = []
-    for i, joint in enumerate(tgt_joints_origin):
+    for i, joint in enumerate(tgt_select_hierarchy_origin):
         children = cmds.listRelatives(joint, children=True, type='joint')
         if children is None:
             ee_joints.append(joint)
@@ -583,7 +594,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
         # print("src standard")
     else:
         joint_indices = tgt_indices
-        joint_hierarchy = tgt_joints_origin
+        joint_hierarchy = tgt_select_hierarchy_origin
         name2index = tgt_name2index
         # print("tgt standard")
     
