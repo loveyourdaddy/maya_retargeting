@@ -221,9 +221,6 @@ def main():
                             len(trans_data))
     
     ''' export '''
-    # rename tgt joint
-    for jid, joint in enumerate(tgt_joints_origin):
-        cmds.rename(joint, tgt_joints_original_name[jid]) 
 
     # Remove source locator
     if src_locator is not None:
@@ -234,9 +231,12 @@ def main():
     # meshes
     cmds.delete(src_meshes)
 
+    # rename tgt joint
+    for jid, joint in enumerate(tgt_joints_origin):
+        cmds.rename(joint, tgt_joints_original_name[jid]) 
+
     # rename tgt joints
     tgt_locator = remove_namespace_for_joints([tgt_locator])[0]
-    tgt_joints_origin = remove_namespace_for_joints(tgt_joints_origin) # tgt_joints_common 
 
     # Run the function
     delete_all_transform_nodes()
