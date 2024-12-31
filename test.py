@@ -59,7 +59,6 @@ class MotionRetargeter:
         Get the appropriate conversion matrix based on joint type
         """
         if source_joint in self.left_upper_joints:
-            # For right side: Y-up to -X-up, maintain handedness
             return om.MMatrix([
                 [0, 1, 0, 0],  # Y axis becomes X axis
                 [0, 0, -1, 0],   # Z axis becomes -Y axis
@@ -67,7 +66,6 @@ class MotionRetargeter:
                 [0, 0, 0, 1]
             ])
         elif source_joint in self.right_upper_joints:
-            # For right side: Y-up to -X-up, maintain handedness
             return om.MMatrix([
                 [0, -1, 0, 0],  # Y axis becomes -X axis
                 [0, 0, 1, 0],   # Z axis becomes Y axis
@@ -75,7 +73,6 @@ class MotionRetargeter:
                 [0, 0, 0, 1]
             ])
         elif source_joint in self.left_lower_joints:
-            # For right side: Y-up to -X-up, maintain handedness
             return om.MMatrix([
                 [0, 1, 0, 0],  # Y axis becomes X axis
                 [-1, 0, 0, 0],   # X axis becomes -Y axis
@@ -83,7 +80,6 @@ class MotionRetargeter:
                 [0, 0, 0, 1]
             ])
         elif source_joint in self.right_lower_joints:
-            # For right side: Y-up to -X-up, maintain handedness
             return om.MMatrix([
                 [0, -1, 0, 0],  # Y axis becomes -X axis
                 [-1, 0, 0, 0],   # X axis becomes Y axis
@@ -91,7 +87,7 @@ class MotionRetargeter:
                 [0, 0, 0, 1]
             ])
         else:
-            # For spine chain and left side: Y-up to X-up
+            # For spine chain
             return om.MMatrix([
                 [0, 1, 0, 0],   # Y axis becomes X axis
                 [-1, 0, 0, 0],  # X axis becomes -Y axis
@@ -133,6 +129,11 @@ class MotionRetargeter:
         conversion_matrix = self.get_conversion_matrix(source_joint)
 
         # Calculate final rotation
+        '''
+        1) 타겟 시스템을 소스 시스템과 얼라인 (conversion_matrix.inverse
+        2) 소스의 rotation을 적용 (source_offset)
+        3) 소스의 시스템에서 타겟 시스템으로 변환 (conversion matrix)
+        '''
         source_offset = source_matrix * source_tpose_matrix.inverse()
         converted_offset = conversion_matrix * source_offset * conversion_matrix.inverse()
         final_matrix = converted_offset * target_tpose_matrix
@@ -140,23 +141,6 @@ class MotionRetargeter:
         # Convert back to euler angles
         final_rotation = om.MEulerRotation.decompose(final_matrix, om.MEulerRotation.kXYZ)
         return [math.degrees(angle) for angle in final_rotation]
-
-    def get_source_animation_range(self):
-        """Get the actual animation range from the source joints"""
-        all_keyframes = []
-        for source_joint in self.joint_mapping.keys():
-            # Get keyframes for all rotation attributes
-            for attr in ['rotateX', 'rotateY', 'rotateZ']:
-                keyframes = cmds.keyframe(f"{source_joint}.{attr}", query=True, timeChange=True)
-                if keyframes:
-                    all_keyframes.extend(keyframes)
-        
-        if all_keyframes:
-            return min(all_keyframes), max(all_keyframes)
-        else:
-            # Fallback to timeline if no keyframes found
-            return (cmds.playbackOptions(query=True, minTime=True),
-                   cmds.playbackOptions(query=True, maxTime=True))
 
     def get_source_animation_range(self):
         """Get the actual animation range from the source joints"""
