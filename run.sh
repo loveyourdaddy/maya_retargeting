@@ -1,0 +1,1 @@
+/Applications/Autodesk/maya2025/Maya.app/Contents/bin/mayapy test.py --source-tpose $1 --source-motion $2 --target-tpose $3 --output $4 --save-scene "result.mb"
