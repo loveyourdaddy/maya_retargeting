@@ -192,5 +192,4 @@ log "Success rate: ${success_rate}%"
 # 결과 파일 위치 출력
 echo ""
 echo "Test completed. Logs are saved in:"
-# echo "Detailed log: $LOG_FILE"
 echo "Test results: $TEST_RESULTS"

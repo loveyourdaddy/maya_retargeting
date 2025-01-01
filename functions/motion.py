@@ -38,7 +38,7 @@ def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy, tgt_prerotations=Non
     for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
         # get rot matrix 
         # print("src {} tgt {}".format(src_joint, tgt_joint))
-        src_rot_data = get_rotation_matrix_of_joint(src_joint) 
+        src_rot_data = get_rotation_matrix_of_joint(src_joint)
         tgt_rot_data = get_rotation_matrix_of_joint(tgt_joint)
 
         trf = np.linalg.inv(src_rot_data) @ tgt_rot_data
@@ -222,8 +222,9 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
         # print(f"origin {tgt_j_origin} {tgt_joint_origin} : common {tgt_j} {tgt_joint}")
         # if is_common:
         #     print(f"{tgt_prerotations[tgt_j]}")
+
         tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
-        for i in range(len_frame):            
+        for i in range(len_frame):
             # Set tgt world mat
             # common joints
             if is_common:
@@ -233,8 +234,12 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
 
                 # Update tgt world
                 tgt_world_mat = src_world_mat @ trf
+                
                 # remove prerot
                 # tgt_world_mat = np.linalg.inv(tgt_prerotations[tgt_j]) @ tgt_world_mat
+                # tgt_world_mat = tgt_world_mat @ np.linalg.inv(tgt_prerotations[tgt_j])
+
+                # update 
                 tgt_world_mats_origin[i, tgt_j_origin] = tgt_world_mat
             # not common joint: just update world mat
             else:
@@ -265,7 +270,7 @@ def retarget_rotation(src_joints, tgt_joints, src_joints_origin, tgt_joints_orig
             tgt_local_mat = np.linalg.inv(tgt_parent_world_rot) @ (tgt_world_mat)
             tgt_local_angle = R_to_E(tgt_local_mat)
             tgt_perjoint_local_angle[i] = tgt_local_angle
-            # if (i==0) and tgt_j==0:
+            # if (i==700): # and tgt_j==0
             #     import pdb; pdb.set_trace()
 
         # update by joint

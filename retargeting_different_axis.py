@@ -6,7 +6,6 @@ example:
 mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
 mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Adori.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
 """
-
 ''' 
 Naming
 원본 이름 
@@ -24,6 +23,7 @@ from functions.parser import *
 from functions.character import *
 from functions.motion import *
 from functions.maya import *
+from functions.retarget import *
 import time
 
 def main():
@@ -40,7 +40,7 @@ def main():
     # tgt
     targetChar = get_name(args.targetChar)
     targetMotion = get_name(args.sourceMotion)
-    # src 
+    # src
     sourceMotion = args.sourceMotion
     sourceChar = sourceMotion.split('/')[-2]
     print(">>({}, {}) ->  {}".format(sourceChar, sourceMotion, targetChar))
@@ -114,7 +114,7 @@ def main():
 
         # prerot
         if tgt_locator is not None:
-            prerotations = get_prerotations(tgt_joints_common, tgt_locator, tgt_locator_rot)
+            prerotations = get_prerotations(tgt_joints_common, tgt_joints_origin, tgt_locator, tgt_locator_rot)
         else:
             prerotations = get_prerotations(tgt_joints_common)
 
