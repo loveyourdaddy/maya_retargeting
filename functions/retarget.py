@@ -586,6 +586,7 @@ def retarget_rotation(src_common_joints, tgt_common_joints, src_joints_origin, t
         
         # Create MMatrix directly from the flattened list
         return om.MMatrix(matrix_list)
+
     for j in range(len_joint):
         src_joint = src_common_joints[j]
         tgt_joint = tgt_common_joints[j]
@@ -597,43 +598,195 @@ def retarget_rotation(src_common_joints, tgt_common_joints, src_joints_origin, t
 
             # get source local rot 
             source_rot = cmds.getAttr(f"{src_joint}.rotate")[0]
-            source_matrix = om.MEulerRotation(
-                math.radians(source_rot[0]),
-                math.radians(source_rot[1]),
-                math.radians(source_rot[2]),
-                om.MEulerRotation.kXYZ
-                ).asMatrix()
+            # source_matrix = om.MEulerRotation(
+            #     math.radians(source_rot[0]),
+            #     math.radians(source_rot[1]),
+            #     math.radians(source_rot[2]),
+            #     om.MEulerRotation.kXYZ
+            #     ).asMatrix()
             
-            # Get source T-pose pre-rotation
-            source_tpose_rot = src_Tpose_localrots[j]
-            source_tpose_matrix = om.MEulerRotation(
-                math.radians(source_tpose_rot[0]),
-                math.radians(source_tpose_rot[1]),
-                math.radians(source_tpose_rot[2]),
-                om.MEulerRotation.kXYZ
-            ).asMatrix()
+            # # Get source T-pose pre-rotation
+            # source_tpose_rot = src_Tpose_localrots[j]
+            # source_tpose_matrix = om.MEulerRotation(
+            #     math.radians(source_tpose_rot[0]),
+            #     math.radians(source_tpose_rot[1]),
+            #     math.radians(source_tpose_rot[2]),
+            #     om.MEulerRotation.kXYZ
+            # ).asMatrix()
 
-            # Get target T-pose pre-rotation
-            target_tpose_rot = tgt_Tpose_localrots[j]
-            target_tpose_matrix = om.MEulerRotation(
-                math.radians(target_tpose_rot[0]),
-                math.radians(target_tpose_rot[1]),
-                math.radians(target_tpose_rot[2]),
-                om.MEulerRotation.kXYZ
-            ).asMatrix()
-            # source_tpose_matrix = matrix_to_mmatrix(src_Tpose_localrots[j])
-
-            # target_tpose_matrix = matrix_to_mmatrix(tgt_Tpose_localrots[j])
-            convert_matric = matrix_to_mmatrix(T_mat)
-            # print(convert_matric)
-            # source rotation wo prerot
-            source_offset = source_matrix * source_tpose_matrix.inverse()
-            converted_offset = convert_matric * source_offset * convert_matric.inverse()
-            final_matrix = converted_offset * target_tpose_matrix
-
-            final_rotation = om.MEulerRotation.decompose(final_matrix, om.MEulerRotation.kXYZ)
-            tgt_perjoint_local_angle[frame] = [math.degrees(angle) for angle in final_rotation]
-            # if frame==0 and j==9:
+            # # Get target T-pose pre-rotation
+            # target_tpose_rot = tgt_Tpose_localrots[j]
+            # target_tpose_matrix = om.MEulerRotation(
+            #     math.radians(target_tpose_rot[0]),
+            #     math.radians(target_tpose_rot[1]),
+            #     math.radians(target_tpose_rot[2]),
+            #     om.MEulerRotation.kXYZ
+            # ).asMatrix()
+            # if (j == 1):
             #     import pdb; pdb.set_trace()
+            
+            # src_mat = euler_to_rotation_matrix(src_Tpose_localrots[j]).transpose()
+            # tgt_mat = euler_to_rotation_matrix(tgt_Tpose_localrots[j]).transpose()
+
+            # src_mat = src_Tpose_localrots[j].transpose()
+            # tgt_mat = tgt_Tpose_localrots[j].transpose()
+
+            # source_tpose_matrix = matrix_to_mmatrix(src_mat)
+            # target_tpose_matrix = matrix_to_mmatrix(tgt_mat)
+            
+            # convert_matric = matrix_to_mmatrix(T_mat)
+            # # print(convert_matric)
+            # # source rotation wo prerot
+            # source_offset = source_matrix * source_tpose_matrix.inverse()
+            # converted_offset = convert_matric * source_offset * convert_matric.inverse()
+            # final_matrix = converted_offset * target_tpose_matrix
+
+            # final_rotation = om.MEulerRotation.decompose(final_matrix, om.MEulerRotation.kXYZ)
+            # tgt_perjoint_local_angle[frame] = [math.degrees(angle) for angle in final_rotation]
+            
+            def E_to_R(E, order="xyz", radians=False): # order: rotation값이 들어오는 순서
+                """
+                Args:
+                    E: (..., 3)
+                """
+                if E.shape[-1] != 3:
+                    raise ValueError(f"Invalid Euler angles shape {E.shape}")
+                if len(order) != 3:
+                    raise ValueError(f"Order must have 3 characters, but got {order}")
+
+                if not radians:
+                    E = np.deg2rad(E)
+
+                def _euler_axis_to_R(angle, axis):
+                    one  = np.ones_like(angle, dtype=np.float32)
+                    zero = np.zeros_like(angle, dtype=np.float32)
+                    cos  = np.cos(angle, dtype=np.float32)
+                    sin  = np.sin(angle, dtype=np.float32)
+
+                    if axis == "x":
+                        R_flat = (one, zero, zero, zero, cos, -sin, zero, sin, cos)
+                    elif axis == "y":
+                        R_flat = (cos, zero, sin, zero, one, zero, -sin, zero, cos)
+                    elif axis == "z":
+                        R_flat = (cos, -sin, zero, sin, cos, zero, zero, zero, one)
+                    else:
+                        raise ValueError(f"Invalid axis: {axis}")
+                    return np.stack(R_flat, axis=-1).reshape(angle.shape + (3, 3))
+                R = [_euler_axis_to_R(E[..., i], order[i]) for i in range(3)]
+
+                # rotation multiplication order: ZYX (Rz * Ry * Rx)
+                R = np.matmul(np.matmul(R[2], R[1]), R[0])
+                
+                return R
+            
+            source_tpose_matrix = src_Tpose_localrots[j]
+            target_tpose_matrix = tgt_Tpose_localrots[j]
+            source_matrix = E_to_R(np.array(source_rot))
+            convert_matrix = T_mat;
+            source_offset = source_matrix @ np.linalg.inv(source_tpose_matrix)
+            converted_offset = convert_matrix @ source_offset @ np.linalg.inv(convert_matrix)
+            final_matrix = converted_offset @ target_tpose_matrix
+
+            # For rotation decomposition to Euler angles
+            # Using Proper Euler angles decomposition (XYZ order)
+            def matrix_to_euler_xyz(matrix):
+                """
+                Convert 4x4 transformation matrix to XYZ euler angles in degrees
+                Assuming rotation order is XYZ
+                """
+                # Extract rotation matrix (3x3) from transformation matrix (4x4)
+                rot_matrix = matrix[:3, :3]
+                
+                # Calculate euler angles
+                if rot_matrix[2, 1] > 0.998:  # singularity at north pole
+                    y = np.arctan2(rot_matrix[0, 2], rot_matrix[2, 2])
+                    x = np.pi/2
+                    z = 0
+                elif rot_matrix[2, 1] < -0.998:  # singularity at south pole
+                    y = np.arctan2(rot_matrix[0, 2], rot_matrix[2, 2])
+                    x = -np.pi/2
+                    z = 0
+                else:
+                    x = np.arcsin(-rot_matrix[2, 1])
+                    y = np.arctan2(rot_matrix[2, 0], rot_matrix[2, 2])
+                    z = np.arctan2(rot_matrix[0, 1], rot_matrix[1, 1])
+                
+                # Convert to degrees
+                return np.degrees([x, y, z])
+
+            # Get euler angles
+            tgt_perjoint_local_angle[frame] = matrix_to_euler_xyz(final_matrix)
+
+        print(target_tpose_matrix)
         # update by joint
         set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
+
+def euler_to_rotation_matrix(euler, rotation_order='xyz'):
+    """
+    Convert Euler angles (in degrees) to rotation matrix without using Maya nodes
+    Args:
+        rx, ry, rz (float): Rotation angles in degrees
+        rotation_order (str): Rotation order (default: 'xyz')
+    Returns:
+        list: 4x4 rotation matrix as flattened list
+    """
+    # Convert degrees to radians
+    rx, ry, rz = euler
+    rx = math.radians(rx)
+    ry = math.radians(ry)
+    rz = math.radians(rz)
+    
+    # Precompute trigonometric values
+    cx, sx = math.cos(rx), math.sin(rx)
+    cy, sy = math.cos(ry), math.sin(ry)
+    cz, sz = math.cos(rz), math.sin(rz)
+    
+    # Basic rotation matrices for each axis
+    Rx = [
+        [1, 0, 0, 0],
+        [0, cx, -sx, 0],
+        [0, sx, cx, 0],
+        [0, 0, 0, 1]
+    ]
+    
+    Ry = [
+        [cy, 0, sy, 0],
+        [0, 1, 0, 0],
+        [-sy, 0, cy, 0],
+        [0, 0, 0, 1]
+    ]
+    
+    Rz = [
+        [cz, -sz, 0, 0],
+        [sz, cz, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1]
+    ]
+
+    def multiply_matrices(A, B):
+        result = [[0 for _ in range(4)] for _ in range(4)]
+        for i in range(4):
+            for j in range(4):
+                for k in range(4):
+                    result[i][j] += A[i][k] * B[k][j]
+        return result
+
+    # Dictionary to map rotation order to matrix multiplication order
+    order_dict = {
+        'xyz': (Rz, Ry, Rx),
+        'xzy': (Ry, Rz, Rx),
+        'yxz': (Rz, Rx, Ry),
+        'yzx': (Rx, Rz, Ry),
+        'zxy': (Ry, Rx, Rz),
+        'zyx': (Rx, Ry, Rz)
+    }
+    
+    # Get matrices in correct order
+    M1, M2, M3 = order_dict[rotation_order.lower()]
+    
+    # Multiply matrices in order
+    result = multiply_matrices(M1, multiply_matrices(M2, M3))
+    
+    # Flatten the matrix to a single list
+    
+    return np.array(result).reshape(4,4)
