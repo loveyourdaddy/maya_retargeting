@@ -51,7 +51,7 @@ class MotionRetargeter:
         # Define spine chain joints
         self.spine_chain = {
             'ACHID:Hips', 'ACHID:Spine', 'ACHID:Spine1', 'ACHID:Spine2',
-            'ACHID:Neck', 'ACHID:Head'
+            'ACHID:Neck', 'ACHID:Neck'
         }
 
     def get_conversion_matrix(self, source_joint):
@@ -86,12 +86,19 @@ class MotionRetargeter:
                 [0, 0, -1, 0],  # Z axis becomes -Z axis
                 [0, 0, 0, 1]
             ])
-        else:
+        elif source_joint in self.spine_chain:
             # For spine chain
             return om.MMatrix([
                 [0, 1, 0, 0],   # Y axis becomes X axis
                 [-1, 0, 0, 0],  # X axis becomes -Y axis
                 [0, 0, 1, 0],   # Z axis remains Z axis
+                [0, 0, 0, 1]
+            ])
+        else:
+            return om.MMatrix([
+                [1, 0, 0, 0],  
+                [0, 1, 0, 0], 
+                [0, 0, 1, 0], 
                 [0, 0, 0, 1]
             ])
 
