@@ -125,7 +125,7 @@ def main():
 
         # Tpose trf
         # Tpose_trfs = get_Tpose_trf(src_joints_common, tgt_joints_common, prerotations)
-        conversion_matrics = get_conversion_matrix(src_joints_common, tgt_joints_common)
+        conversion_matrics = get_conversion_matrix(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_template, src_indices, tgt_indices)
 
         # import src motion
         mel.eval('FBXImport -f"{}"'.format(sourceMotion))
@@ -202,15 +202,15 @@ def main():
             tgt_locator_rot, tgt_locator_scale = None, None
         
         # trans
-        trans_data = retarget_translation(src_root, tgt_root,\
-                                          src_locator, src_locator_rot, src_locator_scale,\
-                                          tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,\
-                                            height_ratio)
+        # trans_data = retarget_translation(src_root, tgt_root,\
+        #                                   src_locator, src_locator_rot, src_locator_scale,\
+        #                                   tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,\
+        #                                     height_ratio)
         # rot
         retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_origin, 
                           conversion_matrics, #Tpose_trfs, 
                           src_Tpose_rots_common, tgt_Tpose_rots_common, src_indices, tgt_indices, 
-                          len(trans_data), src_locator_rot, tgt_locator_rot,
+                          1865, src_locator_rot, tgt_locator_rot,
                             prerotations)
         
         # if other locator, retarget also

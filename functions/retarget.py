@@ -445,7 +445,7 @@ def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy, tgt_prerotations=Non
     return Tpose_trfs
 
 """ motion """
-def get_conversion_matrix(src_joint_hierarchy, tgt_joint_hierarchy): # src_Tpose_rots, tgt_Tpose_rots
+def get_conversion_matrix(src_joint_hierarchy, tgt_joint_hierarchy, temp1, temp2, ind1, ind2): # src_Tpose_rots, tgt_Tpose_rots
     # x, y, z vector in world space
     # src
     def get_axis_vec_in_world_space(joint_name):
@@ -465,6 +465,10 @@ def get_conversion_matrix(src_joint_hierarchy, tgt_joint_hierarchy): # src_Tpose
         y_axis = y_axis / np.linalg.norm(y_axis)
         z_axis = z_axis / np.linalg.norm(z_axis)
 
+        # x_axis = np.round(x_axis)
+        # y_axis = np.round(y_axis)
+        # z_axis = np.round(z_axis)
+
         # matrix 
         orientation = np.array([x_axis, y_axis, z_axis])
 
@@ -480,9 +484,12 @@ def get_conversion_matrix(src_joint_hierarchy, tgt_joint_hierarchy): # src_Tpose
 
         tgt_ori = get_axis_vec_in_world_space(tgt_joint_hierarchy[j])
         # tgt_axis_vecs.append([tgt_ori])
-        
+        print("!!!---------------")
+        print("!!!\n", src_ori, temp1[ind1[j]])
+        print("!!!\n", tgt_ori, temp2[ind2[j]])
         # conversion matrix 
-        t_mat = tgt_ori @ np.linalg.inv(src_ori) 
+        t_mat = tgt_ori @ np.linalg.inv(src_ori)
+        print("!!@@@@@@@\n", t_mat, temp2[ind2[j]]) 
         # t_mat = np.linalg.inv(src_ori) @ tgt_ori
         t_matricies.append(t_mat)
         # if j==9:
@@ -550,8 +557,8 @@ def retarget_translation(src_hip, tgt_hip,
         tgt_trans_data = apply_scale(tgt_trans_data, tgt_locator_scale, inverse=True)
 
         tgt_trans_data *= height_ratio
-        set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
-
+        # set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
+    print("!@#@!@#@!", len(trans_data))
     return trans_data
 
 import math
@@ -565,6 +572,20 @@ def retarget_rotation(src_common_joints, tgt_common_joints, src_joints_origin, t
     # rotation
     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
     len_joint = len(tgt_common_joints)
+    def matrix_to_mmatrix(matrix):
+        # For 3x3 rotation matrix
+        if matrix.shape == (3, 3):
+            # Convert 3x3 to 4x4 by adding translation and perspective components
+            matrix_4x4 = np.eye(4)
+            matrix_4x4[:3, :3] = matrix
+        else:
+            matrix_4x4 = matrix
+        
+        # Flatten the matrix and convert to list for MMatrix constructor
+        matrix_list = matrix_4x4.flatten().tolist()
+        
+        # Create MMatrix directly from the flattened list
+        return om.MMatrix(matrix_list)
     for j in range(len_joint):
         src_joint = src_common_joints[j]
         tgt_joint = tgt_common_joints[j]
@@ -576,16 +597,42 @@ def retarget_rotation(src_common_joints, tgt_common_joints, src_joints_origin, t
 
             # get source local rot 
             source_rot = cmds.getAttr(f"{src_joint}.rotate")[0]
-            source_rot = np.array(source_rot)
-            source_matrix = E_to_R(source_rot)
+            source_matrix = om.MEulerRotation(
+                math.radians(source_rot[0]),
+                math.radians(source_rot[1]),
+                math.radians(source_rot[2]),
+                om.MEulerRotation.kXYZ
+                ).asMatrix()
+            
+            # Get source T-pose pre-rotation
+            source_tpose_rot = src_Tpose_localrots[j]
+            source_tpose_matrix = om.MEulerRotation(
+                math.radians(source_tpose_rot[0]),
+                math.radians(source_tpose_rot[1]),
+                math.radians(source_tpose_rot[2]),
+                om.MEulerRotation.kXYZ
+            ).asMatrix()
 
+            # Get target T-pose pre-rotation
+            target_tpose_rot = tgt_Tpose_localrots[j]
+            target_tpose_matrix = om.MEulerRotation(
+                math.radians(target_tpose_rot[0]),
+                math.radians(target_tpose_rot[1]),
+                math.radians(target_tpose_rot[2]),
+                om.MEulerRotation.kXYZ
+            ).asMatrix()
+            # source_tpose_matrix = matrix_to_mmatrix(src_Tpose_localrots[j])
+
+            # target_tpose_matrix = matrix_to_mmatrix(tgt_Tpose_localrots[j])
+            convert_matric = matrix_to_mmatrix(T_mat)
+            # print(convert_matric)
             # source rotation wo prerot
-            source_delta_rot = source_matrix @ np.linalg.inv(src_Tpose_localrots[j]) # .inverse()
-            converted_offset = T_mat @ source_delta_rot @ np.linalg.inv(T_mat) # .inverse()
-            final_matrix = converted_offset @ tgt_Tpose_localrots[j]
+            source_offset = source_matrix * source_tpose_matrix.inverse()
+            converted_offset = convert_matric * source_offset * convert_matric.inverse()
+            final_matrix = converted_offset * target_tpose_matrix
 
-            angle = R_to_E(final_matrix)
-            tgt_perjoint_local_angle[frame] = angle
+            final_rotation = om.MEulerRotation.decompose(final_matrix, om.MEulerRotation.kXYZ)
+            tgt_perjoint_local_angle[frame] = [math.degrees(angle) for angle in final_rotation]
             # if frame==0 and j==9:
             #     import pdb; pdb.set_trace()
         # update by joint
