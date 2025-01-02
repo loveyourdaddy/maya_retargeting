@@ -6,7 +6,6 @@ example:
 mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
 mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Adori.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
 """
-
 ''' 
 Naming
 원본 이름 
@@ -24,6 +23,7 @@ from functions.parser import *
 from functions.character import *
 from functions.motion import *
 from functions.maya import *
+from functions.retarget import *
 import time
 
 def main():
@@ -40,7 +40,7 @@ def main():
     # tgt
     targetChar = get_name(args.targetChar)
     targetMotion = get_name(args.sourceMotion)
-    # src 
+    # src
     sourceMotion = args.sourceMotion
     sourceChar = sourceMotion.split('/')[-2]
     print(">>({}, {}) ->  {}".format(sourceChar, sourceMotion, targetChar))
@@ -76,7 +76,7 @@ def main():
 
     # joints
     tgt_joints_origin, tgt_root_joint, tgt_joints_original_name = get_tgt_joints()
-    tgt_Tpose_rots = get_Tpose_local_rotations(tgt_joints_origin)
+    tgt_Tpose_rots = get_Tpose_localrot(tgt_joints_origin)
     parent_node = cmds.listRelatives(tgt_root_joint, parent=True, shapes=True)[-1]
 
     ''' rename joint '''
@@ -103,7 +103,8 @@ def main():
         # if source character exist 
         mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
         src_joints_origin = get_src_joints(tgt_joints_origin)
-        src_Tpose_rots = get_Tpose_local_rotations(src_joints_origin) # TODO: check if src joint templated
+        src_Tpose_rots = get_Tpose_localrot(src_joints_origin) # TODO: check if src joint templated # TODO: wo for loop
+
 
         # src joint template
         src_joints_template = rename_joint_by_template(src_joints_origin)
@@ -112,14 +113,19 @@ def main():
         src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices\
             = get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template)
 
+        # import pdb; pdb.set_trace()
+        tgt_Tpose_rots_common = get_Tpose_localrot(tgt_joints_common)
+        src_Tpose_rots_common = get_Tpose_localrot(src_joints_common)
+
         # prerot
         if tgt_locator is not None:
-            prerotations = get_prerotations(tgt_joints_common, tgt_locator, tgt_locator_rot)
+            prerotations = get_prerotations(tgt_joints_common, tgt_joints_origin, tgt_locator, tgt_locator_rot)
         else:
             prerotations = get_prerotations(tgt_joints_common)
 
         # Tpose trf
-        Tpose_trfs = get_Tpose_trf(src_joints_common, tgt_joints_common, prerotations)
+        # Tpose_trfs = get_Tpose_trf(src_joints_common, tgt_joints_common, prerotations)
+        conversion_matrics = get_conversion_matrix(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_template, src_indices, tgt_indices)
 
         # import src motion
         mel.eval('FBXImport -f"{}"'.format(sourceMotion))
@@ -130,7 +136,7 @@ def main():
         # import src motion
         mel.eval('FBXImport -f"{}"'.format(sourceMotion))
         src_joints_origin = get_src_joints(tgt_joints_origin)
-        src_Tpose_rots = get_Tpose_local_rotations(src_joints_origin)
+        src_Tpose_rots = get_Tpose_localrot(src_joints_origin)
 
         # common skeleton
         src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices\
@@ -138,6 +144,7 @@ def main():
 
         # Tpose trf
         Tpose_trfs = get_Tpose_trf(src_joints_common, tgt_joints_common)
+
 
     ''' Root, height '''
     # root 
@@ -195,16 +202,15 @@ def main():
             tgt_locator_rot, tgt_locator_scale = None, None
         
         # trans
-        # import pdb; pdb.set_trace()
-        trans_data = retarget_translation(src_root, tgt_root,\
-                                          src_locator, src_locator_rot, src_locator_scale,\
-                                          tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,\
-                                            height_ratio)
+        # trans_data = retarget_translation(src_root, tgt_root,\
+        #                                   src_locator, src_locator_rot, src_locator_scale,\
+        #                                   tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,\
+        #                                     height_ratio)
         # rot
         retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_origin, 
-                          Tpose_trfs, 
-                          src_Tpose_rots, tgt_Tpose_rots, src_indices, tgt_indices, 
-                          len(trans_data), src_locator_rot, tgt_locator_rot,
+                          conversion_matrics, #Tpose_trfs, 
+                          src_Tpose_rots_common, tgt_Tpose_rots_common, src_indices, tgt_indices, 
+                          1865, src_locator_rot, tgt_locator_rot,
                             prerotations)
         
         # if other locator, retarget also

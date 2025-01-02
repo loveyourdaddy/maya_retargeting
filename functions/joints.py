@@ -282,22 +282,24 @@ def remove_namespace_for_joints(joints):
     return new_joints
 
 """ Get prerot """
-def get_prerotations(tgt_joints, tgt_locator=None, tgt_locator_rot=None):
+def get_prerotations(tgt_joints, tgt_joints_origin, tgt_locator=None, tgt_locator_rot=None):
     # (locator, joint들의) local rotation을 저장 후 나중에 복원.
-    # TODO: 모든 조인트들을 zero rotation 만들어주기.
 
     # set zero 
     if tgt_locator is not None:
         cmds.xform(tgt_locator, ro=(0,0,0), q=False, ws=False)
-
-    # get prerot
+    # set zero rotation for every joints 
     angle_origins = []
-    prerotations = []
-    for j, joint in enumerate(tgt_joints):
-        # print("{} joint {}".format(j, joint))
+    for joint in tgt_joints_origin:
+        # get angle 
         angle_origin = cmds.xform(joint, q=True, ws=False, ro=True)
         angle_origins.append(angle_origin)
+        # set zero 
+        cmds.xform(joint, ro=(0,0,0), q=False, ws=False)
 
+    # get prerot
+    prerotations = []
+    for j, joint in enumerate(tgt_joints):
         # set zero rot and get world rot 
         cmds.xform(joint, ro=(0,0,0), q=False, ws=False)
         prerot = np.transpose(np.array(cmds.xform(joint, q=True, ws=True, matrix=True)).reshape(4,4))[:3,:3]
@@ -308,8 +310,8 @@ def get_prerotations(tgt_joints, tgt_locator=None, tgt_locator_rot=None):
     # 기존 값으로 돌려주기
     if tgt_locator is not None:
         cmds.xform(tgt_locator, ro=(tgt_locator_rot), q=False, ws=False)
-    for j, joint in enumerate(tgt_joints):
+    for j, joint in enumerate(tgt_joints_origin): # tgt_joints
         angle_origin = angle_origins[j]
         cmds.xform(joint, ro=tuple(angle_origin), q=False, ws=False)
-    
+
     return prerotations
