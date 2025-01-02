@@ -113,7 +113,6 @@ def main():
         src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices\
             = get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template)
 
-        # import pdb; pdb.set_trace()
         tgt_Tpose_rots_common = get_Tpose_localrot(tgt_joints_common)
         src_Tpose_rots_common = get_Tpose_localrot(src_joints_common)
 

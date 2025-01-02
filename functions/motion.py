@@ -44,10 +44,10 @@ def get_Tpose_localrot(joints):
     Tpose_local_rots = []
     for j, joint in enumerate(joints):
         rot = cmds.getAttr(f"{joint}.rotate")[0]
-        rot = np.array(rot)
-        rot_mat = E_to_R(rot)
+        # rot = np.array(rot)
+        # rot_mat = E_to_R(rot)
         
-        Tpose_local_rots.append(rot_mat)
+        Tpose_local_rots.append(rot)
     return Tpose_local_rots
 
 # def get_Tpose_localrot(joints):

@@ -470,24 +470,16 @@ def get_conversion_matrix(src_joint_hierarchy, tgt_joint_hierarchy): # src_Tpose
 
         return orientation # x_axis, y_axis, z_axis
     
-    # src_axis_vecs = []
-    # tgt_axis_vecs = []
     t_matricies = []
     len_joint = len(src_joint_hierarchy)
     for j in range(len_joint):
         src_ori = get_axis_vec_in_world_space(src_joint_hierarchy[j])
-        # src_axis_vecs.append([src_ori])
-
         tgt_ori = get_axis_vec_in_world_space(tgt_joint_hierarchy[j])
-        # tgt_axis_vecs.append([tgt_ori])
         
         # conversion matrix 
         t_mat = tgt_ori @ np.linalg.inv(src_ori) 
-        # t_mat = np.linalg.inv(src_ori) @ tgt_ori
         t_matricies.append(t_mat)
-        # if j==9:
-        #     import pdb; pdb.set_trace()
-    # import pdb; pdb.set_trace()
+
     return t_matricies
 
 def retarget_translation(src_hip, tgt_hip,
@@ -554,6 +546,21 @@ def retarget_translation(src_hip, tgt_hip,
 
     return trans_data
 
+def matrix_to_mmatrix(matrix):
+    # For 3x3 rotation matrix
+    if matrix.shape == (3, 3):
+        # Convert 3x3 to 4x4 by adding translation and perspective components
+        matrix_4x4 = np.eye(4)
+        matrix_4x4[:3, :3] = matrix
+    else:
+        matrix_4x4 = matrix
+    
+    # Flatten the matrix and convert to list for MMatrix constructor
+    matrix_list = matrix_4x4.flatten().tolist()
+    
+    # Create MMatrix directly from the flattened list
+    return om.MMatrix(matrix_list)
+
 import math
 import maya.api.OpenMaya as om
 def retarget_rotation(src_common_joints, tgt_common_joints, src_joints_origin, tgt_joints_origin_namespace,
@@ -565,28 +572,70 @@ def retarget_rotation(src_common_joints, tgt_common_joints, src_joints_origin, t
     # rotation
     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
     len_joint = len(tgt_common_joints)
+    rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
     for j in range(len_joint):
+        # joint 
         src_joint = src_common_joints[j]
         tgt_joint = tgt_common_joints[j]
 
+        # get data 
+        _, rot_data = get_keyframe_data(src_joint)
+        rot_data = get_array_from_keyframe_data(rot_data, rot_attr, src_joint)
+
+        # Get source T-pose pre-rotation
+        source_tpose_rot = src_Tpose_localrots[j]
+        source_tpose_matrix = om.MEulerRotation(
+            math.radians(source_tpose_rot[0]),
+            math.radians(source_tpose_rot[1]),
+            math.radians(source_tpose_rot[2]),
+            om.MEulerRotation.kXYZ
+        ).asMatrix()
+
+        # Get target T-pose pre-rotation
+        target_tpose_rot = tgt_Tpose_localrots[j]
+        target_tpose_matrix = om.MEulerRotation(
+            math.radians(target_tpose_rot[0]),
+            math.radians(target_tpose_rot[1]),
+            math.radians(target_tpose_rot[2]),
+            om.MEulerRotation.kXYZ
+        ).asMatrix()
+
+        # retarget 
         tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
         T_mat = Tpose_trfs[j]
         for frame in range(len_frame):
+            # source rotation
             cmds.currentTime(frame)
-
-            # get source local rot 
             source_rot = cmds.getAttr(f"{src_joint}.rotate")[0]
-            source_rot = np.array(source_rot)
-            source_matrix = E_to_R(source_rot)
+            source_matrix = om.MEulerRotation(
+                math.radians(source_rot[0]),
+                math.radians(source_rot[1]),
+                math.radians(source_rot[2]),
+                om.MEulerRotation.kXYZ
+            ).asMatrix()
+            # source_matrix = np.array(source_matrix).reshape(4,4)[:3, :3]
 
+            # debig
             # source rotation wo prerot
-            source_delta_rot = source_matrix @ np.linalg.inv(src_Tpose_localrots[j]) # .inverse()
-            converted_offset = T_mat @ source_delta_rot @ np.linalg.inv(T_mat) # .inverse()
-            final_matrix = converted_offset @ tgt_Tpose_localrots[j]
+            # src_Tpose_localrots_ = E_to_R(np.array(src_Tpose_localrots[j]))
+            # tgt_Tpose_localrots_ = E_to_R(np.array(tgt_Tpose_localrots[j]))
+            
+            # source_matrix_ = np.array(source_matrix).reshape(4,4)[:3, :3]
+            # source_delta_rot_ = source_matrix_ @ np.linalg.inv(src_Tpose_localrots_) # .inverse()
+            # converted_offset_ = T_mat @ source_delta_rot_ @ np.linalg.inv(T_mat) # .inverse()
+            # final_matrix_ = converted_offset_ @ tgt_Tpose_localrots_
+            # angle_ = R_to_E(final_matrix_)
+            # tgt_perjoint_local_angle[frame] = angle
 
-            angle = R_to_E(final_matrix)
-            tgt_perjoint_local_angle[frame] = angle
-            # if frame==0 and j==9:
-            #     import pdb; pdb.set_trace()
+            # om mat
+            convert_matric = matrix_to_mmatrix(T_mat)
+
+            source_offset = source_matrix * source_tpose_matrix.inverse()
+            converted_offset = convert_matric * source_offset * convert_matric.inverse()
+            final_matrix = converted_offset * target_tpose_matrix
+
+            final_rotation = om.MEulerRotation.decompose(final_matrix, om.MEulerRotation.kXYZ)
+            tgt_perjoint_local_angle[frame] = [math.degrees(angle) for angle in final_rotation]
+
         # update by joint
         set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
