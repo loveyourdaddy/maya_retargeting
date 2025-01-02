@@ -208,7 +208,7 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
                     spine_check_flag = True
                     break
 
-                print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
+                # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
                 src_common_joint.append(src_joint)
                 tgt_common_joint.append(tgt_joint)
                 src_indices.append(src_idx)
@@ -426,3 +426,167 @@ def check_common_string_in_value_of_other_list(src_joint, tgt_joint):
             return True
         
     return False
+
+
+""" Tpose """
+def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy, tgt_prerotations=None):
+    # world rotation
+    Tpose_trfs = []
+    for j, (src_joint, tgt_joint) in enumerate(zip(src_joint_hierarchy, tgt_joint_hierarchy)):
+        # get rot matrix 
+        # print("src {} tgt {}".format(src_joint, tgt_joint))
+        src_rot_data = get_worldrot_of_joint(src_joint)
+        tgt_rot_data = get_worldrot_of_joint(tgt_joint)
+
+        trf = np.linalg.inv(src_rot_data) @ tgt_rot_data
+        # trf = tgt_rot_data @ np.linalg.inv(src_rot_data)
+        Tpose_trfs.append(trf)
+    
+    return Tpose_trfs
+
+""" motion """
+def get_conversion_matrix(src_joint_hierarchy, tgt_joint_hierarchy): # src_Tpose_rots, tgt_Tpose_rots
+    # x, y, z vector in world space
+    # src
+    def get_axis_vec_in_world_space(joint_name):
+        import maya.OpenMaya as om
+        matrix = cmds.xform(joint_name, query=True, worldSpace=True, matrix=True)
+        m_matrix = om.MMatrix()
+        om.MScriptUtil.createMatrixFromList(matrix, m_matrix)
+        transform = om.MTransformationMatrix(m_matrix)
+        m_matrix = transform.asMatrix()
+
+        # 각 축의 벡터 추출
+        x_axis = np.array([m_matrix(0, 0), m_matrix(0, 1), m_matrix(0, 2)])
+        y_axis = np.array([m_matrix(1, 0), m_matrix(1, 1), m_matrix(1, 2)])
+        z_axis = np.array([m_matrix(2, 0), m_matrix(2, 1), m_matrix(2, 2)])
+        # normalize each 
+        x_axis = x_axis / np.linalg.norm(x_axis)
+        y_axis = y_axis / np.linalg.norm(y_axis)
+        z_axis = z_axis / np.linalg.norm(z_axis)
+
+        # matrix 
+        orientation = np.array([x_axis, y_axis, z_axis])
+
+        return orientation # x_axis, y_axis, z_axis
+    
+    # src_axis_vecs = []
+    # tgt_axis_vecs = []
+    t_matricies = []
+    len_joint = len(src_joint_hierarchy)
+    for j in range(len_joint):
+        src_ori = get_axis_vec_in_world_space(src_joint_hierarchy[j])
+        # src_axis_vecs.append([src_ori])
+
+        tgt_ori = get_axis_vec_in_world_space(tgt_joint_hierarchy[j])
+        # tgt_axis_vecs.append([tgt_ori])
+        
+        # conversion matrix 
+        t_mat = tgt_ori @ np.linalg.inv(src_ori) 
+        # t_mat = np.linalg.inv(src_ori) @ tgt_ori
+        t_matricies.append(t_mat)
+        # if j==9:
+        #     import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
+    return t_matricies
+
+def retarget_translation(src_hip, tgt_hip,
+                         src_locator=None, src_locator_rot=None, src_locator_scale=None,
+                         tgt_locator=None, tgt_locator_rot=None, tgt_locator_scale=None, tgt_locator_pos=None, 
+                         height_ratio=1):
+    # translation data
+    trans_data, _ = get_keyframe_data(src_hip)
+    trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
+    trans_data = get_array_from_keyframe_data(trans_data, trans_attr, src_hip)
+    len_frame = len(trans_data)
+
+    if len_frame == 0:
+        return trans_data
+    
+    """ 위치 데이터를 locator 기반으로 변환하는 함수 """
+    def apply_rotation(rot_mat, data):
+        return np.einsum('ijk,ik->ij', rot_mat, data)
+    
+    def repeat_matrix(matrix):
+        return matrix[None, :].repeat(len_frame, axis=0)
+    
+    def get_rotation_matrix(rot_values, inverse=False):
+        if rot_values is None:
+            return None
+        rot_mat = E_to_R(np.array(rot_values))
+        if inverse:
+            rot_mat = np.linalg.inv(rot_mat)
+        return repeat_matrix(rot_mat)
+    
+    def apply_scale(data, scale, inverse=False):
+        if scale is not None:
+            for i in range(3):
+                data[:, i] *= (1/scale[i] if inverse else scale[i])
+        return data
+
+    # 초기 데이터 설정
+    tgt_trans_data = trans_data
+    locator_status = f">> {'src locator: ' if src_locator else ''}{src_locator or ''} {', tgt locator: ' if tgt_locator else ''}{tgt_locator or ''}"
+    print(locator_status.strip() or ">> no locator")
+
+    # Source locator 처리
+    if src_locator:
+        src_rot_mat = get_rotation_matrix(src_locator_rot)
+        tgt_trans_data = apply_rotation(src_rot_mat, tgt_trans_data)
+        tgt_trans_data = apply_scale(tgt_trans_data, src_locator_scale)
+
+    # Target locator 처리
+    if tgt_locator:
+        tgt_rot_mat = get_rotation_matrix(tgt_locator_rot, inverse=True)
+        tgt_trans_data = apply_rotation(tgt_rot_mat, tgt_trans_data)
+        
+        if tgt_locator_pos is not None:
+            tgt_pos = repeat_matrix(np.array(tgt_locator_pos))
+            if src_locator:
+                tgt_pos = apply_rotation(src_rot_mat, tgt_pos)
+            tgt_pos = apply_rotation(tgt_rot_mat, tgt_pos)
+            tgt_trans_data = tgt_trans_data - tgt_pos
+        
+        tgt_trans_data = apply_scale(tgt_trans_data, tgt_locator_scale, inverse=True)
+
+        tgt_trans_data *= height_ratio
+        set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
+
+    return trans_data
+
+import math
+import maya.api.OpenMaya as om
+def retarget_rotation(src_common_joints, tgt_common_joints, src_joints_origin, tgt_joints_origin_namespace,
+                      Tpose_trfs, 
+                      src_Tpose_localrots, tgt_Tpose_localrots, src_indices, tgt_indices,
+                      len_frame, src_locator_rot=None, tgt_locator_rot=None,
+                        tgt_prerotations=None):
+    
+    # rotation
+    rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
+    len_joint = len(tgt_common_joints)
+    for j in range(len_joint):
+        src_joint = src_common_joints[j]
+        tgt_joint = tgt_common_joints[j]
+
+        tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
+        T_mat = Tpose_trfs[j]
+        for frame in range(len_frame):
+            cmds.currentTime(frame)
+
+            # get source local rot 
+            source_rot = cmds.getAttr(f"{src_joint}.rotate")[0]
+            source_rot = np.array(source_rot)
+            source_matrix = E_to_R(source_rot)
+
+            # source rotation wo prerot
+            source_delta_rot = source_matrix @ np.linalg.inv(src_Tpose_localrots[j]) # .inverse()
+            converted_offset = T_mat @ source_delta_rot @ np.linalg.inv(T_mat) # .inverse()
+            final_matrix = converted_offset @ tgt_Tpose_localrots[j]
+
+            angle = R_to_E(final_matrix)
+            tgt_perjoint_local_angle[frame] = angle
+            # if frame==0 and j==9:
+            #     import pdb; pdb.set_trace()
+        # update by joint
+        set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
