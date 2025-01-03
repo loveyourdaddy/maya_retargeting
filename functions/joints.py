@@ -28,23 +28,23 @@ alter_joint_name = {
     "Head":["head",], 
 
     "RightShoulder":["RFBXASC032Clavicle", "Clavicle_r", "shoulder_R", ],
-    "RightArm":["RFBXASC032UpperArm",  "RightUpperArm", "upperArm_R", "BoneFBXASC046004"], 
+    "RightArm":["RFBXASC032UpperArm",  "RightUpperArm", "upperArm_R", "BoneFBXASC046005"], # 5, 6
     "RightForeArm":["RFBXASC032Forearm", "RightForearm", "RightLowerArm",  "lowerArm_R", "lowerarm_in_r"], 
-    "RightHand":["RFBXASC032Hand", "RightHand", "hand_R", "lowerarm_out_r", "BoneFBXASC046005"], 
+    "RightHand":["RFBXASC032Hand", "RightHand", "hand_R", "lowerarm_out_r", "BoneFBXASC046006"], 
 
     "LeftShoulder": ["LFBXASC032Clavicle", "Clavicle_l", "shoulder_L", ],
-    "LeftArm":["LFBXASC032UpperArm", "LeftUpperArm", "upperArm_L", "BoneFBXASC046002"],
+    "LeftArm":["LFBXASC032UpperArm", "LeftUpperArm", "upperArm_L", "BoneFBXASC046003"], # 3,4
     "LeftForeArm":["LFBXASC032Forearm", "LeftForearm", "LeftLowerArm", "lowerArm_L", "lowerarm_in_l"],
-    "LeftHand": ["LFBXASC032Hand", "LeftHand", "hand_L", "lowerarm_out_l", "BoneFBXASC046003"],
+    "LeftHand": ["LFBXASC032Hand", "LeftHand", "hand_L", "lowerarm_out_l", "BoneFBXASC046004"],
 
-    "RightUpLeg":['RFBXASC032Thigh', 'upperLeg_R', 'upperReg_R', 'RightUpperLeg', 'thigh_r', "BoneFBXASC046009"], 
+    "RightUpLeg":['RFBXASC032Thigh', 'upperLeg_R', 'upperReg_R', 'RightUpperLeg', 'thigh_r', "BoneFBXASC046007"], # 7 8
     "RightLeg":  ['RFBXASC032Calf',  'lowerLeg_R', 'lowerReg_R', 'RightLowerLeg', 'calf_r'], 
-    "RightFoot":['RFBXASC032Foot', 'foot_R', "BoneFBXASC046010"], 
+    "RightFoot":['RFBXASC032Foot', 'foot_R', "BoneFBXASC046008"], 
     "RightToeBase":['RFBXASC032Toe0', 'toes_R'], 
 
-    "LeftUpLeg":['LFBXASC032Thigh', 'upperLeg_L', 'upperReg_L', 'LeftUpperLeg', 'thigh_l', "BoneFBXASC046007"],
+    "LeftUpLeg":['LFBXASC032Thigh', 'upperLeg_L', 'upperReg_L', 'LeftUpperLeg', 'thigh_l', "BoneFBXASC046009"], # 9 10
     "LeftLeg":  ['LFBXASC032Calf',  'lowerLeg_L', 'lowerReg_L', 'LeftLowerLeg', 'calf_l', ], 
-    "LeftFoot":['LFBXASC032Foot', 'foot_L', "BoneFBXASC046008", ], 
+    "LeftFoot":['LFBXASC032Foot', 'foot_L', "BoneFBXASC046010", ], 
     "LeftToeBase":['LFBXASC032Toe0', 'toes_L'], 
     }
 
