@@ -71,8 +71,8 @@ def main():
             print(f">>No texture: {new_path}")
 
     # joints
-    tgt_joints_origin, tgt_root_joint, tgt_joints_original_name = get_tgt_joints()
-    tgt_Tpose_rots = get_Tpose_localrot(tgt_joints_origin)
+    tgt_joints_origin, tgt_joints_original_name, tgt_root_joint, tgt_root_joints = get_tgt_joints()
+    # tgt_Tpose_rots = get_Tpose_localrot(tgt_joints_origin)
     parent_node = cmds.listRelatives(tgt_root_joint, parent=True, shapes=True)[-1]
 
     ''' rename joint '''
@@ -84,8 +84,13 @@ def main():
         tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos = get_locator(parent_node)
     else:
         tgt_locator = None
-    tgt_locator = add_namespace_for_joints([tgt_locator], "tgt")[0]
-    tgt_locator_list = [tgt_locator, tgt_locator+'Shape']
+    
+    # locator list
+    tgt_locator_list = []
+    for root_id, root in enumerate(tgt_root_joints):
+        locator = cmds.listRelatives(root, parent=True, shapes=True)[-1]
+        tgt_locator_list.append(locator)
+        tgt_locator_list.append(locator+'Shape')
 
     # meshes
     tgt_meshes = cmds.ls(type='mesh')
@@ -99,7 +104,7 @@ def main():
         # if source character exist 
         mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
         src_joints_origin = get_src_joints(tgt_joints_origin)
-        src_Tpose_rots = get_Tpose_localrot(src_joints_origin) # TODO: check if src joint templated # TODO: wo for loop
+        # src_Tpose_rots = get_Tpose_localrot(src_joints_origin) # TODO: check if src joint templated 
 
 
         # src joint template
@@ -131,7 +136,7 @@ def main():
         # import src motion
         mel.eval('FBXImport -f"{}"'.format(sourceMotion))
         src_joints_origin = get_src_joints(tgt_joints_origin)
-        src_Tpose_rots = get_Tpose_localrot(src_joints_origin)
+        # src_Tpose_rots = get_Tpose_localrot(src_joints_origin)
 
         # common skeleton
         src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices\
@@ -167,29 +172,27 @@ def main():
         # locator ~ root 위 조인트 포함
         tgt_locator_rot = update_root_to_locator_rotation(tgt_joints_origin, tgt_root, tgt_locator_rot)
 
-    ''' locator and meshes '''
+    # locator and meshes 
     locators_list = cmds.ls(type='locator')
     src_locator_list = list(set(locators_list) - set(tgt_locator_list))
     if len(src_locator_list)!=0:
         # Select right locator: 가장 많은 자식을 가진 locator를 선택하기 위해 0을 선택 
         src_locator_list = sorted(src_locator_list, key=lambda x: len(cmds.listRelatives(x, children=True) or []), reverse=True)
+        src_locator = src_locator_list[0]
 
         # Get locator info 
-        src_locator, src_locator_rot, src_locator_scale, src_locator_pos = get_locator(src_locator_list[0])
+        src_locator, src_locator_rot, src_locator_scale, src_locator_pos = get_locator(src_locator)
     else:
         src_locator = None
 
     # src meshes
     all_meshes = cmds.ls(type='mesh')
     src_meshes = list(set(all_meshes) - set(tgt_meshes))
-    print(">> src loaded")
 
 
-    ''' retarget '''
+    ''' Retarget '''
     if src_locator is not None or tgt_locator is not None:
         # 둘 중 하나라도 locator가 있는 경우 
-        print(">> retarget with locator")
-
         # 예외처리
         if src_locator is None:
             src_locator_rot, src_locator_scale = None, None
@@ -201,11 +204,12 @@ def main():
                                           src_locator, src_locator_rot, src_locator_scale,\
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,\
                                             height_ratio)
+        len_frame = len(trans_data)
         # rot
         retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_origin, 
                           conversion_matrics, #Tpose_trfs, 
                           src_Tpose_rots_common, tgt_Tpose_rots_common, src_indices, tgt_indices, 
-                          len(trans_data), src_locator_rot, tgt_locator_rot,
+                          len_frame, src_locator_rot, tgt_locator_rot,
                             prerotations)
         
         # if other locator, retarget also
@@ -213,17 +217,18 @@ def main():
     else:
         print(">> retarget without locator")
 
-        # trans
-        trans_data = retarget_translation(src_root, tgt_root,
-                                          height_ratio)
-        # rot
-        retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_origin,
-                          Tpose_trfs, 
-                          src_Tpose_rots, tgt_Tpose_rots, src_indices, tgt_indices, 
-                            len(trans_data))
+        # # trans
+        # trans_data = retarget_translation(src_root, tgt_root,
+        #                                   height_ratio)
+        # # rot
+        # retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_origin,
+        #                   Tpose_trfs, 
+        #                   src_Tpose_rots, tgt_Tpose_rots, src_indices, tgt_indices, 
+        #                     len(trans_data))
     
     ''' export '''
     # Remove source locator
+    # import pdb; pdb.set_trace()
     if src_locator is not None:
         delete_locator_and_hierarchy(src_locator)
     else:

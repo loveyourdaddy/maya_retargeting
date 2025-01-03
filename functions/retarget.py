@@ -186,7 +186,6 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
                             src_indices[-1] = src_root_div_jid
                             tgt_common_joint[-1] = tgt_root_div
                             tgt_indices[-1] = tgt_root_div_jid
-                        print("add root div")
 
                     root_check_flag = True
                     break
@@ -206,7 +205,6 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
                             src_indices.append(src_spine_div_jid)
                             tgt_common_joint.append(tgt_spine_div)
                             tgt_indices.append(tgt_spine_div_jid)
-                        print("add spine div")
                     
                     spine_check_flag = True
                     break
@@ -520,32 +518,32 @@ def retarget_translation(src_hip, tgt_hip,
         return data
 
     # 초기 데이터 설정
-    tgt_trans_data = trans_data
-    locator_status = f">> {'src locator: ' if src_locator else ''}{src_locator or ''} {', tgt locator: ' if tgt_locator else ''}{tgt_locator or ''}"
-    print(locator_status.strip() or ">> no locator")
+    # tgt_trans_data = trans_data
+    # locator_status = f">> {'src locator: ' if src_locator else ''}{src_locator or ''} {', tgt locator: ' if tgt_locator else ''}{tgt_locator or ''}"
+    # print(locator_status.strip() or ">> no locator")
 
     # Source locator 처리
     if src_locator:
         src_rot_mat = get_rotation_matrix(src_locator_rot)
-        tgt_trans_data = apply_rotation(src_rot_mat, tgt_trans_data)
-        tgt_trans_data = apply_scale(tgt_trans_data, src_locator_scale)
+        trans_data = apply_rotation(src_rot_mat, trans_data)
+        trans_data = apply_scale(trans_data, src_locator_scale)
 
     # Target locator 처리
     if tgt_locator:
         tgt_rot_mat = get_rotation_matrix(tgt_locator_rot, inverse=True)
-        tgt_trans_data = apply_rotation(tgt_rot_mat, tgt_trans_data)
+        trans_data = apply_rotation(tgt_rot_mat, trans_data)
         
         if tgt_locator_pos is not None:
             tgt_pos = repeat_matrix(np.array(tgt_locator_pos))
             if src_locator:
                 tgt_pos = apply_rotation(src_rot_mat, tgt_pos)
             tgt_pos = apply_rotation(tgt_rot_mat, tgt_pos)
-            tgt_trans_data = tgt_trans_data - tgt_pos
+            trans_data = trans_data - tgt_pos
         
-        tgt_trans_data = apply_scale(tgt_trans_data, tgt_locator_scale, inverse=True)
+        trans_data = apply_scale(trans_data, tgt_locator_scale, inverse=True)
 
-        tgt_trans_data *= height_ratio
-        set_keyframe(tgt_hip, tgt_trans_data, trans_attr)
+        trans_data *= height_ratio
+        set_keyframe(tgt_hip, trans_data, trans_attr)
 
     return trans_data
 

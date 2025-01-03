@@ -126,13 +126,9 @@ def find_root_joints(all_joints):
         hierarchy = rename_joint_by_template(hierarchy)
         children_of_roots[i] = select_joints_by_template(hierarchy)
         list_index.append(len(children_of_roots[i]))
-
-    # TODO 여러 skeleton chain에서 best chain을 고르는 방법. -> list로 해도 될까?
-    # max_index = list_index.index(max(list_index))
-    # return root_joints #[max_index]
     
     max_index = list_index.index(max(list_index))
-    return root_joints[max_index]
+    return root_joints[max_index], root_joints
 
 def get_parent_joint(joint):
     parent = cmds.listRelatives(joint, parent=True)
