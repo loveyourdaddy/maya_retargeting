@@ -104,11 +104,17 @@ get_all_motions() {
 
 # 캐릭터 폴더 리스트
 src_characters=(
-    "Adori"
-    "Adori2.0"
-    "Adori2.1"
-    "Asooni"
-    "Asooni2.1"
+    # "Adori"
+    # "Adori2.0"
+    # "Adori2.1"
+    # "Asooni"
+    # "Asooni2.1"
+
+    "Adori_qc"
+    "Adori2.0_qc"
+    "Adori2.1_qc"
+    "Asooni_qc"
+    "Asooni2.1_qc"
 
     # "Metahuman"
     # "Minecraft"

@@ -72,7 +72,6 @@ def main():
 
     # joints
     tgt_joints_origin, tgt_joints_original_name, tgt_root_joint, tgt_root_joints = get_tgt_joints()
-    # tgt_Tpose_rots = get_Tpose_localrot(tgt_joints_origin)
     parent_node = cmds.listRelatives(tgt_root_joint, parent=True, shapes=True)[-1]
 
     ''' rename joint '''
@@ -100,50 +99,38 @@ def main():
 
     ''' src '''
     sourceChar_path = './models/' + sourceChar + '/' + sourceChar + '.fbx'
-    if os.path.exists(sourceChar_path):
-        # if source character exist 
-        mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
-        src_joints_origin = get_src_joints(tgt_joints_origin)
-        # src_Tpose_rots = get_Tpose_localrot(src_joints_origin) # TODO: check if src joint templated 
 
-
-        # src joint template
-        src_joints_template = rename_joint_by_template(src_joints_origin)
-
-        ''' common skeleton '''
-        src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices\
-            = get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template)
-
-        tgt_Tpose_rots_common = get_Tpose_localrot(tgt_joints_common)
-        src_Tpose_rots_common = get_Tpose_localrot(src_joints_common)
-
-        # prerot
-        if tgt_locator is not None:
-            prerotations = get_prerotations(tgt_joints_common, tgt_joints_origin, tgt_locator, tgt_locator_rot)
-        else:
-            prerotations = get_prerotations(tgt_joints_common)
-
-        # Tpose trf
-        # Tpose_trfs = get_Tpose_trf(src_joints_common, tgt_joints_common, prerotations)
-        conversion_matrics = get_conversion_matrix(src_joints_common, tgt_joints_common)
-
-        # import src motion
-        mel.eval('FBXImport -f"{}"'.format(sourceMotion))
-    else:
-        # source character가 없을때, 0 frame을 Tpose로 사용. 
+    # import source character
+    if os.path.exists(sourceChar_path)==False:
+        # source character가 없을때, 0 frame을 Tpose로 사용.
         print(">> no source character")
+        raise ValueError("No source character")
     
-        # import src motion
-        mel.eval('FBXImport -f"{}"'.format(sourceMotion))
-        src_joints_origin = get_src_joints(tgt_joints_origin)
-        # src_Tpose_rots = get_Tpose_localrot(src_joints_origin)
+    mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
+    src_joints_origin = get_src_joints(tgt_joints_origin)
 
-        # common skeleton
-        src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices\
-            = get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template)
+    # src joint template
+    src_joints_template = rename_joint_by_template(src_joints_origin)
 
-        # Tpose trf
-        Tpose_trfs = get_Tpose_trf(src_joints_common, tgt_joints_common)
+    ''' common skeleton '''
+    src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices\
+        = get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template)
+
+    # Tpose rot common
+    tgt_Tpose_rots_common = get_Tpose_localrot(tgt_joints_common)
+    src_Tpose_rots_common = get_Tpose_localrot(src_joints_common)
+
+    # prerot
+    if tgt_locator is not None:
+        prerotations = get_prerotations(tgt_joints_common, tgt_joints_origin, tgt_locator, tgt_locator_rot)
+    else:
+        prerotations = get_prerotations(tgt_joints_common)
+
+    # Tpose trf
+    conversion_matrics = get_conversion_matrix(src_joints_common, tgt_joints_common)
+
+    # import src motion
+    mel.eval('FBXImport -f"{}"'.format(sourceMotion))
 
 
     ''' Root, height '''
@@ -176,8 +163,9 @@ def main():
     locators_list = cmds.ls(type='locator')
     src_locator_list = list(set(locators_list) - set(tgt_locator_list))
     if len(src_locator_list)!=0:
-        # Select right locator: 가장 많은 자식을 가진 locator를 선택하기 위해 0을 선택 
+        # Select right locator
         src_locator_list = sorted(src_locator_list, key=lambda x: len(cmds.listRelatives(x, children=True) or []), reverse=True)
+        #  가장 많은 자식을 가진 locator를 선택하기 위해 0을 선택 
         src_locator = src_locator_list[0]
 
         # Get locator info 
@@ -207,7 +195,7 @@ def main():
         len_frame = len(trans_data)
         # rot
         retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_origin, 
-                          conversion_matrics, #Tpose_trfs, 
+                          conversion_matrics,  
                           src_Tpose_rots_common, tgt_Tpose_rots_common, src_indices, tgt_indices, 
                           len_frame, src_locator_rot, tgt_locator_rot,
                             prerotations)
@@ -216,6 +204,7 @@ def main():
         # tgt_locator_list TODO
     else:
         print(">> retarget without locator")
+        raise ValueError("No locator") # TODO
 
         # # trans
         # trans_data = retarget_translation(src_root, tgt_root,
@@ -228,7 +217,6 @@ def main():
     
     ''' export '''
     # Remove source locator
-    # import pdb; pdb.set_trace()
     if src_locator is not None:
         delete_locator_and_hierarchy(src_locator)
     else:
@@ -238,12 +226,12 @@ def main():
     cmds.delete(src_meshes)
 
     # rename tgt joint
-    for jid, joint in enumerate(tgt_joints_origin):
-        cmds.rename(joint, tgt_joints_original_name[jid]) 
+    for joint in tgt_joints_original_name:
+        cmds.rename('tgt:'+joint, joint)
 
     # rename tgt joints
-    tgt_locator = remove_namespace_for_joints([tgt_locator])[0]
-    # tgt_joints_origin = remove_namespace_for_joints(tgt_joints_origin) # tgt_joints_common 
+    # TODO: locator의 이름이 같을때 대응할수없음
+    # tgt_locator = remove_namespace_for_joints([tgt_locator])[0]
 
     # Run the function
     delete_all_transform_nodes()
