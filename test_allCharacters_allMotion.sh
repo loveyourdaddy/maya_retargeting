@@ -40,9 +40,10 @@ run_test_case() {
     
     log ">> COMMAND: python retargeting_request.py "$source_char" "$source_motion" "$target_char""
     output=$(python retargeting_request.py "$source_char" "$source_motion" "$target_char" 2>> "$LOG_FILE")
-        
+    
     if [[ $output == *"Download failed"* ]]; then
         log "❌" #  Test case $test_name failed
+        log "Try mayapy retargeting_different_axis.py --sourceChar "$source_char" --sourceMotion "$source_motion" --targetChar "$target_char""
         record_test_result "$test_name" "FAIL" 
         return 1
     elif python retargeting_request.py "$source_char" "$source_motion" "$target_char" 2>> "$LOG_FILE"; then
@@ -58,8 +59,7 @@ run_test_case() {
         if [ -f "$result_file" ]; then
             # 결과 파일이 존재하면 해당 디렉토리로 이동
             mv "$result_file" "$result_dir/"
-        else
-            log "Warning: Result file not found: $result_file \n"
+        else            log "Warning: Result file not found: $result_file \n"
         fi
         
         return 0
@@ -110,11 +110,10 @@ src_characters=(
     # "Asooni"
     # "Asooni2.1"
 
-    "Adori_qc"
-    "Adori2.0_qc"
+    # "Adori_qc"
     "Adori2.1_qc"
-    "Asooni_qc"
-    "Asooni2.1_qc"
+    # "Asooni_qc"
+    # "Asooni2.1_qc"
 
     # "Metahuman"
     # "Minecraft"
@@ -141,6 +140,7 @@ tgt_characters=(
 # 결과 카운터 초기화
 total_tests=0
 passed_tests=0
+# mayapy retargeting_different_axis.py --sourceChar "./models/Adori_qc/Adori_qc.fbx" --sourceMotion "./motions/Adori_qc/Annoyance2_RT0819.fbx" --targetChar "./models/Adori2.0/Adori2.0.fbx"
 
 # 각 캐릭터 조합으로 테스트 실행
 for source in "${src_characters[@]}"; do
@@ -150,7 +150,7 @@ for source in "${src_characters[@]}"; do
 
     # 소스 캐릭터의 첫 번째 모션 파일 찾기/ 소스 캐릭터의 모든 모션 파일 가져오기
     # CHANGE This: First motion
-    motion_files=($(get_all_motions "$source"))
+    # motion_files=($(get_all_motions "$source"))
     motion_files=($(get_first_motion "$source"))
     log "Found ${#motion_files[@]} motion files for $source"
     

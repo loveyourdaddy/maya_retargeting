@@ -227,7 +227,14 @@ def main():
 
     # rename tgt joint
     for joint in tgt_joints_original_name:
-        cmds.rename('tgt:'+joint, joint)
+        if len(joint.split(':'))>1:
+            # 만약 target name에 namespace가 있다면 
+            # change namespace
+            namespace = joint.split(':')[:-1][0] + ":"
+            joint = joint.split(':')[-1]
+            cmds.rename('tgt:'+joint, namespace+joint)
+        else:
+            cmds.rename('tgt:'+joint, joint)
 
     # rename tgt joints
     # TODO: locator의 이름이 같을때 대응할수없음
