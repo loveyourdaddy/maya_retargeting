@@ -3,9 +3,9 @@ Usage:
 mayapy retargeting_different_axis.py --sourceMotion "" --targetChar ""
 
 example:
-mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
-mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Adori.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
+mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
 """
+
 ''' 
 Naming
 원본 이름 
@@ -46,11 +46,7 @@ def main():
     print(">>({}, {}) ->  {}".format(sourceChar, sourceMotion, targetChar))
 
 
-    ''' tgt '''    
-    # # FBX 임포트 옵션 설정
-    # mel.eval('FBXImportAxisConversionEnable -v true;')
-    # mel.eval('FBXImportUpAxis "Z";')
-    
+    ''' tgt '''
     # character
     mel.eval('FBXImportSmoothingGroups -v true')
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
@@ -227,7 +223,6 @@ def main():
                             len(trans_data))
     
     ''' export '''
-
     # Remove source locator
     if src_locator is not None:
         delete_locator_and_hierarchy(src_locator)
