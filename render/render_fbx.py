@@ -1,39 +1,61 @@
-# mayapy render/render_fbx.py "./output/Adori/1-8_Waacking_Twirl_RT0702.fbx" "/Users/inseo/2024_KAI_Retargeting/render/"
+# mayapy render/render_fbx.py "./output/Adori/1-8_Waacking_Twirl_RT0702.fbx" "/Users/inseo/2024_KAI_Retargeting/render/"  
 import maya.cmds as cmds
+import logging
 import maya.mel as mel
 import maya.standalone
 import os
 import sys
-import math
+import maya.OpenMaya as OpenMaya
+import time 
 
-def calculate_camera_position(bbox):
-    """캐릭터의 바운딩 박스를 기반으로 카메라 위치 계산"""
-    min_x, min_y, min_z, max_x, max_y, max_z = bbox
+# Maya 로그 레벨 설정
+# logging.getLogger('maya').setLevel(logging.CRITICAL)
+
+def silence_output():
+    """Maya의 출력을 제거하는 함수"""
+    # OpenMaya.MGlobal.executeCommand("scriptEditorInfo -suppressResults true -suppressErrors true -suppressWarnings true -suppressInfo true;", False, False)
+    # OpenMaya.MGlobal.executeCommand("scriptEditorInfo -suppressStackTrace true;", False, False)
+    # # 렌더링 진행상황 메시지 제거
+    # OpenMaya.MGlobal.executeCommand("scriptEditorInfo -suppressResolutionInformation true;", False, False)
+    # 모든 Maya 출력 제거
+    mel.eval('scriptEditorInfo -suppressInfo true;')
+    mel.eval('scriptEditorInfo -suppressWarnings true;')
+    mel.eval('scriptEditorInfo -suppressErrors true;')
+    mel.eval('scriptEditorInfo -suppressResults true;')
     
-    # 캐릭터의 높이와 너비 계산
-    height = max_y - min_y
-    width = max_x - min_x
-    depth = max_z - min_z
+    # 렌더링 관련 출력 제거
+    mel.eval('putenv "MAYA_SUPPRESS_RENDERING_PERFORMANCE_STATS" "1";')
+    mel.eval('putenv "MAYA_SUPPRESS_RENDERING_STATS" "1";')
+    mel.eval('putenv "MAYA_DISABLE_PERFORMANCE_STATS" "1";')
     
-    # 캐릭터의 중심점 계산
-    center_x = (min_x + max_x) / 2
-    center_y = (min_y + max_y) / 2
-    center_z = (min_z + max_z) / 2
+    # 추가 렌더 설정
+    # cmds.setAttr("defaultRenderGlobals.printGeometryStats", 0)
+    # cmds.setAttr("defaultRenderGlobals.printResourceStats", 0)
+    # cmds.setAttr("defaultRenderGlobals.printRenderingStats", 0)
     
-    # 카메라 위치 계산
-    cam_height = center_y + (height * 0.1)  # 캐릭터 높이의 10% 위에서 촬영
-    cam_distance = max(height * 1.5, width * 2.5)  # 캐릭터 높이의 1.5배 또는 너비의 2.5배 중 큰 값
-    
-    return {
-        'position': [center_x, cam_height, center_z + cam_distance],
-        'target': [center_x, center_y, center_z],
-        'fov': 40,
-        'film_fit': 'vertical' if height > width else 'horizontal'
-    }
-    
+
 def setup_scene():
     # 새로운 씬 생성
     cmds.file(new=True, force=True)
+    
+    # 카메라 생성 및 설정
+    camera_transform, camera_shape = cmds.camera(name='renderCam')
+    print(f"Created camera: transform={camera_transform}, shape={camera_shape}")
+    
+    cmds.setAttr(f"{camera_transform}.translateX", 0)
+    cmds.setAttr(f"{camera_transform}.translateY", 100)
+    cmds.setAttr(f"{camera_transform}.translateZ", 400)
+    cmds.setAttr(f"{camera_transform}.rotateX", -15)
+    cmds.setAttr(f"{camera_transform}.rotateY", 0)
+    cmds.setAttr(f"{camera_transform}.rotateZ", 0)
+    
+    # 렌더 카메라로 설정
+    cmds.setAttr(f"{camera_shape}.renderable", 1)
+    
+    # 다른 기본 카메라들의 renderable 속성을 끔
+    for cam in cmds.ls(type='camera'):
+        if cam != camera_shape:
+            cmds.setAttr(f"{cam}.renderable", 0)
     
     # 조명 설정
     key_light = cmds.directionalLight(name='keyLight', position=[100, 100, 100])
@@ -41,48 +63,6 @@ def setup_scene():
     
     fill_light = cmds.directionalLight(name='fillLight', position=[-50, 100, 50])
     cmds.setAttr(f"{fill_light}.intensity", 0.8)
-    
-    # 카메라는 나중에 설정
-    return None
-
-def setup_camera(bbox):
-    camera_transform, camera_shape = cmds.camera(name='renderCam')
-    
-    cam_settings = calculate_camera_position(bbox)
-    
-    cmds.setAttr(f"{camera_transform}.translateX", cam_settings['position'][0])
-    cmds.setAttr(f"{camera_transform}.translateY", cam_settings['position'][1])
-    cmds.setAttr(f"{camera_transform}.translateZ", cam_settings['position'][2])
-    
-    # 카메라가 캐릭터의 중심을 바라보도록 회전각 계산
-    target = cam_settings['target']
-    pos = cam_settings['position']
-    
-    # 카메라의 방향을 타겟으로 향하게 설정
-    direction = [
-        target[0] - pos[0],
-        target[1] - pos[1],
-        target[2] - pos[2]
-    ]
-    
-    # 회전각 계산 (라디안)
-    rot_x = -math.atan2(direction[1], math.sqrt(direction[0]**2 + direction[2]**2))
-    rot_y = math.atan2(direction[0], direction[2])
-    
-    # 라디안을 도로 변환하여 설정
-    cmds.setAttr(f"{camera_transform}.rotateX", math.degrees(rot_x))
-    cmds.setAttr(f"{camera_transform}.rotateY", math.degrees(rot_y))
-    cmds.setAttr(f"{camera_transform}.rotateZ", 0)
-    
-    cmds.setAttr(f"{camera_shape}.focalLength", 35)
-    cmds.setAttr(f"{camera_shape}.verticalFilmAperture", 1.417)
-    cmds.setAttr(f"{camera_shape}.filmFit", 1 if cam_settings['film_fit'] == 'horizontal' else 2)
-    
-    cmds.setAttr(f"{camera_shape}.renderable", 1)
-    
-    for cam in cmds.ls(type='camera'):
-        if cam != camera_shape:
-            cmds.setAttr(f"{cam}.renderable", 0)
     
     return camera_shape
 
@@ -96,30 +76,21 @@ def import_fbx(fbx_path):
         mel_cmd = f'FBXImport -file "{fbx_path}";'
         mel.eval(mel_cmd)
         
-        # 모든 메쉬의 바운딩 박스 계산
-        meshes = cmds.ls(type='mesh')
-        if not meshes:
-            raise Exception("No meshes found in the imported FBX")
-        
-        # 전체 바운딩 박스 계산
-        bbox = None
-        for mesh in meshes:
-            mesh_bbox = cmds.exactWorldBoundingBox(mesh)
-            if bbox is None:
-                bbox = list(mesh_bbox)
-            else:
-                bbox = [
-                    min(bbox[0], mesh_bbox[0]),  # min_x
-                    min(bbox[1], mesh_bbox[1]),  # min_y
-                    min(bbox[2], mesh_bbox[2]),  # min_z
-                    max(bbox[3], mesh_bbox[3]),  # max_x
-                    max(bbox[4], mesh_bbox[4]),  # max_y
-                    max(bbox[5], mesh_bbox[5])   # max_z
-                ]
-        
-        return bbox
-        
+        # 모든 조인트 선택
+        joints = cmds.ls(type='joint')
+        if joints:
+            # 캐릭터의 루트 조인트를 찾아서 위치 조정
+            root_joint = joints[0]
+            for joint in joints:
+                if cmds.listRelatives(joint, parent=True) is None:
+                    root_joint = joint
+                    break
+                    
+            # 캐릭터를 원점으로 이동
+            cmds.select(root_joint)
+            cmds.move(0, 0, 0, root_joint, absolute=True)
     except Exception as e:
+        print(f"Error importing FBX: {str(e)}")
         raise
 
 def setup_playback():
@@ -141,7 +112,7 @@ def setup_playback():
                 start_time = int(min(all_times))
                 end_time = int(max(all_times))
     
-    print(f"Animation frame range: {start_time} - {end_time}")
+    print(f">>> Animation frame range: from {start_time} to {end_time}, {start_time} - {end_time}")
     
     # 프레임 레이트 설정 (30fps)
     cmds.currentUnit(time='ntsc')
@@ -151,6 +122,7 @@ def setup_playback():
     cmds.playbackOptions(maxTime=end_time)
     
     return start_time, end_time
+
 
 def setup_software_renderer():
     # 렌더러를 Maya Software로 설정
@@ -225,30 +197,31 @@ def render_sequence(render_camera, output_dir, start_time, end_time, source_fbx_
 def main():
     # Maya standalone 모드 초기화
     maya.standalone.initialize()
+
+    # 출력 제거 설정
+    silence_output()
     
     if len(sys.argv) != 3:
         print("Usage: mayapy render_fbx_maya.py <input_fbx> <output_dir>")
         sys.exit(1)
     
     input_fbx = sys.argv[1]
-    output_dir = sys.argv[2] # "/Users/inseo/2024_KAI_Retargeting/render/"
+    output_dir = sys.argv[2]
     
     try:
         # 씬 설정 및 카메라 생성
-        # 기본 씬 설정
-        setup_scene()
+        render_camera = setup_scene()
+        print(f"Using render camera: {render_camera}")
         
-        # FBX 임포트 및 바운딩 박스 계산
-        bbox = import_fbx(input_fbx)
-
-        # 바운딩 박스 기반으로 카메라 설정
-        render_camera = setup_camera(bbox)
+        # FBX 임포트
+        import_fbx(input_fbx)
         
         # 플레이백 설정
         start_time, end_time = setup_playback()
         
         # Maya Software 렌더러 설정
         setup_software_renderer()
+        time.sleep(2)
         
         # 시퀀스 렌더링
         output_mp4 = render_sequence(render_camera, output_dir, start_time, end_time, input_fbx)
