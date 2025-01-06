@@ -1,4 +1,5 @@
 # mayapy render/render_fbx.py "./output/Adori/1-8_Waacking_Twirl_RT0702.fbx" "/Users/inseo/2024_KAI_Retargeting/render/"  
+# mayapy -q render_fbx.py ./test_results/20250106_201351/Adori2.1_qc/Adori/ChinUpStandingProudly_RT241205.fbx /Users/inseo/2024_KAI_Retargeting/test_results/20250106_201351/Adori2.1_qc/Adori
 import maya.cmds as cmds
 import logging
 import maya.mel as mel
@@ -7,9 +8,12 @@ import os
 import sys
 import maya.OpenMaya as OpenMaya
 import time 
+import math
+import maya.OpenMaya as om
+om.MGlobal.setLogLevel(om.MGlobal.kError)  # 에러만 표시
 
-# Maya 로그 레벨 설정
-# logging.getLogger('maya').setLevel(logging.CRITICAL)
+cmds.setAttr("defaultRenderGlobals.printGeometryWarnings", 0)
+cmds.setAttr("defaultRenderGlobals.printWarnings", 0)
 
 def silence_output():
     """Maya의 출력을 제거하는 함수"""
@@ -33,29 +37,165 @@ def silence_output():
     # cmds.setAttr("defaultRenderGlobals.printResourceStats", 0)
     # cmds.setAttr("defaultRenderGlobals.printRenderingStats", 0)
     
-
 def setup_scene():
     # 새로운 씬 생성
     cmds.file(new=True, force=True)
     
+    key_light_transform = cmds.directionalLight(name='keyLight')
+    # import pdb; pdb.set_trace()
+    cmds.move(200, 200, 200, key_light_transform)
+    cmds.rotate(-45, 45, 0, key_light_transform)
+    cmds.setAttr(f"{key_light_transform}.intensity", 2.0)
+    cmds.setAttr(f"{key_light_transform}.color", 1, 1, 1, type="double3")
+    
+    # 필 라이트 (반대쪽에서 그림자를 밝혀주는 보조 조명)
+    fill_light_transform = cmds.directionalLight(name='fillLight')
+    cmds.move(-150, 150, 150, fill_light_transform)
+    cmds.rotate(-30, -45, 0, fill_light_transform)
+    cmds.setAttr(f"{fill_light_transform}.intensity", 1.0)
+    cmds.setAttr(f"{fill_light_transform}.color", 0.8, 0.8, 1, type="double3")
+    
+    # 백 라이트 (뒤에서 비추어 입체감을 주는 조명)
+    back_light_transform = cmds.directionalLight(name='backLight')
+    cmds.move(0, 200, -200, back_light_transform)
+    cmds.rotate(-45, 0, 0, back_light_transform)
+    cmds.setAttr(f"{back_light_transform}.intensity", 1.0)
+    
+    # 앰비언트 라이트 (전체적인 기본 조명)
+    ambient_light_transform = cmds.ambientLight(name='ambientLight')
+    cmds.setAttr(f"{ambient_light_transform}.intensity", 0.2)
+    
+def calculate_camera_position(bbox):
+    """캐릭터의 바운딩 박스를 기반으로 카메라 위치 계산"""
+    min_x, min_y, min_z, max_x, max_y, max_z = bbox
+    
+    # 캐릭터의 높이와 너비 계산
+    height = max_y - min_y
+    width = max_x - min_x
+    depth = max_z - min_z
+    
+    # 캐릭터의 중심점 계산
+    center_x = (min_x + max_x) / 2
+    center_y = (min_y + max_y) / 2
+    center_z = (min_z + max_z) / 2
+    
+    # 기본 카메라 거리 계산
+    base_distance = max(height * 1.5, width * 2.5)
+
+    # 카메라 회전각 계산 (라디안)
+    rot_x = math.radians(-15)  # -15도
+    rot_y = math.radians(0)    # 0도
+    
+    # 회전 행렬 적용하여 카메라 위치 계산
+    # 먼저 카메라를 Z축 방향으로 이동
+    cam_x = 0
+    cam_y = 0
+    cam_z = base_distance
+    
+    # Y축 회전 (rot_y)
+    cos_y = math.cos(rot_y)
+    sin_y = math.sin(rot_y)
+    temp_x = cam_x * cos_y + cam_z * sin_y
+    temp_z = -cam_x * sin_y + cam_z * cos_y
+    cam_x = temp_x
+    cam_z = temp_z
+    
+    # X축 회전 (rot_x)
+    cos_x = math.cos(rot_x)
+    sin_x = math.sin(rot_x)
+    temp_y = cam_y * cos_x - cam_z * sin_x
+    temp_z = cam_y * sin_x + cam_z * cos_x
+    cam_y = temp_y
+    cam_z = temp_z
+    
+    # 캐릭터의 중심점을 기준으로 카메라 위치 조정
+    cam_x += center_x
+    cam_y += center_y + (height * 0.1)  # 캐릭터 높이의 10% 위에서 촬영
+    cam_z += center_z
+    
+    return {
+        'position': [cam_x, cam_y, cam_z],
+        'target': [center_x, center_y, center_z],
+        'rotation': [math.degrees(rot_x), math.degrees(rot_y), 0],
+        'film_fit': 'vertical' if height > width else 'horizontal'
+    }
+
+    # # 카메라 위치 계산
+    # cam_height = center_y + (height * 0.1)
+    # cam_distance = max(height * 1.5, width * 2.5)
+    
+    # return {
+    #     'position': [center_x, cam_height, center_z + cam_distance],
+    #     'target': [center_x, center_y, center_z],
+    #     'fov': 40,
+    #     'film_fit': 'vertical' if height > width else 'horizontal'
+    # }
+
+def setup_camera(bbox):
     # 카메라 생성 및 설정
     camera_transform, camera_shape = cmds.camera(name='renderCam')
-    print(f"Created camera: transform={camera_transform}, shape={camera_shape}")
+
+    # 카메라 설정 TODO 
+    cam_settings = calculate_camera_position(bbox)
     
-    cmds.setAttr(f"{camera_transform}.translateX", 0)
-    cmds.setAttr(f"{camera_transform}.translateY", 100)
-    cmds.setAttr(f"{camera_transform}.translateZ", 400)
-    cmds.setAttr(f"{camera_transform}.rotateX", -15)
-    cmds.setAttr(f"{camera_transform}.rotateY", 0)
-    cmds.setAttr(f"{camera_transform}.rotateZ", 0)
+    cmds.setAttr(f"{camera_transform}.translateX", cam_settings['position'][0])
+    cmds.setAttr(f"{camera_transform}.translateY", cam_settings['position'][1])
+    cmds.setAttr(f"{camera_transform}.translateZ", cam_settings['position'][2])
     
-    # 렌더 카메라로 설정
+    # 카메라가 캐릭터의 중심을 바라보도록 회전각 계산
+    # target = cam_settings['target']
+    # pos = cam_settings['position']
+    
+    # 카메라의 방향을 타겟으로 향하게 설정
+    # direction = [
+    #     target[0] - pos[0],
+    #     target[1] - pos[1],
+    #     target[2] - pos[2]
+    # ]
+    
+    # 회전각 계산 (라디안)
+    # rot_x = -math.atan2(direction[1], math.sqrt(direction[0]**2 + direction[2]**2))
+    # rot_y = math.atan2(direction[0], direction[2])
+    # rot_y = 0
+    
+    # 먼저 회전 설정
+    cmds.setAttr(f"{camera_transform}.rotateX", cam_settings['rotation'][0])
+    cmds.setAttr(f"{camera_transform}.rotateY", cam_settings['rotation'][1])
+    cmds.setAttr(f"{camera_transform}.rotateZ", cam_settings['rotation'][2])
+    
+    # 그 다음 위치 설정
+    cmds.setAttr(f"{camera_transform}.translateX", cam_settings['position'][0])
+    cmds.setAttr(f"{camera_transform}.translateY", cam_settings['position'][1])
+    cmds.setAttr(f"{camera_transform}.translateZ", cam_settings['position'][2])
+    
+    # 카메라 설정
+    cmds.setAttr(f"{camera_shape}.focalLength", 35)
+    cmds.setAttr(f"{camera_shape}.verticalFilmAperture", 1.417)
+    cmds.setAttr(f"{camera_shape}.filmFit", 1 if cam_settings['film_fit'] == 'horizontal' else 2)
+    
+    # 렌더링 카메라로 설정
     cmds.setAttr(f"{camera_shape}.renderable", 1)
     
-    # 다른 카메라들의 renderable 속성을 끔
     for cam in cmds.ls(type='camera'):
         if cam != camera_shape:
             cmds.setAttr(f"{cam}.renderable", 0)
+
+    # print(f"Created camera: transform={camera_transform}, shape={camera_shape}")
+    
+    # cmds.setAttr(f"{camera_transform}.translateX", 0)
+    # cmds.setAttr(f"{camera_transform}.translateY", 100)
+    # cmds.setAttr(f"{camera_transform}.translateZ", 400)
+    # cmds.setAttr(f"{camera_transform}.rotateX", -15)
+    # cmds.setAttr(f"{camera_transform}.rotateY", 0)
+    # cmds.setAttr(f"{camera_transform}.rotateZ", 0)
+    
+    # # 렌더 카메라로 설정
+    # cmds.setAttr(f"{camera_shape}.renderable", 1)
+    
+    # # 다른 카메라들의 renderable 속성을 끔
+    # for cam in cmds.ls(type='camera'):
+    #     if cam != camera_shape:
+    #         cmds.setAttr(f"{cam}.renderable", 0)
     
     return camera_shape
 
@@ -82,6 +222,27 @@ def import_fbx(fbx_path):
             # 캐릭터를 원점으로 이동
             cmds.select(root_joint)
             cmds.move(0, 0, 0, root_joint, absolute=True)
+
+        meshes = cmds.ls(type='mesh')
+        if not meshes:
+            raise Exception("No meshes found in the imported FBX")
+        bbox = None
+        for mesh in meshes:
+            mesh_bbox = cmds.exactWorldBoundingBox(mesh)
+            if bbox is None:
+                bbox = list(mesh_bbox)
+            else:
+                bbox = [
+                    min(bbox[0], mesh_bbox[0]),
+                    min(bbox[1], mesh_bbox[1]),
+                    min(bbox[2], mesh_bbox[2]),
+                    max(bbox[3], mesh_bbox[3]),
+                    max(bbox[4], mesh_bbox[4]),
+                    max(bbox[5], mesh_bbox[5])
+                ]
+        
+        return bbox
+        
     except Exception as e:
         print(f"Error importing FBX: {str(e)}")
         raise
@@ -129,10 +290,13 @@ def setup_software_renderer():
     cmds.setAttr("defaultResolution.width", 1920)
     cmds.setAttr("defaultResolution.height", 1080)
     cmds.setAttr("defaultResolution.deviceAspectRatio", 1.777777)
-    
+        
     # 렌더링 품질 설정
-    cmds.setAttr("defaultRenderQuality.shadingSamples", 2)
-    cmds.setAttr("defaultRenderQuality.maxShadingSamples", 8)
+    cmds.setAttr("defaultRenderQuality.shadingSamples", 4)  # 증가된 샘플링
+    cmds.setAttr("defaultRenderQuality.maxShadingSamples", 16)
+    
+    # 그림자 설정
+    cmds.setAttr("defaultRenderGlobals.enableDefaultLight", 0)  # 기본 조명 비활성화
     
     # 애니메이션 설정
     cmds.setAttr("defaultRenderGlobals.animation", 1)
@@ -201,23 +365,14 @@ def main():
     output_dir = sys.argv[2]
     
     try:
-        # 씬 설정 및 카메라 생성
-        render_camera = setup_scene()
-        print(f"Using render camera: {render_camera}")
-        
-        # FBX 임포트
-        import_fbx(input_fbx)
-        
-        # 플레이백 설정
+        setup_scene()
+        bbox = import_fbx(input_fbx)
+        render_camera = setup_camera(bbox)
         start_time, end_time = setup_playback()
-        
-        # Maya Software 렌더러 설정
         setup_software_renderer()
         time.sleep(1)
-        
-        # 시퀀스 렌더링
         output_mp4 = render_sequence(render_camera, output_dir, start_time, end_time, input_fbx)
-        
+
         print(f"Successfully created MP4: {output_mp4}")
         
     except Exception as e:
