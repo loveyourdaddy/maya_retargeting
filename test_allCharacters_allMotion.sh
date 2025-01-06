@@ -59,7 +59,21 @@ run_test_case() {
         if [ -f "$result_file" ]; then
             # 결과 파일이 존재하면 해당 디렉토리로 이동
             mv "$result_file" "$result_dir/"
-        else            log "Warning: Result file not found: $result_file \n"
+
+            # MP4 변환
+            log "Converting FBX to MP4 using Maya..."
+            local render_dir="$result_dir/render_${motion_name}"
+            mkdir -p "$render_dir"
+            mayapy render_fbx.py "$result_dir/$result_file" "$render_dir"
+            
+            if [ -f "$mp4_output" ]; then
+                log "✅ MP4 conversion successful: $mp4_output"
+            else
+                log "❌ MP4 conversion failed"
+            fi
+
+        else
+            log "Warning: Result file not found: $result_file \n"
         fi
         
         return 0
