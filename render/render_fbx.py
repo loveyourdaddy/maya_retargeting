@@ -52,17 +52,10 @@ def setup_scene():
     # 렌더 카메라로 설정
     cmds.setAttr(f"{camera_shape}.renderable", 1)
     
-    # 다른 기본 카메라들의 renderable 속성을 끔
+    # 다른 카메라들의 renderable 속성을 끔
     for cam in cmds.ls(type='camera'):
         if cam != camera_shape:
             cmds.setAttr(f"{cam}.renderable", 0)
-    
-    # 조명 설정
-    key_light = cmds.directionalLight(name='keyLight', position=[100, 100, 100])
-    cmds.setAttr(f"{key_light}.intensity", 1.5)
-    
-    fill_light = cmds.directionalLight(name='fillLight', position=[-50, 100, 50])
-    cmds.setAttr(f"{fill_light}.intensity", 0.8)
     
     return camera_shape
 
@@ -178,7 +171,6 @@ def render_sequence(render_camera, output_dir, start_time, end_time, source_fbx_
             # 카메라 shape 노드로 렌더링
             cmds.render(render_camera, x=1920, y=1080, b=True)
         except Exception as e:
-            print(f"Error rendering frame {frame}: {str(e)}")
             raise
     
     # 이미지 시퀀스를 MP4로 변환
@@ -186,10 +178,10 @@ def render_sequence(render_camera, output_dir, start_time, end_time, source_fbx_
     output_mp4 = os.path.join(output_dir, f"{motion_name}.mp4")
     
     # ffmpeg를 사용하여 이미지 시퀀스를 MP4로 변환
-    os.system(f'ffmpeg -framerate 30 -pattern_type glob -i "{image_pattern}" '
-             f'-c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p "{output_mp4}"')
+    os.system(f'ffmpeg -y -hide_banner -loglevel panic -framerate 30 '
+             f'-pattern_type glob -i "{image_pattern}" '
+             f'-c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p "{output_mp4}" 2>/dev/null')
     
-    # 임시 이미지 파일들 정리
     os.system(f'rm -rf "{image_dir}"')
     
     return output_mp4
@@ -221,7 +213,7 @@ def main():
         
         # Maya Software 렌더러 설정
         setup_software_renderer()
-        time.sleep(2)
+        time.sleep(1)
         
         # 시퀀스 렌더링
         output_mp4 = render_sequence(render_camera, output_dir, start_time, end_time, input_fbx)
