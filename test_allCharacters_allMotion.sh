@@ -54,24 +54,27 @@ run_test_case() {
         target_name=$(basename "$target_char" .fbx)
         motion_name=$(basename "$source_motion" .fbx)
         result_file="${motion_name}.fbx"
-        result_dir="$BASE_TEST_DIR/${source_name}/${target_name}"
-        
-        if [ -f "$result_file" ]; then
-            # 결과 파일이 존재하면 해당 디렉토리로 이동
-            mv "$result_file" "$result_dir/"
 
+        # dir
+        result_dir="$BASE_TEST_DIR/${source_name}/${target_name}"
+
+        # video path
+        result_full_dir="/Users/inseo/2024_KAI_Retargeting/test_videos/${TEST_DATE}/${source_name}/${target_name}"
+
+        if [ -f "$result_file" ]; then
+            # 결과 fbx 파일이 존재하면 해당 디렉토리로 이동
+            mv "$result_file" "$result_dir/"
+            
             # MP4 변환
             log "Converting FBX to MP4 using Maya..."
-            local render_dir="$result_dir/render_${motion_name}"
-            mkdir -p "$render_dir"
-            mayapy render_fbx.py "$result_dir/$result_file" "$render_dir"
+            mkdir -p "$result_full_dir"
+            mayapy -q render_fbx.py "$result_dir/$result_file" "$result_full_dir" # video_output
             
-            if [ -f "$mp4_output" ]; then
-                log "✅ MP4 conversion successful: $mp4_output"
+            if [ -f "$result_full_dir" ]; then
+                log "✅ MP4 conversion successful: $result_full_dir"
             else
                 log "❌ MP4 conversion failed"
             fi
-
         else
             log "Warning: Result file not found: $result_file \n"
         fi
@@ -84,13 +87,50 @@ run_test_case() {
     fi
 }
 
+# # 테스트 케이스 실행 함수
+# get_video() {
+#     local source_char="$1"
+#     local source_motion="$2"
+#     local target_char="$3"
+#     local test_name="$4"
+    
+#     # 결과 FBX 파일 이동
+#     source_name=$(basename "$source_char" .fbx)
+#     target_name=$(basename "$target_char" .fbx)
+#     motion_name=$(basename "$source_motion" .fbx)
+#     result_file="${motion_name}.fbx"
+
+#     # dir
+#     result_dir="$BASE_TEST_DIR/${source_name}/${target_name}"
+
+#     # video path
+#     result_full_dir="/Users/inseo/2024_KAI_Retargeting/test_videos/${TEST_DATE}/${source_name}/${target_name}"
+
+#     if [ -f "$result_file" ]; then
+#         # MP4 변환
+#         log "Converting FBX to MP4 using Maya..."
+#         mkdir -p "$result_full_dir"
+#         mayapy -q render_fbx.py "$result_dir/$result_file" "$result_full_dir" # video_output
+        
+#         if [ -f "$result_full_dir" ]; then
+#             log "✅ MP4 conversion successful: $result_full_dir"
+#         else
+#             log "❌ MP4 conversion failed"
+#         fi
+
+#     else
+#         log "Warning: Result file not found: $result_file \n"
+#     fi
+    
+#     return 0
+# }
+
 get_first_motion() {
     local character="$1"
     local motion_dir="./motions/${character}"
     
     # local first_motion=$(find "$motion_dir" -name "*.fbx" | sort | head -n 5 | tail -n 1)
     local first_motion=$(find "$motion_dir" -name "*.fbx" | grep -iv "Tpose\|t-pose\|t_pose" | sort | head -n 5 | tail -n 1)
-    # Tpose 제외해주기
 
     if [ -n "$first_motion" ]; then
         echo "$first_motion"
@@ -124,10 +164,10 @@ src_characters=(
     # "Asooni"
     # "Asooni2.1"
 
-    # "Adori_qc"
+    "Adori_qc"
     "Adori2.1_qc"
-    # "Asooni_qc"
-    # "Asooni2.1_qc"
+    "Asooni_qc"
+    "Asooni2.1_qc"
 
     # "Metahuman"
     # "Minecraft"
@@ -154,7 +194,6 @@ tgt_characters=(
 # 결과 카운터 초기화
 total_tests=0
 passed_tests=0
-# mayapy retargeting_different_axis.py --sourceChar "./models/Adori_qc/Adori_qc.fbx" --sourceMotion "./motions/Adori_qc/Annoyance2_RT0819.fbx" --targetChar "./models/Adori2.0/Adori2.0.fbx"
 
 # 각 캐릭터 조합으로 테스트 실행
 for source in "${src_characters[@]}"; do
@@ -162,10 +201,8 @@ for source in "${src_characters[@]}"; do
     SOURCE_DIR="$BASE_TEST_DIR/${source}"
     mkdir -p "$SOURCE_DIR"
 
-    # 소스 캐릭터의 첫 번째 모션 파일 찾기/ 소스 캐릭터의 모든 모션 파일 가져오기
-    # CHANGE This: First motion
-    # motion_files=($(get_all_motions "$source"))
-    motion_files=($(get_first_motion "$source"))
+    # 소스 캐릭터의 첫 번째 모션 / 모든 모션 가져오기
+    motion_files=($(get_first_motion "$source")) # ($(get_all_motions "$source"))
     log "Found ${#motion_files[@]} motion files for $source"
     
     # 각 모션 파일에 대해 테스트
@@ -173,7 +210,7 @@ for source in "${src_characters[@]}"; do
         motion_name=$(basename "$motion_file" .fbx)
         log "Processing motion: $motion_name"
 
-        # target 
+        # target
         for target in "${tgt_characters[@]}"; do
             if [ "$source" != "$target" ]; then
                 # 결과 파일을 저장할 타겟 디렉토리 생성
@@ -184,7 +221,7 @@ for source in "${src_characters[@]}"; do
                 source_char="./models/${source}/${source}.fbx"
                 source_motion="$motion_file"
                 target_char="./models/${target}/${target}.fbx"
-                test_name="${source}_to_${target}_${motion_name}" #"${source}to${target}_Tpose"
+                test_name="${source}_to_${target}_${motion_name}"
                 
                 ((total_tests++))
                 if run_test_case "$source_char" "$source_motion" "$target_char" "$test_name"; then
@@ -213,3 +250,45 @@ log "Success rate: ${success_rate}%"
 echo ""
 echo "Test completed. Logs are saved in:"
 echo "Test results: $TEST_RESULTS"
+
+
+# # Render
+# for source in "${src_characters[@]}"; do
+#     # 소스 캐릭터별 디렉토리 생성
+#     SOURCE_DIR="$BASE_TEST_DIR/${source}"
+#     mkdir -p "$SOURCE_DIR"
+
+#     # 소스 캐릭터의 첫 번째 모션 / 모든 모션 가져오기
+#     motion_files=($(get_first_motion "$source")) # ($(get_all_motions "$source"))
+#     log "Found ${#motion_files[@]} motion files for $source"
+    
+#     # 각 모션 파일에 대해 테스트
+#     for motion_file in "${motion_files[@]}"; do
+#         motion_name=$(basename "$motion_file" .fbx)
+#         log "Processing motion: $motion_name"
+
+#         # target
+#         for target in "${tgt_characters[@]}"; do
+#             if [ "$source" != "$target" ]; then
+#                 # 결과 파일을 저장할 타겟 디렉토리 생성
+#                 TARGET_DIR="$SOURCE_DIR/${target}"
+#                 mkdir -p "$TARGET_DIR"
+                
+#                 # 테스트 케이스 구성
+#                 source_char="./models/${source}/${source}.fbx"
+#                 source_motion="$motion_file"
+#                 target_char="./models/${target}/${target}.fbx"
+#                 test_name="${source}_to_${target}_${motion_name}"
+                
+#                 ((total_tests++))
+#                 if get_video "$source_char" "$source_motion" "$target_char" "$test_name"; then
+#                     ((passed_tests++))
+#                 fi
+                
+#                 # 테스트 간 간격
+#                 sleep 2
+#             fi
+#         done
+#     done
+# done
+

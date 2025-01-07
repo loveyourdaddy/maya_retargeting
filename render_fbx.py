@@ -1,5 +1,4 @@
 # mayapy render/render_fbx.py "./output/Adori/1-8_Waacking_Twirl_RT0702.fbx" "/Users/inseo/2024_KAI_Retargeting/render/"  
-# mayapy -q render_fbx.py ./test_results/20250106_201351/Adori2.1_qc/Adori/ChinUpStandingProudly_RT241205.fbx /Users/inseo/2024_KAI_Retargeting/test_results/20250106_201351/Adori2.1_qc/Adori
 import maya.cmds as cmds
 import logging
 import maya.mel as mel
@@ -9,11 +8,6 @@ import sys
 import maya.OpenMaya as OpenMaya
 import time 
 import math
-import maya.OpenMaya as om
-om.MGlobal.setLogLevel(om.MGlobal.kError)  # 에러만 표시
-
-cmds.setAttr("defaultRenderGlobals.printGeometryWarnings", 0)
-cmds.setAttr("defaultRenderGlobals.printWarnings", 0)
 
 def silence_output():
     """Maya의 출력을 제거하는 함수"""
@@ -42,7 +36,6 @@ def setup_scene():
     cmds.file(new=True, force=True)
     
     key_light_transform = cmds.directionalLight(name='keyLight')
-    # import pdb; pdb.set_trace()
     cmds.move(200, 200, 200, key_light_transform)
     cmds.rotate(-45, 45, 0, key_light_transform)
     cmds.setAttr(f"{key_light_transform}.intensity", 2.0)
