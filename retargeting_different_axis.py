@@ -1,10 +1,5 @@
-"""
-Usage:
-mayapy retargeting_different_axis.py --sourceMotion "" --targetChar ""
-
-example:
-mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
-"""
+# mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
+# mayapy retargeting_different_axis.py --sourceChar "./models/Asooni_qc/Asooni_qc.fbx" --sourceMotion "./motions/Asooni_qc/11166_Javan_004_RT1228.fbx" --targetChar "./models/UE/UE.fbx"
 
 ''' 
 Naming

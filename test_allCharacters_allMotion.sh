@@ -68,7 +68,9 @@ run_test_case() {
             # MP4 변환
             log "Converting FBX to MP4 using Maya..."
             mkdir -p "$result_full_dir"
-            mayapy -q render_fbx.py "$result_dir/$result_file" "$result_full_dir" # video_output
+            # mayapy -q render_fbx.py "$result_dir/$result_file" "$result_full_dir"
+            blender -b -P render_fbx.py -- "$result_dir/$result_file" "$result_full_dir"
+            echo "blender -b -P render_fbx.py -- $result_dir/$result_file $result_full_dir"
             
             if [ -f "$result_full_dir" ]; then
                 log "✅ MP4 conversion successful: $result_full_dir"
@@ -124,12 +126,12 @@ src_characters=(
     # "Adori2.0"
     # "Adori2.1"
     # "Asooni"
-    # "Asooni2.1"
+    # "Asooni2.0"
 
     "Adori_qc"
     "Adori2.1_qc"
     "Asooni_qc"
-    "Asooni2.1_qc"
+    "Asooni2.0_qc"
 
     # "Metahuman"
     # "Minecraft"
@@ -143,7 +145,7 @@ tgt_characters=(
     "Adori2.0"
     "Asooni"
     "Adori2.1"
-    "Asooni2.1"
+    "Asooni2.0"
 
     "Metahuman"
     "Minecraft"
