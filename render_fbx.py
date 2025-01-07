@@ -1,36 +1,14 @@
 # mayapy render/render_fbx.py "./output/Adori/1-8_Waacking_Twirl_RT0702.fbx" "/Users/inseo/2024_KAI_Retargeting/render/"  
 import maya.cmds as cmds
-import logging
+# import logging
 import maya.mel as mel
 import maya.standalone
 import os
 import sys
-import maya.OpenMaya as OpenMaya
+# import maya.OpenMaya as OpenMaya
 import time 
 import math
 
-def silence_output():
-    """Maya의 출력을 제거하는 함수"""
-    # OpenMaya.MGlobal.executeCommand("scriptEditorInfo -suppressResults true -suppressErrors true -suppressWarnings true -suppressInfo true;", False, False)
-    # OpenMaya.MGlobal.executeCommand("scriptEditorInfo -suppressStackTrace true;", False, False)
-    # # 렌더링 진행상황 메시지 제거
-    # OpenMaya.MGlobal.executeCommand("scriptEditorInfo -suppressResolutionInformation true;", False, False)
-    # 모든 Maya 출력 제거
-    mel.eval('scriptEditorInfo -suppressInfo true;')
-    mel.eval('scriptEditorInfo -suppressWarnings true;')
-    mel.eval('scriptEditorInfo -suppressErrors true;')
-    mel.eval('scriptEditorInfo -suppressResults true;')
-    
-    # 렌더링 관련 출력 제거
-    mel.eval('putenv "MAYA_SUPPRESS_RENDERING_PERFORMANCE_STATS" "1";')
-    mel.eval('putenv "MAYA_SUPPRESS_RENDERING_STATS" "1";')
-    mel.eval('putenv "MAYA_DISABLE_PERFORMANCE_STATS" "1";')
-    
-    # 추가 렌더 설정
-    # cmds.setAttr("defaultRenderGlobals.printGeometryStats", 0)
-    # cmds.setAttr("defaultRenderGlobals.printResourceStats", 0)
-    # cmds.setAttr("defaultRenderGlobals.printRenderingStats", 0)
-    
 def setup_scene():
     # 새로운 씬 생성
     cmds.file(new=True, force=True)
@@ -113,17 +91,6 @@ def calculate_camera_position(bbox):
         'film_fit': 'vertical' if height > width else 'horizontal'
     }
 
-    # # 카메라 위치 계산
-    # cam_height = center_y + (height * 0.1)
-    # cam_distance = max(height * 1.5, width * 2.5)
-    
-    # return {
-    #     'position': [center_x, cam_height, center_z + cam_distance],
-    #     'target': [center_x, center_y, center_z],
-    #     'fov': 40,
-    #     'film_fit': 'vertical' if height > width else 'horizontal'
-    # }
-
 def setup_camera(bbox):
     # 카메라 생성 및 설정
     camera_transform, camera_shape = cmds.camera(name='renderCam')
@@ -134,22 +101,6 @@ def setup_camera(bbox):
     cmds.setAttr(f"{camera_transform}.translateX", cam_settings['position'][0])
     cmds.setAttr(f"{camera_transform}.translateY", cam_settings['position'][1])
     cmds.setAttr(f"{camera_transform}.translateZ", cam_settings['position'][2])
-    
-    # 카메라가 캐릭터의 중심을 바라보도록 회전각 계산
-    # target = cam_settings['target']
-    # pos = cam_settings['position']
-    
-    # 카메라의 방향을 타겟으로 향하게 설정
-    # direction = [
-    #     target[0] - pos[0],
-    #     target[1] - pos[1],
-    #     target[2] - pos[2]
-    # ]
-    
-    # 회전각 계산 (라디안)
-    # rot_x = -math.atan2(direction[1], math.sqrt(direction[0]**2 + direction[2]**2))
-    # rot_y = math.atan2(direction[0], direction[2])
-    # rot_y = 0
     
     # 먼저 회전 설정
     cmds.setAttr(f"{camera_transform}.rotateX", cam_settings['rotation'][0])
@@ -172,23 +123,6 @@ def setup_camera(bbox):
     for cam in cmds.ls(type='camera'):
         if cam != camera_shape:
             cmds.setAttr(f"{cam}.renderable", 0)
-
-    # print(f"Created camera: transform={camera_transform}, shape={camera_shape}")
-    
-    # cmds.setAttr(f"{camera_transform}.translateX", 0)
-    # cmds.setAttr(f"{camera_transform}.translateY", 100)
-    # cmds.setAttr(f"{camera_transform}.translateZ", 400)
-    # cmds.setAttr(f"{camera_transform}.rotateX", -15)
-    # cmds.setAttr(f"{camera_transform}.rotateY", 0)
-    # cmds.setAttr(f"{camera_transform}.rotateZ", 0)
-    
-    # # 렌더 카메라로 설정
-    # cmds.setAttr(f"{camera_shape}.renderable", 1)
-    
-    # # 다른 카메라들의 renderable 속성을 끔
-    # for cam in cmds.ls(type='camera'):
-    #     if cam != camera_shape:
-    #         cmds.setAttr(f"{cam}.renderable", 0)
     
     return camera_shape
 
@@ -346,9 +280,6 @@ def render_sequence(render_camera, output_dir, start_time, end_time, source_fbx_
 def main():
     # Maya standalone 모드 초기화
     maya.standalone.initialize()
-
-    # 출력 제거 설정
-    silence_output()
     
     if len(sys.argv) != 3:
         print("Usage: mayapy render_fbx_maya.py <input_fbx> <output_dir>")

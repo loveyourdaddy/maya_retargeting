@@ -16,7 +16,7 @@ echo "Results in: $BASE_TEST_DIR"
 
 # 로그 파일 설정 - logs 디렉토리 안에 저장
 LOG_FILE="$LOGS_DIR/retargeting_test_$(date +%Y%m%d_%H%M%S).log"
-TEST_RESULTS="$LOGS_DIR/test_results_$(date +%Y%m%d_%H%M%S).txt"
+TEST_RESULTS="$LOGS_DIR/test_results_$(date +%Y%m%d_%H%M%S).txt" # failed test list
 
 # 로그 함수
 log() {
@@ -64,7 +64,7 @@ run_test_case() {
         if [ -f "$result_file" ]; then
             # 결과 fbx 파일이 존재하면 해당 디렉토리로 이동
             mv "$result_file" "$result_dir/"
-            
+
             # MP4 변환
             log "Converting FBX to MP4 using Maya..."
             mkdir -p "$result_full_dir"
@@ -86,44 +86,6 @@ run_test_case() {
         return 1
     fi
 }
-
-# # 테스트 케이스 실행 함수
-# get_video() {
-#     local source_char="$1"
-#     local source_motion="$2"
-#     local target_char="$3"
-#     local test_name="$4"
-    
-#     # 결과 FBX 파일 이동
-#     source_name=$(basename "$source_char" .fbx)
-#     target_name=$(basename "$target_char" .fbx)
-#     motion_name=$(basename "$source_motion" .fbx)
-#     result_file="${motion_name}.fbx"
-
-#     # dir
-#     result_dir="$BASE_TEST_DIR/${source_name}/${target_name}"
-
-#     # video path
-#     result_full_dir="/Users/inseo/2024_KAI_Retargeting/test_videos/${TEST_DATE}/${source_name}/${target_name}"
-
-#     if [ -f "$result_file" ]; then
-#         # MP4 변환
-#         log "Converting FBX to MP4 using Maya..."
-#         mkdir -p "$result_full_dir"
-#         mayapy -q render_fbx.py "$result_dir/$result_file" "$result_full_dir" # video_output
-        
-#         if [ -f "$result_full_dir" ]; then
-#             log "✅ MP4 conversion successful: $result_full_dir"
-#         else
-#             log "❌ MP4 conversion failed"
-#         fi
-
-#     else
-#         log "Warning: Result file not found: $result_file \n"
-#     fi
-    
-#     return 0
-# }
 
 get_first_motion() {
     local character="$1"
@@ -250,45 +212,3 @@ log "Success rate: ${success_rate}%"
 echo ""
 echo "Test completed. Logs are saved in:"
 echo "Test results: $TEST_RESULTS"
-
-
-# # Render
-# for source in "${src_characters[@]}"; do
-#     # 소스 캐릭터별 디렉토리 생성
-#     SOURCE_DIR="$BASE_TEST_DIR/${source}"
-#     mkdir -p "$SOURCE_DIR"
-
-#     # 소스 캐릭터의 첫 번째 모션 / 모든 모션 가져오기
-#     motion_files=($(get_first_motion "$source")) # ($(get_all_motions "$source"))
-#     log "Found ${#motion_files[@]} motion files for $source"
-    
-#     # 각 모션 파일에 대해 테스트
-#     for motion_file in "${motion_files[@]}"; do
-#         motion_name=$(basename "$motion_file" .fbx)
-#         log "Processing motion: $motion_name"
-
-#         # target
-#         for target in "${tgt_characters[@]}"; do
-#             if [ "$source" != "$target" ]; then
-#                 # 결과 파일을 저장할 타겟 디렉토리 생성
-#                 TARGET_DIR="$SOURCE_DIR/${target}"
-#                 mkdir -p "$TARGET_DIR"
-                
-#                 # 테스트 케이스 구성
-#                 source_char="./models/${source}/${source}.fbx"
-#                 source_motion="$motion_file"
-#                 target_char="./models/${target}/${target}.fbx"
-#                 test_name="${source}_to_${target}_${motion_name}"
-                
-#                 ((total_tests++))
-#                 if get_video "$source_char" "$source_motion" "$target_char" "$test_name"; then
-#                     ((passed_tests++))
-#                 fi
-                
-#                 # 테스트 간 간격
-#                 sleep 2
-#             fi
-#         done
-#     done
-# done
-
