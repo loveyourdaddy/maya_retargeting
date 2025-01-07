@@ -69,8 +69,7 @@ def main():
     tgt_joints_origin, tgt_joints_original_name, tgt_root_joint, tgt_root_joints = get_tgt_joints()
     parent_node = cmds.listRelatives(tgt_root_joint, parent=True, shapes=True)[-1]
 
-    ''' rename joint '''
-    # renamed by template
+    # joint templated
     tgt_joints_template = rename_joint_by_template(tgt_joints_origin)
 
     # locator
@@ -78,6 +77,9 @@ def main():
         tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos = get_locator(parent_node)
     else:
         tgt_locator = None
+    # rename tgt
+    tgt_locator = add_namespace_for_joints([tgt_locator], "tgt")[0]
+    
     
     # locator list
     tgt_locator_list = []
@@ -230,12 +232,12 @@ def main():
             cmds.rename('tgt:'+joint, namespace+joint)
         else:
             cmds.rename('tgt:'+joint, joint)
+    
+    # rename tgt locator
+    tgt_locator_list = remove_namespace_for_joints(tgt_locator_list)[0]
 
-    # rename tgt joints
-    # TODO: locator의 이름이 같을때 대응할수없음
-    # tgt_locator = remove_namespace_for_joints([tgt_locator])[0]
 
-    # Run the function
+    # Delete node 
     delete_all_transform_nodes()
 
     # export
