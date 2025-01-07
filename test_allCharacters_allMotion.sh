@@ -47,6 +47,7 @@ run_test_case() {
         record_test_result "$test_name" "FAIL" 
         return 1
     elif python retargeting_request.py "$source_char" "$source_motion" "$target_char" 2>> "$LOG_FILE"; then
+        # success
         log "✅ \n" # Test case $test_name successful
         
         # 결과 FBX 파일 이동
@@ -68,15 +69,16 @@ run_test_case() {
             # MP4 변환
             log "Converting FBX to MP4 using Maya..."
             mkdir -p "$result_full_dir"
-            # mayapy -q render_fbx.py "$result_dir/$result_file" "$result_full_dir"
-            blender -b -P render_fbx.py -- "$result_dir/$result_file" "$result_full_dir"
-            echo "blender -b -P render_fbx.py -- $result_dir/$result_file $result_full_dir"
-            
-            if [ -f "$result_full_dir" ]; then
-                log "✅ MP4 conversion successful: $result_full_dir"
+            if [ $3 = "./models/UE/UE.fbx" ]; then
+                # maya
+                echo "mayapy render_fbx_maya.py "$result_dir/$result_file" "$result_full_dir""
+                mayapy render_fbx_maya.py "$result_dir/$result_file" "$result_full_dir"
             else
-                log "❌ MP4 conversion failed"
+                # blender
+                echo "/Applications/Blender.app/Contents/MacOS/Blender -b -P render_fbx_blender.py -- "$result_dir/$result_file" "$result_full_dir""
+                /Applications/Blender.app/Contents/MacOS/Blender -b -P render_fbx_blender.py -- "$result_dir/$result_file" "$result_full_dir"
             fi
+            
         else
             log "Warning: Result file not found: $result_file \n"
         fi

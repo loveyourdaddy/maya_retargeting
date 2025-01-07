@@ -358,7 +358,6 @@ def download_file_api():
 
     # load 
     if target_character_path and source_motion_path:
-        # import pdb; pdb.set_trace()
         target_char_name = target_character_path.split('/')[-1][:-len('.fbx')] # .split('.')[0]
         motion_name = source_motion_path.split('/')[-1]
         file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, motion_name)

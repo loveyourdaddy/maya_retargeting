@@ -1,5 +1,5 @@
 # blender -b -P render_fbx.py -- "./output/Adori/1-8_Waacking_Twirl_RT0702.fbx" "/Users/inseo/2024_KAI_Retargeting/"
-# blender -b -P render_fbx.py -- "./test_results/20250107_122504/Adori_qc/Adori2.1/Confident_004_RT0830.fbx" "/Users/inseo/2024_KAI_Retargeting/test_videos/20250107_122504/Adori_qc/Adori2.1"
+# blender -b -P render_fbx.py -- "./test_results/20250107_122504/Adori_qc/Adori_qc/Confident_004_RT0830.fbx" "/Users/inseo/2024_KAI_Retargeting/test_videos/20250107_122504/Adori2.1/Adori2.1"
 
 import bpy
 import math
@@ -8,7 +8,6 @@ import sys
 import time
 from mathutils import Vector
 import time 
-import pdb; 
 
 def clean_scene():
     """새로운 씬을 생성합니다."""
@@ -124,7 +123,6 @@ def import_fbx(fbx_path):
 def setup_render_settings():
     """렌더링 설정을 구성합니다."""
     # 프레임 완료 핸들러 등록
-    # import pdb; pdb.set_trace()
     bpy.app.handlers.render_complete.clear()
     # bpy.app.handlers.render_complete.append(frame_complete_callback)
     
@@ -133,10 +131,6 @@ def setup_render_settings():
     bpy.context.preferences.view.show_tooltips = False
     bpy.context.preferences.view.show_tooltips_python = False
     
-    # 렌더링 중 콘솔 출력 제한
-    # bpy.context.scene.render.use_progress = False
-    # bpy.context.scene.render.use_stats = False
-
     scene = bpy.context.scene
     
     # 렌더러 설정
@@ -150,7 +144,6 @@ def setup_render_settings():
     scene.render.image_settings.file_format = 'FFMPEG'
     scene.render.ffmpeg.format = 'MPEG4' # MPEG4
     scene.render.ffmpeg.codec = 'H264'
-    # scene.render.ffmpeg.constant_rate_factor = '23'
     scene.render.ffmpeg.ffmpeg_preset = 'REALTIME' # BEST', 'GOOD', 'REALTIME' TODO
     
     # 프레임 레이트 설정
@@ -168,19 +161,17 @@ def setup_animation():
     start_frame = float('inf')
     end_frame = float('-inf')
     
-    # pdb.set_trace()
     for action in bpy.data.actions:
         if action.frame_range[0] < start_frame:
             start_frame = action.frame_range[0]
         if action.frame_range[1] > end_frame:
             end_frame = action.frame_range[1]
     
-    # pdb.set_trace()
     if start_frame == float('inf'):
         start_frame = 1
     if end_frame == float('-inf'):
         end_frame = 250
-    end_frame = 2
+    end_frame = 2 # TODO
     
     # 프레임 범위 설정
     bpy.context.scene.frame_start = int(start_frame)
@@ -207,7 +198,6 @@ def main():
         sys.exit(1)
     
     # Blender의 기본 인자 이후의 인자들을 가져옴
-    # pdb.set_trace()
     args = sys.argv[sys.argv.index("--") + 1:]
     input_fbx = args[0]
     output_dir = args[1]
@@ -217,7 +207,6 @@ def main():
         # 씬 초기화
         clean_scene()
         
-        # pdb.set_trace()
         # 렌더링 설정
         setup_lighting()
         setup_camera()
@@ -227,7 +216,6 @@ def main():
         import_fbx(input_fbx)
         start_frame, end_frame = setup_animation()
         print(f"Frame: {start_frame} ~ {end_frame}")
-        # pdb.set_trace()
         
         # 렌더링 실행
         output_path = render_animation(output_dir, input_fbx)
