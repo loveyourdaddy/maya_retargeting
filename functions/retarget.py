@@ -171,10 +171,12 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
 
                 # 다른 조인트에 속하는 경우, 제외해주기
                 if check_common_string_in_value_of_other_list(src_joint, tgt_joint):
+                    # import pdb; pdb.set_trace()
                     continue
 
-                # add root division forcely: division 조인트를 넣어주기
-                if root_check_flag==False and src_idx >= src_root_div_jid and tgt_idx >= tgt_root_div_jid:
+                # add root division
+                # division의 다음 조인트로 넘어갔을때, 이전 조인트를 강제로 division 조인트로 바꿔주기
+                if root_check_flag==False and src_idx > src_root_div_jid and tgt_idx > tgt_root_div_jid:
                     if src_joint not in src_common_joint and tgt_joint not in tgt_common_joint:
                         if len(src_common_joint)==0:
                             src_common_joint.append(src_root_div)
@@ -188,10 +190,10 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
                             tgt_indices[-1] = tgt_root_div_jid
 
                     root_check_flag = True
-                    break
+                    # break
 
                 # add spine division
-                if spine_check_flag==False and src_idx >= src_spine_div_jid and tgt_idx >= tgt_spine_div_jid:
+                if spine_check_flag==False and src_idx > src_spine_div_jid and tgt_idx > tgt_spine_div_jid:
                     if src_joint not in src_common_joint and tgt_joint not in tgt_common_joint:
                         if src_indices[-1]!=src_root_div_jid and tgt_indices[-1]!=tgt_root_div_jid:
                             # 이미 들어와있는 조인트의 마지막이 hips가 아니라면, spine division을 넣어주기
@@ -207,14 +209,14 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
                             tgt_indices.append(tgt_spine_div_jid)
                     
                     spine_check_flag = True
-                    break
+                    # break
 
                 src_common_joint.append(src_joint)
                 tgt_common_joint.append(tgt_joint)
                 src_indices.append(src_idx)
                 tgt_indices.append(tgt_idx)
                 check = True
-                # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
+                print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
                 break
         if check:
             continue
@@ -403,7 +405,6 @@ def check_common_string_in_value_of_other_list(src_joint, tgt_joint):
             check_find_key = True
             break
     
-    # 다른 키에 속하는지 확인
     # 다른 키에 속하는 경우, 제외해주기.
     if check_find_key:
         check_other_key = False
@@ -413,7 +414,10 @@ def check_common_string_in_value_of_other_list(src_joint, tgt_joint):
                 continue
 
             # 방향 제외 (_l, _r_)
-            values_wo_lr = [value[:-2] for value in values]
+            values_wo_lr = []
+            for value in values:
+                if "_l" in value or "_r" in value:
+                    values_wo_lr.append(value[:-2])
 
             # 다른 key 확인
             # 1 다른 조인트의 values에 속하지 않고, 2 finger가 아닌 경우, 3 hand가 아닌 경우 (hand_L, hand_R이 겹칠수있음)

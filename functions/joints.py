@@ -18,11 +18,11 @@ template_joints = [
 
 alter_joint_name = {
     "Hips":["Root", "Pelvis", "LowerTorso", "Bone"], 
-    "Spine":["UpperTorso",], 
-    "Spine1":["chest", "spine_1", "spine_01"], 
-    "Spine2":["chestUpper", "spine_2", "spine_02"], 
-    "Spine3":["chestUpper", "spine_3", "spine_03"], 
-    "Spine4":["chestUpper", "spine_4", "spine_04", "BoneFBXASC046001"], 
+    "Spine":["UpperTorso", 'spine'], 
+    "Spine1":["chest", "spine_1", "spine_02"], 
+    "Spine2":["chestUpper", "spine_2", "spine_03"], 
+    "Spine3":["chestUpper", "spine_3", "spine_04"], 
+    "Spine4":["chestUpper", "spine_4", "spine_05", "BoneFBXASC046001"], 
 
     "Neck":["neck_01", "BoneFBXASC046006"], 
     "Head":["head",], 
@@ -153,6 +153,8 @@ def rename_joint_by_template(joints):
         check = False
         for key_joint, alter_joints in alter_joint_name.items():
             for alter_joint in alter_joints:
+                # if joints=="ACHID:" and key_joint=="Spine3":
+                #     import pdb; pdb.set_trace()
                 # list 안에 있고, 이미 등록되지 않다면
                 if (joint.lower() in alter_joint.lower() or alter_joint.lower() in joint.lower()) and key_joint not in ret_joints:
                     joint = key_joint
@@ -171,7 +173,7 @@ def rename_joint_by_template(joints):
                         joint = "finger_"+key_joint
                     
         ret_joints.append(joint)
-
+        
     return ret_joints
 
 """Root """
