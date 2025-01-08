@@ -28,29 +28,29 @@ def setup_lighting():
     """조명을 설정합니다."""
     # 키 라이트 (주 조명)
     key_light = bpy.data.lights.new(name='Key_Light', type='SUN')
-    key_light.energy = 5.0
-    key_light.color = (1, 1, 1)
+    key_light.energy = 7.0
+    # key_light.color = (1, 1, 1)
     key_light_obj = bpy.data.objects.new(name='Key_Light', object_data=key_light)
     bpy.context.scene.collection.objects.link(key_light_obj)
-    key_light_obj.location = (5, 5, 10)
+    key_light_obj.location = (5, -5, 10)
     key_light_obj.rotation_euler = (-0.785, 0.785, 0)
 
-    # 필 라이트 (보조 조명)
-    fill_light = bpy.data.lights.new(name='Fill_Light', type='SUN')
-    fill_light.energy = 2.0
-    fill_light.color = (0.8, 0.8, 1)
-    fill_light_obj = bpy.data.objects.new(name='Fill_Light', object_data=fill_light)
-    bpy.context.scene.collection.objects.link(fill_light_obj)
-    fill_light_obj.location = (-5, 5, 8)
-    fill_light_obj.rotation_euler = (-0.523, -0.785, 0)
+    # # 필 라이트 (보조 조명)
+    # fill_light = bpy.data.lights.new(name='Fill_Light', type='SUN')
+    # fill_light.energy = 2.0
+    # fill_light.color = (0.8, 0.8, 1)
+    # fill_light_obj = bpy.data.objects.new(name='Fill_Light', object_data=fill_light)
+    # bpy.context.scene.collection.objects.link(fill_light_obj)
+    # fill_light_obj.location = (-5, 5, 8)
+    # fill_light_obj.rotation_euler = (-0.523, -0.785, 0)
 
-    # 백 라이트 (뒷면 조명)
-    back_light = bpy.data.lights.new(name='Back_Light', type='SUN')
-    back_light.energy = 3.0
-    back_light_obj = bpy.data.objects.new(name='Back_Light', object_data=back_light)
-    bpy.context.scene.collection.objects.link(back_light_obj)
-    back_light_obj.location = (0, -5, 8)
-    back_light_obj.rotation_euler = (-0.785, 0, 0)
+    # # 백 라이트 (뒷면 조명)
+    # back_light = bpy.data.lights.new(name='Back_Light', type='SUN')
+    # back_light.energy = 3.0
+    # back_light_obj = bpy.data.objects.new(name='Back_Light', object_data=back_light)
+    # bpy.context.scene.collection.objects.link(back_light_obj)
+    # back_light_obj.location = (0, -5, 8)
+    # back_light_obj.rotation_euler = (-0.785, 0, 0)
 
 def calculate_camera_position(obj):
     """객체의 바운딩 박스를 기반으로 카메라 위치를 계산합니다."""
@@ -150,10 +150,11 @@ def setup_render_settings():
     scene.render.fps = 30
     
     # EEVEE 특정 설정
-    scene.eevee.use_soft_shadows = True
-    scene.eevee.use_bloom = True
-    scene.eevee.use_ssr = True
-    scene.eevee.use_ssr_refraction = True
+    scene.eevee.use_soft_shadows = False  # 하드 섀도우가 더 빠름
+    scene.eevee.use_bloom = False         # 불필요한 효과 비활성화
+    scene.eevee.use_ssr = False           # 반사 효과 비활성화
+    scene.eevee.use_ssr_refraction = False
+    scene.eevee.taa_render_samples = 1    # 샘플링 수 줄이기
 
 def setup_animation():
     """애니메이션 프레임 범위를 설정합니다."""

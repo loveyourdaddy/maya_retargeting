@@ -130,9 +130,9 @@ src_characters=(
     # "Asooni"
     # "Asooni2.0"
 
-    # "Adori_qc"
+    "Adori_qc"
     "Adori2.0_qc"
-    # "Asooni_qc"
+    "Asooni_qc"
 
     # "Metahuman"
     # "Minecraft"
@@ -199,7 +199,6 @@ for source in "${src_characters[@]}"; do
         done
     done
 done
-
 
 # 결과 요약
 log "=== Test Summary ==="
