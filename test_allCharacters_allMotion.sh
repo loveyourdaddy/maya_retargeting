@@ -130,10 +130,9 @@ src_characters=(
     # "Asooni"
     # "Asooni2.0"
 
-    "Adori_qc"
-    "Adori2.1_qc"
-    "Asooni_qc"
-    "Asooni2.0_qc"
+    # "Adori_qc"
+    "Adori2.0_qc"
+    # "Asooni_qc"
 
     # "Metahuman"
     # "Minecraft"

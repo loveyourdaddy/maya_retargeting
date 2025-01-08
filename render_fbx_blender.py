@@ -144,7 +144,7 @@ def setup_render_settings():
     scene.render.image_settings.file_format = 'FFMPEG'
     scene.render.ffmpeg.format = 'MPEG4' # MPEG4
     scene.render.ffmpeg.codec = 'H264'
-    scene.render.ffmpeg.ffmpeg_preset = 'REALTIME' # BEST', 'GOOD', 'REALTIME' TODO
+    scene.render.ffmpeg.ffmpeg_preset = 'REALTIME' # BEST', 'GOOD', 'REALTIME'
     
     # 프레임 레이트 설정
     scene.render.fps = 30
@@ -171,7 +171,6 @@ def setup_animation():
         start_frame = 1
     if end_frame == float('-inf'):
         end_frame = 250
-    end_frame = 2 # TODO
     
     # 프레임 범위 설정
     bpy.context.scene.frame_start = int(start_frame)

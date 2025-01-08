@@ -96,7 +96,7 @@ def setup_camera(bbox):
     # 카메라 생성 및 설정
     camera_transform, camera_shape = cmds.camera(name='renderCam')
 
-    # 카메라 설정 TODO 
+    # 카메라 설정 
     cam_settings = calculate_camera_position(bbox)
     
     cmds.setAttr(f"{camera_transform}.translateX", cam_settings['position'][0])
@@ -250,7 +250,6 @@ def render_sequence(render_camera, output_dir, start_time, end_time, source_fbx_
     
     # 프레임 범위 출력
     print(f"Rendering frames from {start_time} to {end_time}")
-    end_time = 2 # TODO
     
     # 렌더링 실행
     for frame in range(start_time, end_time + 1):
