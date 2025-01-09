@@ -171,7 +171,6 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
 
                 # 다른 조인트에 속하는 경우, 제외해주기
                 if check_common_string_in_value_of_other_list(src_joint, tgt_joint):
-                    # import pdb; pdb.set_trace()
                     continue
 
                 # add root division
@@ -521,11 +520,6 @@ def retarget_translation(src_hip, tgt_hip,
                 data[:, i] *= (1/scale[i] if inverse else scale[i])
         return data
 
-    # 초기 데이터 설정
-    # tgt_trans_data = trans_data
-    # locator_status = f">> {'src locator: ' if src_locator else ''}{src_locator or ''} {', tgt locator: ' if tgt_locator else ''}{tgt_locator or ''}"
-    # print(locator_status.strip() or ">> no locator")
-
     # Source locator 처리
     if src_locator:
         src_rot_mat = get_rotation_matrix(src_locator_rot)
@@ -537,6 +531,7 @@ def retarget_translation(src_hip, tgt_hip,
         tgt_rot_mat = get_rotation_matrix(tgt_locator_rot, inverse=True)
         trans_data = apply_rotation(tgt_rot_mat, trans_data)
         
+        # locator 포지션 반영
         if tgt_locator_pos is not None:
             tgt_pos = repeat_matrix(np.array(tgt_locator_pos))
             if src_locator:
