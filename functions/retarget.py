@@ -3,18 +3,20 @@ from functions.joints import *
 from functions.keyframe import *
 from functions.rotations import *
 from functions.motion import *
+import math
+import maya.api.OpenMaya as om
 
 ''' common joint hierarchy '''
 def get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template):
     # refine joint hierarchy
-    parent_indices, src_indices, tgt_indices,\
+    src_indices, tgt_indices,\
         = get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template)
 
-    # templated: refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
-    src_joints_common = [src_joints_origin[i] for i in src_indices]
-    tgt_joints_common = [tgt_joints_origin[i] for i in tgt_indices]
+    # # templated: refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
+    # src_joints_common = [src_joints_origin[i] for i in src_indices]
+    # tgt_joints_common = [tgt_joints_origin[i] for i in tgt_indices]
 
-    return src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices
+    return src_indices, tgt_indices
 
 def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template):
     # jid, name
@@ -215,93 +217,12 @@ def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, 
                 src_indices.append(src_idx)
                 tgt_indices.append(tgt_idx)
                 check = True
-                print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
+                # print("src {} {} tgt {} {}".format(src_idx, src_joint, tgt_idx, tgt_joint))
                 break
         if check:
             continue
 
-    ''' Updated joint hierarchy by selected ones '''
-    src_select_hierarchy, tgt_select_hierarchy = [], []
-    src_name2index = {}
-    tgt_name2index = {}
-    for i in range(len(src_indices)):
-        src_name = src_joints_origin[src_indices[i]]
-        tgt_name = tgt_joints_origin[tgt_indices[i]]
-
-        src_select_hierarchy.append(src_name)
-        tgt_select_hierarchy.append(tgt_joints_template[tgt_indices[i]])
-
-        src_name2index[src_name] = i
-        tgt_name2index[tgt_name] = i
-
-    # origin name
-    tgt_select_hierarchy_origin = []
-    for i in range(len(src_indices)):
-        tgt_select_hierarchy_origin.append(tgt_joints_origin[tgt_indices[i]])
-
-    """ ee joints """
-    ee_joints = []
-    for i, joint in enumerate(tgt_select_hierarchy_origin):
-        children = cmds.listRelatives(joint, children=True, type='joint')
-        if children is None:
-            ee_joints.append(joint)
-
-    """ parent index """
-    # TODO: remove. 동일함.
-    # select joint hierarchy: 적은것 기준
-    if len(src_indices) <= len(tgt_indices):
-        joint_indices = src_indices
-        joint_hierarchy = src_joints_origin
-        name2index = src_name2index
-        # print("src standard")
-    else:
-        joint_indices = tgt_indices
-        joint_hierarchy = tgt_select_hierarchy_origin
-        name2index = tgt_name2index
-        # print("tgt standard")
-    
-    parent_indices = []
-    division = []
-    child_of_divisions = []
-    for i in range(len(joint_indices)):
-        joint_name = joint_hierarchy[i]
-
-        # child of joint
-        children = cmds.listRelatives(joint_name, children=True, type='joint')
-        if children is not None:
-            children_index = []
-            for child in children:
-                if child not in name2index:
-                    continue
-                children_index.append(name2index[child])
-
-        # get parent index
-        if len(parent_indices)==0:
-            # root 
-            parent_j = -1
-        else:
-            # parent가 division이라면, division을 parent index로 
-            check = False 
-            for division_idx, child_of_division in enumerate(child_of_divisions):
-                if i in child_of_division:
-                    parent_j = division[division_idx]
-                    check = True
-                    break
-
-            # 해당 없다면
-            if check==False:
-                parent_j = i-1
-        parent_indices.append(parent_j)
-        # print("joint {} {} parent {} {}".format(i, joint_name, parent_j, joint_hierarchy[parent_j]))
-
-        # division
-        # children이 있고, end effector가 아닌 경우
-        if children is not None and len(children)>1 and joint_hierarchy[i] not in ee_joints:
-            division_j = copy.deepcopy(i)
-            division.append(division_j)
-            child_of_divisions.append(children_index)
-    
-    return parent_indices, src_indices, tgt_indices
+    return src_indices, tgt_indices
 
 def check_joint_by_template_names(joint_name, template_names):
     for template_name in template_names:
@@ -486,7 +407,8 @@ def get_conversion_matrix(src_joint_hierarchy, tgt_joint_hierarchy): # src_Tpose
 
     return t_matricies
 
-def retarget_translation(src_hip, tgt_hip,
+def retarget_translation(src_hip, tgt_hip, 
+                         subchain_roots, 
                          src_locator=None, src_locator_rot=None, src_locator_scale=None,
                          tgt_locator=None, tgt_locator_rot=None, tgt_locator_scale=None, tgt_locator_pos=None, 
                          height_ratio=1):
@@ -544,6 +466,10 @@ def retarget_translation(src_hip, tgt_hip,
         trans_data *= height_ratio
         set_keyframe(tgt_hip, trans_data, trans_attr)
 
+        # subchain
+        for subchain_root in subchain_roots:
+            set_keyframe(subchain_root, trans_data, trans_attr)
+
     return trans_data
 
 def matrix_to_mmatrix(matrix):
@@ -561,13 +487,11 @@ def matrix_to_mmatrix(matrix):
     # Create MMatrix directly from the flattened list
     return om.MMatrix(matrix_list)
 
-import math
-import maya.api.OpenMaya as om
-def retarget_rotation(src_common_joints, tgt_common_joints, src_joints_origin, tgt_joints_origin_namespace,
+def retarget_rotation(src_common_joints, tgt_common_joints, tgt_joints_template_indices,
+                      tgt_subchains, tgt_subchain_template_indices,
                       Tpose_trfs, 
-                      src_Tpose_localrots, tgt_Tpose_localrots, src_indices, tgt_indices,
-                      len_frame, src_locator_rot=None, tgt_locator_rot=None,
-                        tgt_prerotations=None):
+                      src_Tpose_localrots, tgt_Tpose_localrots, 
+                      len_frame,):
     
     # rotation
     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
@@ -577,6 +501,15 @@ def retarget_rotation(src_common_joints, tgt_common_joints, src_joints_origin, t
         # joint 
         src_joint = src_common_joints[j]
         tgt_joint = tgt_common_joints[j]
+
+        template_index = tgt_joints_template_indices[j]
+        subchain_indices = []
+        if template_index!=-1:
+            for chain in tgt_subchain_template_indices:
+                if template_index in chain:
+                    subjoint_jid = chain.index(template_index)
+                    subchain_indices.append(subjoint_jid)
+                    # print(f"joint {tgt_joint}: subchain {subjoint_jid}")
 
         # get data 
         _, rot_data = get_keyframe_data(src_joint)
@@ -613,19 +546,6 @@ def retarget_rotation(src_common_joints, tgt_common_joints, src_joints_origin, t
                 math.radians(source_rot[2]),
                 om.MEulerRotation.kXYZ
             ).asMatrix()
-            # source_matrix = np.array(source_matrix).reshape(4,4)[:3, :3]
-
-            # debig
-            # source rotation wo prerot
-            # src_Tpose_localrots_ = E_to_R(np.array(src_Tpose_localrots[j]))
-            # tgt_Tpose_localrots_ = E_to_R(np.array(tgt_Tpose_localrots[j]))
-            
-            # source_matrix_ = np.array(source_matrix).reshape(4,4)[:3, :3]
-            # source_delta_rot_ = source_matrix_ @ np.linalg.inv(src_Tpose_localrots_) # .inverse()
-            # converted_offset_ = T_mat @ source_delta_rot_ @ np.linalg.inv(T_mat) # .inverse()
-            # final_matrix_ = converted_offset_ @ tgt_Tpose_localrots_
-            # angle_ = R_to_E(final_matrix_)
-            # tgt_perjoint_local_angle[frame] = angle
 
             # om mat
             convert_matric = matrix_to_mmatrix(T_mat)
@@ -639,3 +559,7 @@ def retarget_rotation(src_common_joints, tgt_common_joints, src_joints_origin, t
 
         # update by joint
         set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
+        # subchain
+        for chain_id, subjoint_jid in enumerate(subchain_indices):
+            joint = tgt_subchains[chain_id][subjoint_jid]
+            set_keyframe(joint, tgt_perjoint_local_angle, rot_attr)

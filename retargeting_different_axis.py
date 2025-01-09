@@ -7,7 +7,7 @@ Naming
 tgt_joints_real_origin
 
 namespace 수정됨
-tgt_joints_origin: 원본 hierarchy, 네임스페이스만 바뀐것. 
+tgt_joints_wNS: 원본 hierarchy, 네임스페이스만 바뀐것. 
 tgt_joints_template: 원본 Hier, template joint만 renamed된것
 tgt_joints_common: Hierarchy가 바뀐것.
 '''
@@ -66,11 +66,53 @@ def main():
             print(f">>No texture: {new_path}")
 
     # joints
-    tgt_joints_origin, tgt_joints_original_name, tgt_root_joint, tgt_root_joints = get_tgt_joints()
-    parent_node = cmds.listRelatives(tgt_root_joint, parent=True, shapes=True)[-1]
+    tgt_joints_wNS, tgt_joints_origin_woNS, tgt_root_max_index, tgt_root_joints = get_tgt_joints()
+    
+    # locator list
+    tgt_locator_list = []
+    tgt_joints_list = []
+    tgt_parent_node_list = []
+    for root_id, root in enumerate(tgt_root_joints):
+        # update root 
+        root = "tgt:" + root.split(":")[-1]
+        
+        # joints 
+        tgt_joints = get_joint_hierarchy(root)
+        tgt_joints_list.append(tgt_joints)
 
-    # joint templated
-    tgt_joints_template = rename_joint_by_template(tgt_joints_origin)
+        # update root 
+        root = "tgt:" + root.split(":")[-1]
+        
+        # locator 
+        locator = cmds.listRelatives(root, parent=True, shapes=True)[-1]
+        tgt_locator_list.append(locator)
+        tgt_locator_list.append(locator+'Shape')
+
+        parent_node = cmds.listRelatives(root, parent=True, shapes=True)[-1]
+        tgt_parent_node_list.append(parent_node)
+    # 타겟 조인트를 selected chain으로 변경
+    parent_node = tgt_parent_node_list[tgt_root_max_index]
+    tgt_joints_wNS = tgt_joints_list[tgt_root_max_index]
+    
+    # joint templated TODO 합치기
+    tgt_joints_template, _, tgt_joints_template_indices = rename_joint_by_template(tgt_joints_wNS)
+
+    # sub chain: 다른 chaing에 대해서 main skeleton을 찾기 
+    tgt_subchains = []
+    tgt_subchain_template_indices = []
+    for cid, joints in enumerate(tgt_joints_list):
+        if cid==tgt_root_max_index:
+            continue
+        __, _, template_indices = rename_joint_by_template(joints)
+        
+        # chain
+        # chain = []
+        # for jid in joint_indices:
+        #     chain.append(joints[jid])
+        tgt_subchains.append(joints)
+
+        # template
+        tgt_subchain_template_indices.append(template_indices)
 
     # locator
     if parent_node is not None:
@@ -80,14 +122,6 @@ def main():
     # rename tgt
     tgt_locator = add_namespace_for_joints([tgt_locator], "tgt")[0]
     
-    
-    # locator list
-    tgt_locator_list = []
-    for root_id, root in enumerate(tgt_root_joints):
-        locator = cmds.listRelatives(root, parent=True, shapes=True)[-1]
-        tgt_locator_list.append(locator)
-        tgt_locator_list.append(locator+'Shape')
-
     # meshes
     tgt_meshes = cmds.ls(type='mesh')
     tgt_meshes = add_namespace_for_meshes(tgt_meshes, "tgt_mesh")
@@ -104,24 +138,23 @@ def main():
         raise ValueError("No source character")
     
     mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
-    src_joints_origin = get_src_joints(tgt_joints_origin)
+    src_joints_origin = get_src_joints(tgt_joints_wNS)
 
     # src joint template
-    src_joints_template = rename_joint_by_template(src_joints_origin)
+    src_joints_template, _, _ = rename_joint_by_template(src_joints_origin)
 
     ''' common skeleton '''
-    src_joints_common, tgt_joints_common, src_indices, tgt_indices, parent_indices\
-        = get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template)
+    src_indices, tgt_indices \
+        = get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_wNS, tgt_joints_template)
+    
+    # templated: refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
+    src_joints_common = [src_joints_origin[i] for i in src_indices]
+    tgt_joints_common = [tgt_joints_wNS[i] for i in tgt_indices]
+    tgt_joints_template_indices = [tgt_joints_template_indices[i] for i in tgt_indices]
 
     # Tpose rot common
     tgt_Tpose_rots_common = get_Tpose_localrot(tgt_joints_common)
     src_Tpose_rots_common = get_Tpose_localrot(src_joints_common)
-
-    # prerot
-    if tgt_locator is not None:
-        prerotations = get_prerotations(tgt_joints_common, tgt_joints_origin, tgt_locator, tgt_locator_rot)
-    else:
-        prerotations = get_prerotations(tgt_joints_common)
 
     # Tpose trf
     conversion_matrics = get_conversion_matrix(src_joints_common, tgt_joints_common)
@@ -152,7 +185,7 @@ def main():
     # locator rotation 업데이트
     if tgt_locator is not None:
         # locator ~ root 위 조인트 포함
-        tgt_locator_rot = update_root_to_locator_rotation(tgt_joints_origin, tgt_root, tgt_locator_rot)
+        tgt_locator_rot = update_root_to_locator_rotation(tgt_joints_wNS, tgt_root, tgt_locator_rot)
 
     # locator and meshes 
     locators_list = cmds.ls(type='locator')
@@ -182,19 +215,24 @@ def main():
         if tgt_locator is None:
             tgt_locator_rot, tgt_locator_scale = None, None
         
+        # get subchain root
+        subchain_roots = []
+        for subchain in tgt_subchains:
+            subchain_roots.append(subchain[0])
+
         # trans
-        trans_data = retarget_translation(src_root, tgt_root,\
-                                          src_locator, src_locator_rot, src_locator_scale,\
-                                          tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,\
+        trans_data = retarget_translation(src_root, tgt_root,
+                                          subchain_roots,
+                                          src_locator, src_locator_rot, src_locator_scale,
+                                          tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,
                                             height_ratio)
-        len_frame = len(trans_data)
         # rot
-        retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_origin, 
+        retarget_rotation(src_joints_common, tgt_joints_common, tgt_joints_template_indices,
+                           tgt_subchains, tgt_subchain_template_indices,
                           conversion_matrics,  
-                          src_Tpose_rots_common, tgt_Tpose_rots_common, src_indices, tgt_indices, 
-                          len_frame, src_locator_rot, tgt_locator_rot,
-                            prerotations)
-        
+                          src_Tpose_rots_common, tgt_Tpose_rots_common, 
+                          len(trans_data))
+                        
         # if other locator, retarget also
         # tgt_locator_list TODO
     else:
@@ -205,7 +243,7 @@ def main():
         # trans_data = retarget_translation(src_root, tgt_root,
         #                                   height_ratio)
         # # rot
-        # retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_origin,
+        # retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_wNS,
         #                   Tpose_trfs, 
         #                   src_Tpose_rots, tgt_Tpose_rots, src_indices, tgt_indices, 
         #                     len(trans_data))
@@ -221,7 +259,8 @@ def main():
     cmds.delete(src_meshes)
 
     # rename tgt joint
-    for joint in tgt_joints_original_name:
+    # import pdb; pdb.set_trace()
+    for joint in tgt_joints_origin_woNS:
         if len(joint.split(':'))>1:
             # 만약 target name에 namespace가 있다면 
             # change namespace

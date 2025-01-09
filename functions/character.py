@@ -9,7 +9,8 @@ from functions.motion import *
 def get_src_joints(tgt_joints):
     src_joints = cmds.ls(type='joint')
     src_joints = list(set(src_joints) - set(tgt_joints))
-    root_joint, _ = find_root_joints(src_joints)
+    idx, root_joints = find_root_joints(src_joints)
+    root_joint = root_joints[idx]
     src_joints = get_joint_hierarchy(root_joint)
 
     return src_joints
@@ -70,19 +71,13 @@ def get_tgt_joints():
     tgt_joints = cmds.ls(type='joint')
 
     # add namespace joints (in maya also)
-    tgt_joints_real_origin = copy.deepcopy(tgt_joints)
-    tgt_joints = add_namespace_for_joints(tgt_joints, "tgt")
+    tgt_joints_origin_woNS = copy.deepcopy(tgt_joints)
+    tgt_joints_origin_wNS = add_namespace_for_joints(tgt_joints, "tgt")
 
     # root joint
-    tgt_root_joint, tgt_root_joints = find_root_joints(tgt_joints)
+    tgt_root_max_index, tgt_root_joints = find_root_joints(tgt_joints_origin_wNS)
 
-    # joints 
-    tgt_joints = get_joint_hierarchy(tgt_root_joint)
-
-    # update root 
-    tgt_root_joint = "tgt:" + tgt_root_joint.split(":")[-1]
-
-    return tgt_joints, tgt_joints_real_origin, tgt_root_joint, tgt_root_joints
+    return tgt_joints_origin_wNS, tgt_joints_origin_woNS, tgt_root_max_index, tgt_root_joints
 
 ''' locator '''
 def get_locator(tgt_locator):

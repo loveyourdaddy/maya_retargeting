@@ -48,7 +48,6 @@ alter_joint_name = {
     "LeftToeBase":['LFBXASC032Toe0', 'toes_L'], 
     }
 
-
 finger_alter_joint_name = {
     # finger 
     "LeftHandThumb1":["LeftHandThumb1", "Thumb_01_l"], 
@@ -123,12 +122,12 @@ def find_root_joints(all_joints):
     list_index = []
     for i, root_joint in enumerate(root_joints):
         hierarchy = get_joint_hierarchy(root_joint)
-        hierarchy = rename_joint_by_template(hierarchy)
+        hierarchy, _, _ = rename_joint_by_template(hierarchy)
         children_of_roots[i] = select_joints_by_template(hierarchy)
         list_index.append(len(children_of_roots[i]))
     
     max_index = list_index.index(max(list_index))
-    return root_joints[max_index], root_joints
+    return max_index, root_joints
 
 def get_parent_joint(joint):
     parent = cmds.listRelatives(joint, parent=True)
@@ -144,7 +143,10 @@ def get_top_level_nodes():
 # joint name -> template name (alter)
 def rename_joint_by_template(joints): 
     ret_joints = []
-    for joint in joints:
+    input_jids_in_template = []
+    template_indices_for_input_joints = []
+    template_index = 0
+    for jid, joint in enumerate(joints):
         # if joint name in namespace, remove namespace
         if ":" in joint:
             joint = joint.split(":")[-1]
@@ -153,16 +155,24 @@ def rename_joint_by_template(joints):
         check = False
         for key_joint, alter_joints in alter_joint_name.items():
             for alter_joint in alter_joints:
-                # if joints=="ACHID:" and key_joint=="Spine3":
-                #     import pdb; pdb.set_trace()
                 # list 안에 있고, 이미 등록되지 않다면
                 if (joint.lower() in alter_joint.lower() or alter_joint.lower() in joint.lower()) and key_joint not in ret_joints:
+                    # template joint가 맞다면,
                     joint = key_joint
+                    # template joint indices에 넣어주고
+                    input_jids_in_template.append(jid)
+                    # 입력에 대한 template indices을 업데이트 해주기 
+                    template_indices_for_input_joints.append(template_index)
+                    # 다음 tempalte으로 넘어가기 
+                    template_index += 1
                     check = True
                     break
-                    # print("find")
             if check:
                 break
+
+        # template joint가 아니라면, -1
+        if check==False:
+            template_indices_for_input_joints.append(-1)
         
         # finger 조인트: finger_포함하기
         if check==False:
@@ -173,10 +183,13 @@ def rename_joint_by_template(joints):
                         joint = "finger_"+key_joint
                     
         ret_joints.append(joint)
-        
-    return ret_joints
 
-"""Root """
+    return ret_joints, input_jids_in_template, template_indices_for_input_joints
+# TODO: remove 두번째 값 
+    # input_jids_in_template: template에 속한 joints index
+    # template_indices: 모든 조인트에 대해서 template index나 -1
+
+""" Root """
 # find root joint index
 def get_root_joint(joints_common):
     hip_index = 0
