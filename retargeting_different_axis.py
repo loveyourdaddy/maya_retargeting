@@ -105,10 +105,6 @@ def main():
             continue
         __, _, template_indices = rename_joint_by_template(joints)
         
-        # chain
-        # chain = []
-        # for jid in joint_indices:
-        #     chain.append(joints[jid])
         tgt_subchains.append(joints)
 
         # template
@@ -259,16 +255,18 @@ def main():
     cmds.delete(src_meshes)
 
     # rename tgt joint
-    # import pdb; pdb.set_trace()
     for joint in tgt_joints_origin_woNS:
         if len(joint.split(':'))>1:
             # 만약 target name에 namespace가 있다면 
             # change namespace
             namespace = joint.split(':')[:-1][0] + ":"
             joint = joint.split(':')[-1]
-            cmds.rename('tgt:'+joint, namespace+joint)
+            # 만약 조인트가 존재한다면 
+            if cmds.objExists('tgt:'+joint):
+                cmds.rename('tgt:'+joint, namespace+joint)
         else:
-            cmds.rename('tgt:'+joint, joint)
+            if cmds.objExists('tgt:'+joint):
+                cmds.rename('tgt:'+joint, joint)
     
     # rename tgt locator
     tgt_locator_list = remove_namespace_for_joints(tgt_locator_list)[0]
@@ -278,7 +276,7 @@ def main():
     delete_all_transform_nodes()
 
     # export
-    print(">>({}, {}) ->  {}".format(sourceChar, sourceMotion, targetChar))
+    print(">>({}, {}) -> {}".format(sourceChar, sourceMotion, targetChar))
     export(args, targetChar, targetMotion)
     
     # end

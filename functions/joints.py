@@ -29,12 +29,12 @@ alter_joint_name = {
 
     "RightShoulder":["RFBXASC032Clavicle", "Clavicle_r", "shoulder_R", ],
     "RightArm":["RFBXASC032UpperArm",  "RightUpperArm", "upperArm_R", "BoneFBXASC046005"], # 5, 6
-    "RightForeArm":["RFBXASC032Forearm", "RightForearm", "RightLowerArm",  "lowerArm_R", "lowerarm_in_r"], 
+    "RightForeArm":["RFBXASC032Forearm", "RightForearm", "RightLowerArm",  "lowerArm_R", "lowerarm_in_r", ], #"BoneFBXASC046005" 
     "RightHand":["RFBXASC032Hand", "RightHand", "hand_R", "lowerarm_out_r", "BoneFBXASC046006"], 
 
     "LeftShoulder": ["LFBXASC032Clavicle", "Clavicle_l", "shoulder_L", ],
     "LeftArm":["LFBXASC032UpperArm", "LeftUpperArm", "upperArm_L", "BoneFBXASC046003"], # 3,4
-    "LeftForeArm":["LFBXASC032Forearm", "LeftForearm", "LeftLowerArm", "lowerArm_L", "lowerarm_in_l"],
+    "LeftForeArm":["LFBXASC032Forearm", "LeftForearm", "LeftLowerArm", "lowerArm_L", "lowerarm_in_l", ], # "BoneFBXASC046003"
     "LeftHand": ["LFBXASC032Hand", "LeftHand", "hand_L", "lowerarm_out_l", "BoneFBXASC046004"],
 
     "RightUpLeg":['RFBXASC032Thigh', 'upperLeg_R', 'upperReg_R', 'RightUpperLeg', 'thigh_r', "BoneFBXASC046007"], # 7 8
