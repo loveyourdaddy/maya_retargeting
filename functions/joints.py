@@ -270,7 +270,10 @@ def add_namespace_for_joints(joints, namespace):
     
     new_joints = []
     for joint in joints:
-        new_joints.append(add_namespace(joint, namespace))
+        if cmds.objExists(joint):
+            new_joints.append(add_namespace(joint, namespace))
+        else:
+            new_joints.append(namespace + ':' + joint)
     return new_joints
 
 def add_namespace_for_meshes(meshes, namespace):

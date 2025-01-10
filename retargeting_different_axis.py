@@ -76,12 +76,9 @@ def main():
         # update root 
         root = "tgt:" + root.split(":")[-1]
         
-        # joints 
+        # joints
         tgt_joints = get_joint_hierarchy(root)
         tgt_joints_list.append(tgt_joints)
-
-        # update root 
-        root = "tgt:" + root.split(":")[-1]
         
         # locator 
         locator = cmds.listRelatives(root, parent=True, shapes=True)[-1]
@@ -90,11 +87,12 @@ def main():
 
         parent_node = cmds.listRelatives(root, parent=True, shapes=True)[-1]
         tgt_parent_node_list.append(parent_node)
+
     # 타겟 조인트를 selected chain으로 변경
     parent_node = tgt_parent_node_list[tgt_root_max_index]
     tgt_joints_wNS = tgt_joints_list[tgt_root_max_index]
     
-    # joint templated TODO 합치기
+    # joint templated
     tgt_joints_template, _, tgt_joints_template_indices = rename_joint_by_template(tgt_joints_wNS)
 
     # sub chain: 다른 chaing에 대해서 main skeleton을 찾기 
@@ -113,10 +111,13 @@ def main():
     # locator
     if parent_node is not None:
         tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos = get_locator(parent_node)
+        # add namespace
+        tgt_locator = "tgt:" + tgt_locator
     else:
         tgt_locator = None
-    # rename tgt
-    tgt_locator = add_namespace_for_joints([tgt_locator], "tgt")[0]
+
+    # rename locator
+    tgt_locator_list = add_namespace_for_joints(tgt_locator_list, "tgt")
     
     # meshes
     tgt_meshes = cmds.ls(type='mesh')
@@ -189,8 +190,15 @@ def main():
     if len(src_locator_list)!=0:
         # Select right locator
         src_locator_list = sorted(src_locator_list, key=lambda x: len(cmds.listRelatives(x, children=True) or []), reverse=True)
-        #  가장 많은 자식을 가진 locator를 선택하기 위해 0을 선택 
-        src_locator = src_locator_list[0]
+        
+        # src locator선택: namespace tgt가 없는 경우
+        src_locator_candidate = [] 
+        for locator in src_locator_list:
+            if locator.split(':')[0] != 'tgt':
+                src_locator_candidate.append(locator)
+
+        # 가장 많은 자식을 가진 locator를 선택하기 위해 0을 선택
+        src_locator = src_locator_candidate[0]
 
         # Get locator info 
         src_locator, src_locator_rot, src_locator_scale, src_locator_pos = get_locator(src_locator)
@@ -270,7 +278,6 @@ def main():
     
     # rename tgt locator
     tgt_locator_list = remove_namespace_for_joints(tgt_locator_list)[0]
-
 
     # Delete node 
     delete_all_transform_nodes()
