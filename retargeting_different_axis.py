@@ -66,7 +66,7 @@ def main():
             print(f">>No texture: {new_path}")
 
     # joints
-    tgt_joints_wNS, tgt_joints_origin_woNS, tgt_root_max_index, tgt_root_joints = get_tgt_joints()
+    tgt_joints_wNS, tgt_joints_origin_woNS, tgt_chain_index, tgt_root_joints = get_tgt_joints()
     
     # locator list
     tgt_locator_list = []
@@ -89,8 +89,8 @@ def main():
         tgt_parent_node_list.append(parent_node)
 
     # 타겟 조인트를 selected chain으로 변경
-    parent_node = tgt_parent_node_list[tgt_root_max_index]
-    tgt_joints_wNS = tgt_joints_list[tgt_root_max_index]
+    parent_node = tgt_parent_node_list[tgt_chain_index]
+    tgt_joints_wNS = tgt_joints_list[tgt_chain_index]
     
     # joint templated
     tgt_joints_template, _, tgt_joints_template_indices = rename_joint_by_template(tgt_joints_wNS)
@@ -104,8 +104,9 @@ def main():
         __, _, template_indices = rename_joint_by_template(joints)
         
         tgt_subchains.append(joints)
-
-        # template
+        
+        # index 
+        __, _, template_indices = rename_joint_by_template(joints)
         tgt_subchain_template_indices.append(template_indices)
 
     # locator
