@@ -95,20 +95,28 @@ def main():
     # joint templated
     tgt_joints_template, _, tgt_joints_template_indices = rename_joint_by_template(tgt_joints_wNS)
 
-    # sub chain: 다른 chaing에 대해서 main skeleton을 찾기 
+    # sub chain
+    # 다른 chaing에 대해서 main skeleton을 찾기
     tgt_subchains = []
+    tgt_subchain_template = []
     tgt_subchain_template_indices = []
     for cid, joints in enumerate(tgt_joints_list):
-        if cid==tgt_root_max_index:
+        if cid==tgt_chain_index:
             continue
-        __, _, template_indices = rename_joint_by_template(joints)
-        
         tgt_subchains.append(joints)
         
         # index 
-        __, _, template_indices = rename_joint_by_template(joints)
+        chain_joints_template, _, template_indices = rename_joint_by_template(joints)
+        tgt_subchain_template.append(chain_joints_template)
         tgt_subchain_template_indices.append(template_indices)
 
+    # subchain root
+    subchain_roots = []
+    subchain_template_roots = []
+    for j, subchain in enumerate(tgt_subchains):
+        subchain_roots.append(subchain[0])
+        subchain_template_roots.append(tgt_subchain_template[j][0])
+    
     # locator
     if parent_node is not None:
         tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos = get_locator(parent_node)
@@ -137,26 +145,61 @@ def main():
     
     mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
     src_joints_origin = get_src_joints(tgt_joints_wNS)
-
-    # src joint template
     src_joints_template, _, _ = rename_joint_by_template(src_joints_origin)
 
     ''' common skeleton '''
-    src_indices, tgt_indices \
-        = get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_wNS, tgt_joints_template)
+    def get_conversion(src_joints_origin, src_joints_template,
+                       tgt_joints_origin, tgt_joints_template, tgt_joints_template_indices, 
+                       root_joint=None):
+        # common hierarchy
+        src_indices, tgt_indices = get_common_hierarchy_bw_src_and_tgt(
+            src_joints_origin, src_joints_template, # src 
+            tgt_joints_origin, tgt_joints_template, root_joint, # tgt 
+            )
+        
+        # indices 
+        # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
+        src_joints_common = [src_joints_origin[i] for i in src_indices]
+        tgt_joints_common = [tgt_joints_origin[i] for i in tgt_indices]
+        # indices 
+        tgt_joints_template_indices = [tgt_joints_template_indices[i] for i in tgt_indices]
+
+        # Tpose rot common
+        tgt_Tpose_rots_common = get_Tpose_localrot(tgt_joints_common)
+        src_Tpose_rots_common = get_Tpose_localrot(src_joints_common)
+
+        # Tpose trf
+        conversion_matrics = get_conversion_matrix(src_joints_common, tgt_joints_common)
+
+        return src_joints_common, src_Tpose_rots_common, \
+            tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, \
+            conversion_matrics
+
+    # common joint 
+    src_joints_common, src_Tpose_rots_common, \
+    tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, \
+    conversion_matrics \
+        = get_conversion(
+            src_joints_origin, src_joints_template, 
+            tgt_joints_wNS, tgt_joints_template, tgt_joints_template_indices,)
+
+    # for subchain joints 
+    subchain_conversion_matrics = []
+    tgt_subchain_template_indices_refined = []
+    subchain_common_joints = []
+    for j, subchain_joints in enumerate(tgt_subchains):
+        _, _, \
+        subchain_joints_common, subchain_Tpose_rots_common, tgt_subchain_template_index, \
+        subchain_conversion_matrics \
+            = get_conversion(
+                src_joints_origin, src_joints_template, 
+                subchain_joints, tgt_subchain_template[j], tgt_subchain_template_indices[j], 
+                root_joint=subchain_template_roots[j])
+        subchain_common_joints.append(subchain_joints_common)
+        tgt_subchain_template_indices_refined.append(tgt_subchain_template_index)
+        subchain_conversion_matrics.append(subchain_conversion_matrics)
+    tgt_subchain_template_indices = tgt_subchain_template_indices_refined
     
-    # templated: refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
-    src_joints_common = [src_joints_origin[i] for i in src_indices]
-    tgt_joints_common = [tgt_joints_wNS[i] for i in tgt_indices]
-    tgt_joints_template_indices = [tgt_joints_template_indices[i] for i in tgt_indices]
-
-    # Tpose rot common
-    tgt_Tpose_rots_common = get_Tpose_localrot(tgt_joints_common)
-    src_Tpose_rots_common = get_Tpose_localrot(src_joints_common)
-
-    # Tpose trf
-    conversion_matrics = get_conversion_matrix(src_joints_common, tgt_joints_common)
-
     # import src motion
     mel.eval('FBXImport -f"{}"'.format(sourceMotion))
 
@@ -220,11 +263,6 @@ def main():
         if tgt_locator is None:
             tgt_locator_rot, tgt_locator_scale = None, None
         
-        # get subchain root
-        subchain_roots = []
-        for subchain in tgt_subchains:
-            subchain_roots.append(subchain[0])
-
         # trans
         trans_data = retarget_translation(src_root, tgt_root,
                                           subchain_roots,
@@ -232,26 +270,14 @@ def main():
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,
                                             height_ratio)
         # rot
-        retarget_rotation(src_joints_common, tgt_joints_common, tgt_joints_template_indices,
-                           tgt_subchains, tgt_subchain_template_indices,
-                          conversion_matrics,  
-                          src_Tpose_rots_common, tgt_Tpose_rots_common, 
+        retarget_rotation(src_joints_common, src_Tpose_rots_common,
+                          tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, conversion_matrics, 
+                          subchain_common_joints, subchain_Tpose_rots_common, tgt_subchain_template_indices, subchain_conversion_matrics,
                           len(trans_data))
-                        
-        # if other locator, retarget also
-        # tgt_locator_list TODO
     else:
         print(">> retarget without locator")
         raise ValueError("No locator") # TODO
 
-        # # trans
-        # trans_data = retarget_translation(src_root, tgt_root,
-        #                                   height_ratio)
-        # # rot
-        # retarget_rotation(src_joints_common, tgt_joints_common, src_joints_origin, tgt_joints_wNS,
-        #                   Tpose_trfs, 
-        #                   src_Tpose_rots, tgt_Tpose_rots, src_indices, tgt_indices, 
-        #                     len(trans_data))
     
     ''' export '''
     # Remove source locator

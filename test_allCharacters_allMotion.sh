@@ -133,27 +133,21 @@ src_characters=(
     "Adori_qc"
     "Adori2.0_qc"
     "Asooni_qc"
+)
 
-    # "Metahuman"
+tgt_characters=(
+    # "Adori"
+    # "Adori2.0"
+    # "Asooni"
+    # "Adori2.1"
+    # "Asooni2.0"
+
+    "Metahuman"
     # "Minecraft"
     # "Readyplayerme"
     # "Roblox"
     # "UE"
-)
-
-tgt_characters=(
-    "Adori"
-    "Adori2.0"
-    "Asooni"
-    "Adori2.1"
-    "Asooni2.0"
-
-    # "Metahuman"
-    # "Minecraft"
-    "Readyplayerme"
-    "Roblox"
-    "UE"
-    "Zepeto"
+    # "Zepeto"
 )
 
 # 결과 카운터 초기화
@@ -167,7 +161,7 @@ for source in "${src_characters[@]}"; do
     mkdir -p "$SOURCE_DIR"
 
     # 소스 캐릭터의 첫 번째 모션 / 모든 모션 가져오기
-    motion_files=($(get_all_motions "$source")) # ($(get_all_motions "$source"))
+    motion_files=($(get_first_motion "$source")) # get_all_motions
     log "Found ${#motion_files[@]} motion files for $source"
     
     # 각 모션 파일에 대해 테스트

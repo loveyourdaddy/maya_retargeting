@@ -147,7 +147,6 @@ def rename_joint_by_template(joints):
     ret_joints = []
     input_jids_in_template = []
     template_indices_for_input_joints = []
-    # import pdb; pdb.set_trace()
     for jid, joint in enumerate(joints):
         # if joint name in namespace, remove namespace
         if ":" in joint:
@@ -166,7 +165,7 @@ def rename_joint_by_template(joints):
                     # 입력에 대한 template indices을 업데이트 해주기 
                     template_index = key_list.index(key_joint)
                     template_indices_for_input_joints.append(template_index)
-                    print(f"key_joint {key_joint} template_index {template_index}")
+                    # print(f"key_joint {key_joint} template_index {template_index}")
                     # 다음 tempalte으로 넘어가기 
                     template_index += 1
                     check = True

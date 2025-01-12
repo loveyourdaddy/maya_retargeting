@@ -7,20 +7,11 @@ import math
 import maya.api.OpenMaya as om
 
 ''' common joint hierarchy '''
-def get_common_src_tgt_joint_hierarchy(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template):
-    # refine joint hierarchy
-    src_indices, tgt_indices,\
-        = get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template)
-
-    # # templated: refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
-    # src_joints_common = [src_joints_origin[i] for i in src_indices]
-    # tgt_joints_common = [tgt_joints_origin[i] for i in tgt_indices]
-
-    return src_indices, tgt_indices
-
-def get_common_hierarchy_bw_src_and_tgt(src_joints_origin, src_joints_template, tgt_joints_origin, tgt_joints_template):
+def get_common_hierarchy_bw_src_and_tgt(
+        src_joints_origin, src_joints_template, 
+        tgt_joints_origin, tgt_joints_template, root_joint=None):
     # jid, name
-    tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = get_division_by_name(tgt_joints_origin, tgt_joints_template)
+    tgt_root_div_jid, tgt_root_div, tgt_spine_div_jid, tgt_spine_div = get_division_by_name(tgt_joints_origin, tgt_joints_template, root_joint=root_joint)
     src_root_div_jid, src_root_div, src_spine_div_jid, src_spine_div = get_division_by_name(src_joints_origin, src_joints_template)
 
     # 만약 root joint을 찾을 수 없다면, 분기점으로 name을 바꿔주기
@@ -230,7 +221,7 @@ def check_joint_by_template_names(joint_name, template_names):
             return True
     return False
 
-def get_division_by_name(joint_hierarchy_origin, joint_hierarchy_template):
+def get_division_by_name(joint_hierarchy_origin, joint_hierarchy_template, root_joint=None):
     ''' 
     division 조건
     - children이 1개 초과
@@ -278,10 +269,15 @@ def get_division_by_name(joint_hierarchy_origin, joint_hierarchy_template):
     spine_name = spine_joints[-1]
     spine_jid = joint_hierarchy_template.index(spine_name)
 
-    # Root: 마지막 root 및 spine joint 보다 인덱스가 작은것 
-    root_joints = [joint for joint in root_joints if joint_hierarchy_template.index(joint) < spine_jid]
-    root_name = root_joints[-1]
-    root_jid = len(joint_hierarchy_template) - 1 - joint_hierarchy_template[::-1].index(root_name) # 리스트를 뒤집고 첫 번째 'Hips'의 인덱스를 찾은 후, 원래 리스트로 뒤집기
+    # Root: 마지막 root 및 spine joint 보다 인덱스가 작은것
+    if root_joint is None:
+        root_joints = [joint for joint in root_joints if joint_hierarchy_template.index(joint) < spine_jid]
+        root_name = root_joints[-1]
+        root_jid = len(joint_hierarchy_template) - 1 - joint_hierarchy_template[::-1].index(root_name) # 리스트를 뒤집고 첫 번째 'Hips'의 인덱스를 찾은 후, 원래 리스트로 뒤집기
+    else:
+        # if root joint is given
+        root_jid = joint_hierarchy_template.index(root_joint)
+        root_name = root_joint
 
     return root_jid, root_name, spine_jid, spine_name
 
@@ -351,7 +347,6 @@ def check_common_string_in_value_of_other_list(src_joint, tgt_joint):
             return True
         
     return False
-
 
 """ Tpose """
 def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy, tgt_prerotations=None):
@@ -487,16 +482,13 @@ def matrix_to_mmatrix(matrix):
     # Create MMatrix directly from the flattened list
     return om.MMatrix(matrix_list)
 
-def retarget_rotation(src_common_joints, tgt_common_joints, tgt_joints_template_indices,
-                      tgt_subchains, tgt_subchain_template_indices,
-                      Tpose_trfs, 
-                      src_Tpose_localrots, tgt_Tpose_localrots, 
+def retarget_rotation(src_common_joints, src_Tpose_localrots, # src 
+                      tgt_common_joints, tgt_Tpose_localrots, tgt_joints_template_indices,  Tpose_trfs, # tgt
+                      tgt_subchains, subchain_Tpose_localrots, tgt_subchain_template_indices, subchain_Tpose_trfs, # subchaint
                       len_frame,):
-    
     # rotation
     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
     len_joint = len(tgt_common_joints)
-    rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
     for j in range(len_joint):
         # joint 
         src_joint = src_common_joints[j]
@@ -507,9 +499,10 @@ def retarget_rotation(src_common_joints, tgt_common_joints, tgt_joints_template_
         if template_index!=-1:
             for chain in tgt_subchain_template_indices:
                 if template_index in chain:
+                    # chain에서 몇번째 인덱스
                     subjoint_jid = chain.index(template_index)
                     subchain_indices.append(subjoint_jid)
-                    # print(f"joint {tgt_joint}: subchain {subjoint_jid}")
+                    print(f"joint {j} {tgt_joint} : subchain {subjoint_jid} {tgt_subchains[0][subjoint_jid]}")
 
         # get data 
         _, rot_data = get_keyframe_data(src_joint)
@@ -534,32 +527,45 @@ def retarget_rotation(src_common_joints, tgt_common_joints, tgt_joints_template_
         ).asMatrix()
 
         # retarget 
-        tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
-        T_mat = Tpose_trfs[j]
-        for frame in range(len_frame):
-            # source rotation
-            cmds.currentTime(frame)
-            source_rot = cmds.getAttr(f"{src_joint}.rotate")[0]
-            source_matrix = om.MEulerRotation(
-                math.radians(source_rot[0]),
-                math.radians(source_rot[1]),
-                math.radians(source_rot[2]),
+        def set_keyframe_for_joint(tgt_joint, target_tpose_matrix, T_mat, jid):
+            tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
+            for frame in range(len_frame):
+                # source rotation
+                cmds.currentTime(frame)
+                source_rot = cmds.getAttr(f"{src_joint}.rotate")[0]
+                source_matrix = om.MEulerRotation(
+                    math.radians(source_rot[0]),
+                    math.radians(source_rot[1]),
+                    math.radians(source_rot[2]),
+                    om.MEulerRotation.kXYZ
+                ).asMatrix()
+
+                # om mat
+                convert_matric = matrix_to_mmatrix(T_mat)
+
+                source_offset = source_matrix * source_tpose_matrix.inverse()
+                converted_offset = convert_matric * source_offset * convert_matric.inverse()
+                final_matrix = converted_offset * target_tpose_matrix
+
+                final_rotation = om.MEulerRotation.decompose(final_matrix, om.MEulerRotation.kXYZ)
+                tgt_perjoint_local_angle[frame] = [math.degrees(angle) for angle in final_rotation]
+
+
+            # update by joint
+            set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
+
+        set_keyframe_for_joint(tgt_joint, target_tpose_matrix, Tpose_trfs[j], j)
+
+        # subchain
+        for chain_id, subjoint_jid in enumerate(subchain_indices):
+            subjoint = tgt_subchains[chain_id][subjoint_jid]
+
+            subjoint_tpose_rot = subchain_Tpose_localrots[subjoint_jid]
+            subjoint_tpose_matrix = om.MEulerRotation(
+                math.radians(subjoint_tpose_rot[0]),
+                math.radians(subjoint_tpose_rot[1]),
+                math.radians(subjoint_tpose_rot[2]),
                 om.MEulerRotation.kXYZ
             ).asMatrix()
 
-            # om mat
-            convert_matric = matrix_to_mmatrix(T_mat)
-
-            source_offset = source_matrix * source_tpose_matrix.inverse()
-            converted_offset = convert_matric * source_offset * convert_matric.inverse()
-            final_matrix = converted_offset * target_tpose_matrix
-
-            final_rotation = om.MEulerRotation.decompose(final_matrix, om.MEulerRotation.kXYZ)
-            tgt_perjoint_local_angle[frame] = [math.degrees(angle) for angle in final_rotation]
-
-        # update by joint
-        set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
-        # subchain
-        for chain_id, subjoint_jid in enumerate(subchain_indices):
-            joint = tgt_subchains[chain_id][subjoint_jid]
-            set_keyframe(joint, tgt_perjoint_local_angle, rot_attr)
+            set_keyframe_for_joint(subjoint, subjoint_tpose_matrix, subchain_Tpose_trfs[subjoint_jid], subjoint_jid) # is_subjoint=True
