@@ -6,15 +6,6 @@ from functions.rotations import normalize_rotmat
 
 # joints
 # 22 = 4+2+4+4+4+4
-# TODO: alter_joint_name의 키을 가지기.
-template_joints = [
-     "Hips","Spine","Spine1","Spine2","Spine3","Spine4",
-     "Neck","Head", 
-     "LeftShoulder","LeftArm","LeftForeArm","LeftHand", 
-     "RightShoulder","RightArm","RightForeArm","RightHand", 
-     "LeftUpLeg","LeftLeg","LeftFoot","LeftToeBase",
-     "RightUpLeg","RightLeg","RightFoot","RightToeBase"
-    ]
 
 alter_joint_name = {
     "Hips":["Root", "Pelvis", "LowerTorso", "Bone"], 
@@ -210,6 +201,7 @@ def select_joints_by_template(joints):
     refined_joints = []
     added_template_joints = []
     alter_joint_name_ = copy.deepcopy(alter_joint_name)
+    template_joints = list(alter_joint_name.keys()) 
     for template_joint in template_joints:
         for joint in joints:
             alter_joint = joint
