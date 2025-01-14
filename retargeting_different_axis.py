@@ -26,7 +26,6 @@ def main():
     maya.standalone.initialize(name='python')
 
     # Load the FBX plugin
-    print(">> Retargeting start")
     if not cmds.pluginInfo('fbxmaya', query=True, loaded=True):
         cmds.loadPlugin('fbxmaya')
     
@@ -48,7 +47,6 @@ def main():
     # .fbm 폴더 경로
     path = "./models/" + targetChar + "/" + targetChar
     fbm_folder = path + ".fbm"
-    print("import done")
     
     # import texture
     # 모든 파일 노드 가져오기
@@ -61,7 +59,7 @@ def main():
         if os.path.exists(new_path):
             # 텍스처 경로 업데이트
             cmds.setAttr(node + ".fileTextureName", new_path, type="string")
-            print(f">>Texture loaded: {node} -> {new_path}")
+            # print(f">>Texture loaded: {node} -> {new_path}")
         else:
             print(f">>No texture: {new_path}")
 
@@ -131,7 +129,6 @@ def main():
     # meshes
     tgt_meshes = cmds.ls(type='mesh')
     tgt_meshes = add_namespace_for_meshes(tgt_meshes, "tgt_mesh")
-    print(">> tgt loaded")
 
 
     ''' src '''

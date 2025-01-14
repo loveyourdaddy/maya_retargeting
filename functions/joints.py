@@ -5,7 +5,7 @@ import numpy as np
 from functions.rotations import normalize_rotmat
 
 # joints
-# 22 = 4+2+4+4+4+4
+# Hip1 + Spine5 + Head2 + RightArm4 + LeftArm4 + LeftLeg4 + RightLeg4 = 24
 alter_joint_name = {
     "Hips":["Root", "Pelvis", "LowerTorso", "Bone"], 
     "Spine":["UpperTorso", 'spine'], 
@@ -42,46 +42,38 @@ alter_joint_name = {
 
 finger_alter_joint_name = {
     # finger 
-    "LeftHandThumb1":["LeftHandThumb1", "Thumb_01_l"], 
-    "LeftHandThumb2":["LeftHandThumb2", "Thumb_02_l"], 
-    "LeftHandThumb3":["LeftHandThumb3", "Thumb_03_l"], 
-
-    "LeftHandIndex1":["LeftHandIndex1", "Index_01_l"], 
-    "LeftHandIndex2":["LeftHandIndex2", "Index_02_l"], 
-    "LeftHandIndex3":["LeftHandIndex3", "Index_03_l"], 
-
-    "LeftHandMiddle1":["LeftHandMiddle1", "Middle_01_l"], 
-    "LeftHandMiddle2":["LeftHandMiddle2", "Middle_02_l"], 
-    "LeftHandMiddle3":["LeftHandMiddle3", "Middle_03_l"], 
-    
-    "LeftHandRing1":["LeftHandRing1", "Ring_01_l"], 
-    "LeftHandRing2":["LeftHandRing2", "Ring_02_l"], 
-    "LeftHandRing3":["LeftHandRing3", "Ring_03_l"], 
-    
-    "LeftHandPinky1":["LeftHandPinky1", "Pinky_01_l"], 
-    "LeftHandPinky2":["LeftHandPinky2", "Pinky_02_l"], 
-    "LeftHandPinky3":["LeftHandPinky3", "Pinky_03_l"], 
+    "LeftHandThumb1":["LeftHandThumb1", "Thumb_01_l", "thumbPro_L"], 
+    "LeftHandThumb2":["LeftHandThumb2", "Thumb_02_l", "thumbInt_L"], 
+    "LeftHandThumb3":["LeftHandThumb3", "Thumb_03_l", "thumbDis_L"], 
+    "LeftHandIndex1":["LeftHandIndex1", "Index_01_l", "indexPro_L"], 
+    "LeftHandIndex2":["LeftHandIndex2", "Index_02_l", "indexInt_L"], 
+    "LeftHandIndex3":["LeftHandIndex3", "Index_03_l", "indexDis_L"], 
+    "LeftHandMiddle1":["LeftHandMiddle1", "Middle_01_l", "middlePro_L"], 
+    "LeftHandMiddle2":["LeftHandMiddle2", "Middle_02_l", "middleInt_L"], 
+    "LeftHandMiddle3":["LeftHandMiddle3", "Middle_03_l", "middleDis_L"], 
+    "LeftHandRing1":["LeftHandRing1", "Ring_01_l", "ringPro_L"], 
+    "LeftHandRing2":["LeftHandRing2", "Ring_02_l", "ringInt_L"], 
+    "LeftHandRing3":["LeftHandRing3", "Ring_03_l", "ringDis_L"], 
+    "LeftHandPinky1":["LeftHandPinky1", "Pinky_01_l", "littlePro_L"], 
+    "LeftHandPinky2":["LeftHandPinky2", "Pinky_02_l", "littleInt_L"], 
+    "LeftHandPinky3":["LeftHandPinky3", "Pinky_03_l", "littleDis_L"], 
 
     # right hand
-    "RightHandThumb1":["RightHandThumb1", "Thumb_01_r"],
-    "RightHandThumb2":["RightHandThumb2", "Thumb_02_r"],
-    "RightHandThumb3":["RightHandThumb3", "Thumb_03_r"],
-
-    "RightHandIndex1":["RightHandIndex1", "Index_01_r"],
-    "RightHandIndex2":["RightHandIndex2", "Index_02_r"],
-    "RightHandIndex3":["RightHandIndex3", "Index_03_r"],
-
-    "RightHandMiddle1":["RightHandMiddle1", "Middle_01_r"],
-    "RightHandMiddle2":["RightHandMiddle2", "Middle_02_r"],
-    "RightHandMiddle3":["RightHandMiddle3", "Middle_03_r"],
-
-    "RightHandRing1":["RightHandRing1", "Ring_01_r"],
-    "RightHandRing2":["RightHandRing2", "Ring_02_r"],
-    "RightHandRing3":["RightHandRing3", "Ring_03_r"],
-
-    "RightHandPinky1":["RightHandPinky1", "Pinky_01_r"],
-    "RightHandPinky2":["RightHandPinky2", "Pinky_02_r"],
-    "RightHandPinky3":["RightHandPinky3", "Pinky_03_r"],
+    "RightHandThumb1":["RightHandThumb1",   "Thumb_01_r",  "thumbPro_R"],
+    "RightHandThumb2":["RightHandThumb2",   "Thumb_02_r",  "thumbInt_R"],
+    "RightHandThumb3":["RightHandThumb3",   "Thumb_03_r",  "thumbDis_R"],
+    "RightHandIndex1":["RightHandIndex1",   "Index_01_r",  "indexPro_R"],
+    "RightHandIndex2":["RightHandIndex2",   "Index_02_r",  "indexInt_R"],
+    "RightHandIndex3":["RightHandIndex3",   "Index_03_r",  "indexDis_R"],
+    "RightHandMiddle1":["RightHandMiddle1", "Middle_01_r", "middlePro_R"],
+    "RightHandMiddle2":["RightHandMiddle2", "Middle_02_r", "middleInt_R"],
+    "RightHandMiddle3":["RightHandMiddle3", "Middle_03_r", "middleDis_R"],
+    "RightHandRing1":["RightHandRing1",     "Ring_01_r",   "ringPro_R"],
+    "RightHandRing2":["RightHandRing2",     "Ring_02_r",   "ringInt_R"],
+    "RightHandRing3":["RightHandRing3",     "Ring_03_r",   "ringDis_R"],
+    "RightHandPinky1":["RightHandPinky1",   "Pinky_01_r",  "littlePro_R"],
+    "RightHandPinky2":["RightHandPinky2",   "Pinky_02_r",  "littleInt_R"],
+    "RightHandPinky3":["RightHandPinky3",   "Pinky_03_r",  "littleDis_R"],
 }
 
 """ hierarchy """
