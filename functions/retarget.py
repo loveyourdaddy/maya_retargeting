@@ -6,6 +6,33 @@ from functions.motion import *
 import math
 import maya.api.OpenMaya as om
 
+def get_conversion(src_joints_origin, src_joints_template,
+                    tgt_joints_origin, tgt_joints_template, tgt_joints_template_indices, 
+                    root_joint=None):
+    # common hierarchy
+    src_indices, tgt_indices = get_common_hierarchy_bw_src_and_tgt(
+        src_joints_origin, src_joints_template, # src 
+        tgt_joints_origin, tgt_joints_template, root_joint, # tgt 
+        )
+    
+    # indices 
+    # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
+    src_joints_common = [src_joints_origin[i] for i in src_indices]
+    tgt_joints_common = [tgt_joints_origin[i] for i in tgt_indices]
+    # indices 
+    tgt_joints_template_indices = [tgt_joints_template_indices[i] for i in tgt_indices]
+
+    # Tpose rot common
+    tgt_Tpose_rots_common = get_Tpose_localrot(tgt_joints_common)
+    src_Tpose_rots_common = get_Tpose_localrot(src_joints_common)
+
+    # Tpose trf
+    conversion_matrics = get_conversion_matrix(src_joints_common, tgt_joints_common)
+
+    return src_joints_common, src_Tpose_rots_common, \
+        tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, \
+        conversion_matrics
+
 ''' common joint hierarchy '''
 def get_common_hierarchy_bw_src_and_tgt(
         src_joints_origin, src_joints_template, 
@@ -161,6 +188,7 @@ def get_common_hierarchy_bw_src_and_tgt(
             # find common joint
             if (src_joint_renamed.lower() in tgt_joint_renamed.lower() or tgt_joint_renamed.lower() in src_joint_renamed.lower()) \
                     and (src_joint not in src_common_joint and tgt_joint not in tgt_common_joint):
+                # print("src {} tgt {}".format(src_joint, tgt_joint))
 
                 # 다른 조인트에 속하는 경우, 제외해주기
                 if check_common_string_in_value_of_other_list(src_joint, tgt_joint):
@@ -320,8 +348,8 @@ def check_common_string_in_value_of_other_list(src_joint, tgt_joint):
         if common_string in values_lower:
             check_find_key = True
             break
-    
-    # 다른 키에 속하는 경우, 제외해주기.
+
+    # common string이 다른 조인트 키에 속하는 경우, 제외해주기.
     if check_find_key:
         check_other_key = False
         for key, values in alter_joint_name.items():
@@ -502,7 +530,7 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src
                     # chain에서 몇번째 인덱스
                     subjoint_jid = chain.index(template_index)
                     subchain_indices.append(subjoint_jid)
-                    print(f"joint {j} {tgt_joint} : subchain {subjoint_jid} {tgt_subchains[0][subjoint_jid]}")
+                    # print(f"joint {j} {tgt_joint} : subchain {subjoint_jid} {tgt_subchains[0][subjoint_jid]}")
 
         # get data 
         _, rot_data = get_keyframe_data(src_joint)

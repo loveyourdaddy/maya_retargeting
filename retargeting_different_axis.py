@@ -148,45 +148,19 @@ def main():
     src_joints_template, _, _ = rename_joint_by_template(src_joints_origin)
 
     ''' common skeleton '''
-    def get_conversion(src_joints_origin, src_joints_template,
-                       tgt_joints_origin, tgt_joints_template, tgt_joints_template_indices, 
-                       root_joint=None):
-        # common hierarchy
-        src_indices, tgt_indices = get_common_hierarchy_bw_src_and_tgt(
-            src_joints_origin, src_joints_template, # src 
-            tgt_joints_origin, tgt_joints_template, root_joint, # tgt 
-            )
-        
-        # indices 
-        # refined joint에서 인덱스을 얻을 후, tgt joints에서 뽑기
-        src_joints_common = [src_joints_origin[i] for i in src_indices]
-        tgt_joints_common = [tgt_joints_origin[i] for i in tgt_indices]
-        # indices 
-        tgt_joints_template_indices = [tgt_joints_template_indices[i] for i in tgt_indices]
-
-        # Tpose rot common
-        tgt_Tpose_rots_common = get_Tpose_localrot(tgt_joints_common)
-        src_Tpose_rots_common = get_Tpose_localrot(src_joints_common)
-
-        # Tpose trf
-        conversion_matrics = get_conversion_matrix(src_joints_common, tgt_joints_common)
-
-        return src_joints_common, src_Tpose_rots_common, \
-            tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, \
-            conversion_matrics
-
     # common joint 
     src_joints_common, src_Tpose_rots_common, \
     tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, \
     conversion_matrics \
         = get_conversion(
             src_joints_origin, src_joints_template, 
-            tgt_joints_wNS, tgt_joints_template, tgt_joints_template_indices,)
+            tgt_joints_wNS, tgt_joints_template, tgt_joints_template_indices)
 
     # for subchain joints 
     subchain_conversion_matrics = []
     tgt_subchain_template_indices_refined = []
     subchain_common_joints = []
+    subchain_Tpose_rots_common = []
     for j, subchain_joints in enumerate(tgt_subchains):
         _, _, \
         subchain_joints_common, subchain_Tpose_rots_common, tgt_subchain_template_index, \
@@ -270,6 +244,7 @@ def main():
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,
                                             height_ratio)
         # rot
+        # import pdb; pdb.set_trace()
         retarget_rotation(src_joints_common, src_Tpose_rots_common,
                           tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, conversion_matrics, 
                           subchain_common_joints, subchain_Tpose_rots_common, tgt_subchain_template_indices, subchain_conversion_matrics,

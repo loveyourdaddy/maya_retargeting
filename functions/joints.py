@@ -6,7 +6,6 @@ from functions.rotations import normalize_rotmat
 
 # joints
 # 22 = 4+2+4+4+4+4
-
 alter_joint_name = {
     "Hips":["Root", "Pelvis", "LowerTorso", "Bone"], 
     "Spine":["UpperTorso", 'spine'], 
@@ -15,6 +14,8 @@ alter_joint_name = {
     "Spine3":["chestUpper", "spine_3", "spine_04"], 
     "Spine4":["chestUpper", "spine_4", "spine_05", "BoneFBXASC046001"], 
 
+    # "Neck1":["neck", "neck_01", "BoneFBXASC046006"], 
+    # "Neck2":["neck1", "neck_02",], 
     "Neck":["neck_01", "BoneFBXASC046006"], 
     "Head":["head",], 
 
@@ -31,12 +32,12 @@ alter_joint_name = {
     "RightUpLeg":['RFBXASC032Thigh', 'upperLeg_R', 'upperReg_R', 'RightUpperLeg', 'thigh_r', "BoneFBXASC046007"], # 7 8
     "RightLeg":  ['RFBXASC032Calf',  'lowerLeg_R', 'lowerReg_R', 'RightLowerLeg', 'calf_r'], 
     "RightFoot":['RFBXASC032Foot', 'foot_R', "BoneFBXASC046008"], 
-    "RightToeBase":['RFBXASC032Toe0', 'toes_R'], 
+    "RightToeBase":['RFBXASC032Toe0', 'toes_R', 'ball_r'], 
 
     "LeftUpLeg":['LFBXASC032Thigh', 'upperLeg_L', 'upperReg_L', 'LeftUpperLeg', 'thigh_l', "BoneFBXASC046009"], # 9 10
     "LeftLeg":  ['LFBXASC032Calf',  'lowerLeg_L', 'lowerReg_L', 'LeftLowerLeg', 'calf_l', ], 
     "LeftFoot":['LFBXASC032Foot', 'foot_L', "BoneFBXASC046010", ], 
-    "LeftToeBase":['LFBXASC032Toe0', 'toes_L'], 
+    "LeftToeBase":['LFBXASC032Toe0', 'toes_L', "ball_l"], 
     }
 
 finger_alter_joint_name = {
