@@ -189,11 +189,7 @@ def get_common_hierarchy_bw_src_and_tgt(
             if (src_joint_renamed.lower() in tgt_joint_renamed.lower() or tgt_joint_renamed.lower() in src_joint_renamed.lower()) \
                     and (src_joint not in src_common_joint and tgt_joint not in tgt_common_joint):
                 # print("src {} tgt {}".format(src_joint, tgt_joint))
-
-                # 다른 조인트에 속하는 경우, 제외해주기
-                if check_common_string_in_value_of_other_list(src_joint, tgt_joint):
-                    continue
-
+                
                 # add root division
                 # division의 다음 조인트로 넘어갔을때, 이전 조인트를 강제로 division 조인트로 바꿔주기
                 if root_check_flag==False and src_idx > src_root_div_jid and tgt_idx > tgt_root_div_jid:
@@ -333,57 +329,59 @@ def check_string_in_list(string, string_list):
     string_list_lower = [value.lower() for value in string_list]
     string_lower = string.lower()
     # string이 list에 정확히 겹치는 것이 있거나, list의 각 인자가 string에 포함되는 경우
-    if string=="Neck1" and len(string_list)>1 and string_list[0]=="neck":
-        import pdb; pdb.set_trace()
+    # if string=="Neck1" and len(string_list)>1 and string_list[0]=="neck":
+    #     import pdb; pdb.set_trace()
     if string_lower in string_list_lower or any(val in string_lower for val in string_list_lower):
         return True
     else:
         return False
 
-def check_common_string_in_value_of_other_list(src_joint, tgt_joint):
-    common_string = get_common_substring(src_joint, tgt_joint)
+# def check_common_string_in_value_of_other_list(src_joint, tgt_joint):
+#     common_string = get_common_substring(src_joint, tgt_joint)
 
-    # 본인의 키를 찾기. 
-    # common string이 alter_joint_name의 values에 있는지 확인 
-    check_find_key = False
-    # template_idx = 0
-    for template_idx, (key_common, values) in enumerate(alter_joint_name.items()):
-        values_lower = [value.lower() for value in values]
-        if common_string in values_lower:
-            check_find_key = True
-            break
+#     # 본인의 키를 찾기. 
+#     # common string이 alter_joint_name의 values에 있는지 확인 
+#     check_find_key = False
+#     # template_idx = 0
+#     for template_idx, (key_common, values) in enumerate(alter_joint_name.items()):
+#         values_lower = [value.lower() for value in values]
+#         if common_string in values_lower:
+#             check_find_key = True
+#             break
 
-    # common string(key)이 다른 조인트 키의 values 속하는 경우, 제외해주기.
-    if check_find_key:
-        check_other_key = False
-        for tid, (key, values) in enumerate(alter_joint_name.items()):
-            # 본인보다 큰 template skeleton만 서치
-            if tid<=template_idx:
-                continue
+#     # common string(key)이 다른 조인트 키의 values 속하는 경우, 제외해주기.
+#     if check_find_key:
+#         check_other_key = False
+#         for tid, (key, values) in enumerate(alter_joint_name.items()):
+#             # 본인보다 큰 template skeleton만 서치
+#             # if tid<=template_idx:
+#             #     continue
 
-            # 본인 key는 서치에서 제외
-            if key==key_common:
-                continue
+#             # 본인 key는 서치에서 제외
+#             if key==key_common:
+#                 continue
 
-            # 방향 제외 (_l, _r_)
-            values_wo_lr = []
-            for value in values:
-                if "_l" in value or "_r" in value:
-                    values_wo_lr.append(value[:-2])
+#             # 방향 제외 (_l, _r_)
+#             values_wo_lr = []
+#             for value in values:
+#                 if "_l" in value or "_r" in value:
+#                     values_wo_lr.append(value[:-2])
 
             # 다른 key 확인
             # 1 다른 조인트의 values에 속하지 않고, 2 finger가 아닌 경우, 3 hand가 아닌 경우 (hand_L, hand_R이 겹칠수있음)
-            if (check_string_in_list(src_joint, values) or check_string_in_list(tgt_joint, values) or\
-                check_string_in_list(src_joint, values_wo_lr) or check_string_in_list(tgt_joint, values_wo_lr)) and\
-                    "finger" not in common_string and \
-                    key != "RightHand" and key != "LeftHand":
-                # TODO: 왜 필요했는지 확인.
-                check_other_key = True
-                break
-        if check_other_key:
-            return True
+        #     if (check_string_in_list(src_joint, values) or check_string_in_list(tgt_joint, values) or\
+        #         check_string_in_list(src_joint, values_wo_lr) or check_string_in_list(tgt_joint, values_wo_lr)) and\
+        #             "finger" not in common_string and \
+        #             key != "RightHand" and key != "LeftHand":
+        #         check_other_key = True
+        #         print("src {} tgt {}".format(src_joint, tgt_joint))
+        #         if src_joint!="Neck1" and tgt_joint!="Neck1":
+        #             import pdb; pdb.set_trace()
+        #         break
+        # if check_other_key:
+        #     return True
 
-    return False
+    # return False
 
 """ Tpose """
 def get_Tpose_trf(src_joint_hierarchy, tgt_joint_hierarchy, tgt_prerotations=None):

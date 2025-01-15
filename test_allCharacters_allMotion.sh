@@ -40,7 +40,8 @@ tgt_characters=(
     "Adori2.1"
     "Asooni2.0"
 
-    "Metahuman"
+    "Metahuman_woMesh"
+    # "Metahuman"
     "Minecraft"
     "Readyplayerme"
     "Roblox"
