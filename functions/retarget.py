@@ -332,6 +332,9 @@ def get_common_substring(str1_, str2_):
 def check_string_in_list(string, string_list):
     string_list_lower = [value.lower() for value in string_list]
     string_lower = string.lower()
+    # string이 list에 정확히 겹치는 것이 있거나, list의 각 인자가 string에 포함되는 경우
+    if string=="Neck1" and len(string_list)>1 and string_list[0]=="neck":
+        import pdb; pdb.set_trace()
     if string_lower in string_list_lower or any(val in string_lower for val in string_list_lower):
         return True
     else:
@@ -343,16 +346,21 @@ def check_common_string_in_value_of_other_list(src_joint, tgt_joint):
     # 본인의 키를 찾기. 
     # common string이 alter_joint_name의 values에 있는지 확인 
     check_find_key = False
-    for key_common, values in alter_joint_name.items():
+    # template_idx = 0
+    for template_idx, (key_common, values) in enumerate(alter_joint_name.items()):
         values_lower = [value.lower() for value in values]
         if common_string in values_lower:
             check_find_key = True
             break
 
-    # common string이 다른 조인트 키에 속하는 경우, 제외해주기.
+    # common string(key)이 다른 조인트 키의 values 속하는 경우, 제외해주기.
     if check_find_key:
         check_other_key = False
-        for key, values in alter_joint_name.items():
+        for tid, (key, values) in enumerate(alter_joint_name.items()):
+            # 본인보다 큰 template skeleton만 서치
+            if tid<=template_idx:
+                continue
+
             # 본인 key는 서치에서 제외
             if key==key_common:
                 continue
@@ -369,11 +377,12 @@ def check_common_string_in_value_of_other_list(src_joint, tgt_joint):
                 check_string_in_list(src_joint, values_wo_lr) or check_string_in_list(tgt_joint, values_wo_lr)) and\
                     "finger" not in common_string and \
                     key != "RightHand" and key != "LeftHand":
+                # TODO: 왜 필요했는지 확인.
                 check_other_key = True
                 break
         if check_other_key:
             return True
-        
+
     return False
 
 """ Tpose """
