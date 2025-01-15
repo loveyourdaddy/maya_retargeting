@@ -13,10 +13,40 @@ BASE_TEST_DIR="./test_results/${TEST_DATE}"
 mkdir -p "$BASE_TEST_DIR"
 echo "Results in: $BASE_TEST_DIR"
 
-
 # 로그 파일 설정 - logs 디렉토리 안에 저장
 LOG_FILE="$LOGS_DIR/retargeting_test_$(date +%Y%m%d_%H%M%S).log"
 TEST_RESULTS="$LOGS_DIR/test_results_$(date +%Y%m%d_%H%M%S).txt" # failed test list
+
+# 변수 
+GENERATE_VIDEO=false # true
+
+# 캐릭터 폴더 리스트
+src_characters=(
+    "Adori"
+    "Adori2.0"
+    "Adori2.1"
+    "Asooni"
+    "Asooni2.0"
+
+    # "Adori_qc"
+    # "Adori2.0_qc"
+    # "Asooni_qc"
+)
+
+tgt_characters=(
+    "Adori"
+    "Adori2.0"
+    "Asooni"
+    "Adori2.1"
+    "Asooni2.0"
+
+    "Metahuman"
+    "Minecraft"
+    "Readyplayerme"
+    "Roblox"
+    "UE"
+    "Zepeto"
+)
 
 # 로그 함수
 log() {
@@ -66,19 +96,20 @@ run_test_case() {
             # 결과 fbx 파일이 존재하면 해당 디렉토리로 이동
             mv "$result_file" "$result_dir/"
 
-            # MP4 변환
-            log "Converting FBX to MP4 using Maya..."
-            mkdir -p "$result_full_dir"
-            if [ $3 = "./models/UE/UE.fbx" ]; then
-                # maya
-                echo "mayapy render_fbx_maya.py "$result_dir/$result_file" "$result_full_dir""
-                mayapy render_fbx_maya.py "$result_dir/$result_file" "$result_full_dir"
-            else
-                # blender
-                echo "/Applications/Blender.app/Contents/MacOS/Blender -b -P render_fbx_blender.py -- "$result_dir/$result_file" "$result_full_dir""
-                /Applications/Blender.app/Contents/MacOS/Blender -b -P render_fbx_blender.py -- "$result_dir/$result_file" "$result_full_dir"
+            if [ "$GENERATE_VIDEO" = true ]; then
+                # MP4 변환
+                log "Converting FBX to MP4 using Maya..."
+                mkdir -p "$result_full_dir"
+                if [ $3 = "./models/UE/UE.fbx" ]; then
+                    # maya
+                    echo "mayapy render_fbx_maya.py "$result_dir/$result_file" "$result_full_dir""
+                    mayapy render_fbx_maya.py "$result_dir/$result_file" "$result_full_dir"
+                else
+                    # blender
+                    echo "/Applications/Blender.app/Contents/MacOS/Blender -b -P render_fbx_blender.py -- "$result_dir/$result_file" "$result_full_dir""
+                    /Applications/Blender.app/Contents/MacOS/Blender -b -P render_fbx_blender.py -- "$result_dir/$result_file" "$result_full_dir"
+                fi
             fi
-            
         else
             log "Warning: Result file not found: $result_file \n"
         fi
@@ -121,34 +152,6 @@ get_all_motions() {
         printf "%s\n" "${motions[@]}"
     fi
 }
-
-# 캐릭터 폴더 리스트
-src_characters=(
-    # "Adori"
-    # "Adori2.0"
-    # "Adori2.1"
-    # "Asooni"
-    # "Asooni2.0"
-
-    "Adori_qc"
-    "Adori2.0_qc"
-    "Asooni_qc"
-)
-
-tgt_characters=(
-    # "Adori"
-    # "Adori2.0"
-    # "Asooni"
-    # "Adori2.1"
-    # "Asooni2.0"
-
-    "Metahuman"
-    # "Minecraft"
-    # "Readyplayerme"
-    # "Roblox"
-    # "UE"
-    # "Zepeto"
-)
 
 # 결과 카운터 초기화
 total_tests=0
