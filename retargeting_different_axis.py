@@ -193,6 +193,17 @@ def main():
 
     # ratio
     height_ratio = tgt_hip_height / src_hip_height
+    
+    # subchain height ratio
+    hip_height_diff = []
+    for root in subchain_roots:
+        # sub_hip_height = cmds.xform(root, query=True, translation=True, worldSpace=True)[1]
+        # diff = sub_hip_height / tgt_hip_height
+        sub_hip_height = get_distance_from_toe_to_root(tgt_joints_common, root)
+        sub_height_ratio = sub_hip_height / src_hip_height
+        hip_height_diff.append(sub_height_ratio)
+        # import pdb; pdb.set_trace()
+
 
     # locator rotation 업데이트
     if tgt_locator is not None:
@@ -239,7 +250,7 @@ def main():
                                           subchain_roots,
                                           src_locator, src_locator_rot, src_locator_scale,
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,
-                                            height_ratio)
+                                            height_ratio, hip_height_diff)
         # rot
         retarget_rotation(src_joints_common, src_Tpose_rots_common,
                           tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, conversion_matrics, 

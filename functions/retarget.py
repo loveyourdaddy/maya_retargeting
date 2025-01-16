@@ -392,7 +392,7 @@ def retarget_translation(src_hip, tgt_hip,
                          subchain_roots, 
                          src_locator=None, src_locator_rot=None, src_locator_scale=None,
                          tgt_locator=None, tgt_locator_rot=None, tgt_locator_scale=None, tgt_locator_pos=None, 
-                         height_ratio=1):
+                         height_ratio=1, hip_height_diff=[]):
     # translation data
     trans_data, _ = get_keyframe_data(src_hip)
     trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
@@ -444,12 +444,18 @@ def retarget_translation(src_hip, tgt_hip,
         
         trans_data = apply_scale(trans_data, tgt_locator_scale, inverse=True)
 
-        trans_data *= height_ratio
-        set_keyframe(tgt_hip, trans_data, trans_attr)
+        trans_data_main = trans_data * height_ratio
+        # trans_data_main = trans_data * height_ratio
+        set_keyframe(tgt_hip, trans_data_main, trans_attr)
 
         # subchain
-        for subchain_root in subchain_roots:
-            set_keyframe(subchain_root, trans_data, trans_attr)
+        for i, subchain_root in enumerate(subchain_roots):
+            diff = hip_height_diff[i]
+            # trans_data_sub = trans_data_main - (trans_data * diff)
+            trans_data_sub = trans_data_main - (trans_data_main * (height_ratio - diff))
+            # trans_data_sub_ = trans_data * diff
+            # import pdb; pdb.set_trace()
+            set_keyframe(subchain_root, trans_data_sub, trans_attr)
 
     return trans_data
 
