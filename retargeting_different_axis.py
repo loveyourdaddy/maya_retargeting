@@ -241,7 +241,6 @@ def main():
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,
                                             height_ratio)
         # rot
-        # import pdb; pdb.set_trace()
         retarget_rotation(src_joints_common, src_Tpose_rots_common,
                           tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, conversion_matrics, 
                           subchain_common_joints, subchain_Tpose_rots_common, tgt_subchain_template_indices, subchain_conversion_matrics,
@@ -249,7 +248,6 @@ def main():
     else:
         print(">> retarget without locator")
         raise ValueError("No locator") # TODO
-
     
     ''' export '''
     # Remove source locator

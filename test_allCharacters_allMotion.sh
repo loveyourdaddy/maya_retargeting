@@ -17,8 +17,8 @@ echo "Results in: $BASE_TEST_DIR"
 LOG_FILE="$LOGS_DIR/retargeting_test_$(date +%Y%m%d_%H%M%S).log"
 TEST_RESULTS="$LOGS_DIR/test_results_$(date +%Y%m%d_%H%M%S).txt" # failed test list
 
-# 변수 
-GENERATE_VIDEO=false # true
+# 변수
+GENERATE_VIDEO=false # true false
 
 # 캐릭터 폴더 리스트
 src_characters=(

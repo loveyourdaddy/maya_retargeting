@@ -21,13 +21,13 @@ alter_joint_name = {
 
     "RightShoulder":["RFBXASC032Clavicle", "Clavicle_r", "shoulder_R", ],
     "RightArm":["RFBXASC032UpperArm",  "RightUpperArm", "upperArm_R", "BoneFBXASC046005"], # 5, 6
-    "RightForeArm":["RFBXASC032Forearm", "RightForearm", "RightLowerArm",  "lowerArm_R", "lowerarm_in_r", ], #"BoneFBXASC046005" 
-    "RightHand":["RFBXASC032Hand", "RightHand", "hand_R", "lowerarm_out_r", "BoneFBXASC046006"], 
+    "RightForeArm":["RFBXASC032Forearm", "RightForearm", "RightLowerArm",  "lowerArm_R", ], # "BoneFBXASC046005" "lowerarm_in_r", 
+    "RightHand":["RFBXASC032Hand", "RightHand", "hand_R", "BoneFBXASC046006"], # "lowerarm_out_r", 
 
     "LeftShoulder": ["LFBXASC032Clavicle", "Clavicle_l", "shoulder_L", ],
     "LeftArm":["LFBXASC032UpperArm", "LeftUpperArm", "upperArm_L", "BoneFBXASC046003"], # 3,4
-    "LeftForeArm":["LFBXASC032Forearm", "LeftForearm", "LeftLowerArm", "lowerArm_L", "lowerarm_in_l", ], # "BoneFBXASC046003"
-    "LeftHand": ["LFBXASC032Hand", "LeftHand", "hand_L", "lowerarm_out_l", "BoneFBXASC046004"],
+    "LeftForeArm":["LFBXASC032Forearm", "LeftForearm", "LeftLowerArm", "lowerArm_L", ], # "BoneFBXASC046003" "lowerarm_in_l", 
+    "LeftHand": ["LFBXASC032Hand", "LeftHand", "hand_L", "BoneFBXASC046004"], # "lowerarm_out_l", 
 
     "RightUpLeg":['RFBXASC032Thigh', 'upperLeg_R', 'upperReg_R', 'RightUpperLeg', 'thigh_r', "BoneFBXASC046007"], # 7 8
     "RightLeg":  ['RFBXASC032Calf',  'lowerLeg_R', 'lowerReg_R', 'RightLowerLeg', 'calf_r'], 
@@ -144,12 +144,15 @@ def rename_joint_by_template(joints):
                 if (joint.lower() in alter_joint.lower() or alter_joint.lower() in joint.lower()) and key_joint not in ret_joints:
                     # template joint가 맞다면,
                     joint = key_joint
+                    
                     # template joint indices에 넣어주고
                     input_jids_in_template.append(jid)
+                    
                     # 입력에 대한 template indices을 업데이트 해주기 
                     template_index = key_list.index(key_joint)
                     template_indices_for_input_joints.append(template_index)
                     # print(f"key_joint {key_joint} template_index {template_index}")
+
                     # 다음 tempalte으로 넘어가기 
                     template_index += 1
                     check = True
@@ -157,6 +160,7 @@ def rename_joint_by_template(joints):
             if check:
                 break
 
+        # print("{} joint {} -> {}".format(jid, joints[jid], joint))
         # template joint가 아니라면, -1
         if check==False:
             template_indices_for_input_joints.append(-1)
@@ -172,9 +176,6 @@ def rename_joint_by_template(joints):
         ret_joints.append(joint)
 
     return ret_joints, input_jids_in_template, template_indices_for_input_joints
-# TODO: remove 두번째 값 
-    # input_jids_in_template: template에 속한 joints index
-    # template_indices: 모든 조인트에 대해서 template index나 -1
 
 """ Root """
 # find root joint index
