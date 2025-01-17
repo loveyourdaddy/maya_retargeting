@@ -1,6 +1,7 @@
 import numpy as np 
 import maya.cmds as cmds
 
+# xyz euler angles
 def R_to_E(R):
     beta = np.arcsin(-R[2, 0]) # beta (y axis)
     # print("{} {}".format(-R[2, 0], beta))
@@ -18,6 +19,24 @@ def R_to_E(R):
     beta = np.degrees(beta)
     gamma = np.degrees(gamma)
 
+    return np.array([alpha, beta, gamma])
+
+# For ZYX Euler angles
+def R_to_E_(R):
+    beta = np.arcsin(-R[0,2])  # beta (y axis)
+    
+    if np.cos(beta) > 1e-10:  # Not at singularity
+        alpha = np.arctan2(R[1,2], R[2,2])  # z axis
+        gamma = np.arctan2(R[0,1], R[0,0])  # x axis
+    else:  # At singularity
+        alpha = 0  # arbitrary
+        gamma = np.arctan2(-R[1,0], R[1,1])
+        
+    # Convert to degrees
+    alpha = np.degrees(alpha)
+    beta = np.degrees(beta)
+    gamma = np.degrees(gamma)
+    
     return np.array([alpha, beta, gamma])
 
 def E_to_R(E, order="xyz", radians=False): # order: rotation값이 들어오는 순서

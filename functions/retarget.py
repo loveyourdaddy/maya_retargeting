@@ -487,64 +487,6 @@ def matrix_to_mmatrix(matrix):
     # Create MMatrix directly from the flattened list
     return om.MMatrix(matrix_list)
 
-def get_all_equivalent_euler_angles(matrix, prev_angles=None):
-    """
-    Get all equivalent Euler angle combinations for a given rotation matrix
-    Returns the combination closest to prev_angles if provided
-    """
-    base_rotation = om.MEulerRotation.decompose(matrix, om.MEulerRotation.kXYZ)
-    base_angles = [math.degrees(angle) for angle in base_rotation]
-
-    matrix = np.array(matrix).reshape(4, 4)
-    
-    # Generate all equivalent rotations
-    equivalent_angles = []
-    
-    # Try combinations of adding/subtracting 360 degrees to each axis
-    for x_mult in [-2, -1, 0, 1, 2]:  # Try more multiples for wider range
-        for y_mult in [-2, -1, 0, 1, 2]:
-            for z_mult in [-2, -1, 0, 1, 2]:
-                new_angles = [
-                    base_angles[0] + 360 * x_mult,
-                    base_angles[1] + 360 * y_mult,
-                    base_angles[2] + 360 * z_mult
-                ]
-                
-                # Verify this combination produces the same rotation
-                test_rot = om.MEulerRotation(
-                    math.radians(new_angles[0]),
-                    math.radians(new_angles[1]),
-                    math.radians(new_angles[2]),
-                    om.MEulerRotation.kXYZ
-                )
-                test_matrix = test_rot.asMatrix()
-                test_matrix = np.array(test_matrix).reshape(4, 4)
-                
-                # Check if matrices are approximately equal
-                is_same = all(abs(matrix[i,j] - test_matrix[i,j]) < 1e-10 
-                            for i in range(3) for j in range(3))
-                
-                if is_same:
-                    equivalent_angles.append(new_angles)
-    
-    if prev_angles is not None:
-        # Find the combination closest to previous angles
-        min_diff = float('inf')
-        best_angles = None
-        
-        for angles in equivalent_angles:
-            # Calculate weighted difference (you can adjust weights if needed)
-            diff = sum((a - p) ** 2 for a, p in zip(angles, prev_angles))
-            
-            if diff < min_diff:
-                min_diff = diff
-                best_angles = angles
-        
-        return best_angles
-    else:
-        # For first frame, return the base decomposition
-        return base_angles
-
 def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
                       tgt_common_joints, tgt_Tpose_localrots, tgt_joints_template_indices,  Tpose_trfs, # tgt
                       tgt_subchains, subchain_Tpose_localrots, tgt_subchain_template_indices, subchain_Tpose_trfs, # subchaint
@@ -607,13 +549,12 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
                 converted_offset = convert_matric * source_offset * convert_matric.inverse()
                 final_matrix = converted_offset * target_tpose_matrix
 
-                # Extract Euler angles directly from matrix
-                current_angles = get_all_equivalent_euler_angles(final_matrix, prev_angles)
-
-                # Unwrap angles if not first frame
-                tgt_perjoint_local_angle[frame] = current_angles
-                prev_angles = current_angles
+                # E_to_R 사용
+                final_matrix = np.array(final_matrix).reshape(4, 4)
+                euler_angle = R_to_E_(final_matrix)
                 
+                tgt_perjoint_local_angle[frame] = euler_angle 
+
             set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
 
         set_keyframe_for_joint(tgt_joint, target_tpose_matrix, Tpose_trfs[j], j)
