@@ -452,7 +452,21 @@ def retarget_translation(src_hip, tgt_hip,
         for i, subchain_root in enumerate(subchain_roots):
             diff = hip_height_diff[i]
             # trans_data_sub = trans_data_main - (trans_data * diff)
+            # y값: 차이를 main root의 delta 값으로 사용
             trans_data_sub = trans_data_main - (trans_data_main * (height_ratio - diff))
+
+            # x, z 값은 같게
+            # y_axis = (tgt_rot_mat[0] @ np.array([0,1,0])) 
+            x_axis = (tgt_rot_mat[0] @ np.array([1,0,0])) 
+            z_axis = (tgt_rot_mat[0] @ np.array([0,0,1])) 
+            x_component = int(np.argmax(np.abs(x_axis)))
+            z_component = int(np.argmax(np.abs(z_axis)))
+
+            trans_data_sub[:, x_component] = trans_data_main[:, x_component]
+            trans_data_sub[:, z_component] = trans_data_main[:, z_component]
+            # import pdb; pdb.set_trace()
+            
+            # import pdb; pdb.set_trace()
             # trans_data_sub_ = trans_data * diff
             set_keyframe(subchain_root, trans_data_sub, trans_attr)
 
