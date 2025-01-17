@@ -454,7 +454,6 @@ def retarget_translation(src_hip, tgt_hip,
             # trans_data_sub = trans_data_main - (trans_data * diff)
             trans_data_sub = trans_data_main - (trans_data_main * (height_ratio - diff))
             # trans_data_sub_ = trans_data * diff
-            # import pdb; pdb.set_trace()
             set_keyframe(subchain_root, trans_data_sub, trans_attr)
 
     return trans_data
@@ -473,6 +472,86 @@ def matrix_to_mmatrix(matrix):
     
     # Create MMatrix directly from the flattened list
     return om.MMatrix(matrix_list)
+
+# def fix_rotation_discontinuity(angles_array):
+#     result = np.array(angles_array).copy()  # 깊은 복사로 원본 보존
+    
+#     # 각 프레임별로 이전 프레임과 비교하여 보정
+#     for i in range(1, result.shape[0]):
+#         for j in range(3):  # x, y, z 각 축별로
+#             while abs(result[i, j] - result[i-1, j]) > 180:
+#                 if result[i, j] > result[i-1, j]:
+#                     # 현재 값이 더 큰 경우
+#                     result[i, j] -= 360
+#                 else:
+#                     # 이전 값이 더 큰 경우
+#                     result[i, j] += 360
+                    
+#                 # 여전히 차이가 크다면 한번 더 확인
+#                 if abs(result[i, j] - result[i-1, j]) > 180:
+#                     if result[i, j] > 0:
+#                         result[i, j] = result[i, j] - 360
+#                     else:
+#                         result[i, j] = result[i, j] + 360
+    
+#     return result
+
+# def unwrap_angle(current, previous, threshold=90, frame=0, joint=''): # 180
+#     """
+#     Unwrap angle to make it continuous across frames by iteratively adjusting
+#     until the difference from previous value is within threshold
+#     """
+#     adjusted = current
+#     i=0
+#     if frame==908 and joint=="tgt:RightShoulder":
+#         import pdb; pdb.set_trace()
+#     # 무조건 변경해야해
+#     while abs(adjusted - previous) > threshold:
+#         # if adjusted - previous > 180:
+#         if adjusted >= previous :
+#             adjusted -= 360
+#         # elif adjusted - previous < -180:
+#         elif adjusted < previous:
+#             adjusted += 360
+#         # else:
+#         #     break
+#         print(f"adjusted {i}: {previous}, {adjusted}, {abs(adjusted - previous)} ")
+#         i+=1
+#     if frame==908 and joint=="tgt:RightShoulder":
+#         import pdb; pdb.set_trace()
+#     return adjusted
+
+def find_closest_euler_angles(matrix, prev_angles, joint='', frame=0):
+    """
+    Find the closest possible Euler angles to prev_angles that represent the same rotation
+    Returns angles in degrees
+    """
+    # Get all possible solutions
+    solutions = []
+    # Try different rotations that result in the same orientation
+    for i in range(-1, 2):  # -1, 0, 1
+        for j in range(-1, 2):
+            for k in range(-1, 2):
+                rot = om.MEulerRotation.decompose(matrix, om.MEulerRotation.kXYZ)
+                angles = [math.degrees(angle) + 360 * n for angle, n in zip(rot, (i,j,k))]
+                solutions.append(angles)
+    
+    if joint=="tgt:RightShoulder" and frame==908:
+        import pdb; pdb.set_trace()
+    # Find solution closest to previous angles
+    if prev_angles is not None:
+        min_diff = float('inf')
+        best_solution = None
+        for solution in solutions:
+            diff = sum((a - b) ** 2 for a, b in zip(solution, prev_angles))
+            if diff < min_diff:
+                min_diff = diff
+                best_solution = solution
+        return best_solution
+    else:
+        # For first frame, just return the basic decomposition
+        rot = om.MEulerRotation.decompose(matrix, om.MEulerRotation.kXYZ)
+        return [math.degrees(angle) for angle in rot]
 
 def retarget_rotation(src_common_joints, src_Tpose_localrots, # src 
                       tgt_common_joints, tgt_Tpose_localrots, tgt_joints_template_indices,  Tpose_trfs, # tgt
@@ -496,10 +575,6 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src
                     subchain_indices.append(subjoint_jid)
                     # print(f"joint {j} {tgt_joint} : subchain {subjoint_jid} {tgt_subchains[0][subjoint_jid]}")
 
-        # get data 
-        _, rot_data = get_keyframe_data(src_joint)
-        rot_data = get_array_from_keyframe_data(rot_data, rot_attr, src_joint)
-
         # Get source T-pose pre-rotation
         source_tpose_rot = src_Tpose_localrots[j]
         source_tpose_matrix = om.MEulerRotation(
@@ -518,9 +593,10 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src
             om.MEulerRotation.kXYZ
         ).asMatrix()
 
-        # retarget 
+        # retarget
         def set_keyframe_for_joint(tgt_joint, target_tpose_matrix, T_mat, jid):
             tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
+            prev_angles = np.zeros(3)
             for frame in range(len_frame):
                 # source rotation
                 cmds.currentTime(frame)
@@ -539,10 +615,27 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src
                 converted_offset = convert_matric * source_offset * convert_matric.inverse()
                 final_matrix = converted_offset * target_tpose_matrix
 
-                final_rotation = om.MEulerRotation.decompose(final_matrix, om.MEulerRotation.kXYZ)
-                tgt_perjoint_local_angle[frame] = [math.degrees(angle) for angle in final_rotation]
+                # Get previous frame angles if available
+                prev_angles = None if frame == 0 else tgt_perjoint_local_angle[frame-1]
+                
+                # Find closest continuous angles
+                current_angles = find_closest_euler_angles(final_matrix, prev_angles, joint=tgt_joint, frame=frame)
+                tgt_perjoint_local_angle[frame] = current_angles
 
+                # Unwrap angles to make them continuous
+                # for i in range(3):
+                #     if frame > 0:
+                #         current_angles[i] = unwrap_angle(current_angles[i], prev_angles[i], frame=frame, joint=tgt_joint)
 
+                # if tgt_joint=="tgt:RightShoulder" and frame==907:
+                #     import pdb; pdb.set_trace()
+                tgt_perjoint_local_angle[frame] = current_angles
+                # prev_angles = current_angles.copy()
+                # if tgt_joint=="tgt:RightShoulder" and frame==908:
+                #     import pdb; pdb.set_trace()
+                
+            # if tgt_joint=="tgt:RightShoulder":
+            #     import pdb; pdb.set_trace()
             # update by joint
             set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
 
