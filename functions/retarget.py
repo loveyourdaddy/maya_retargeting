@@ -392,7 +392,7 @@ def retarget_translation(src_hip, tgt_hip,
                          subchain_roots, 
                          src_locator=None, src_locator_rot=None, src_locator_scale=None,
                          tgt_locator=None, tgt_locator_rot=None, tgt_locator_scale=None, tgt_locator_pos=None, 
-                         height_ratio=1):
+                         height_ratio=1, hip_height_diff=[]):
     # translation data
     trans_data, _ = get_keyframe_data(src_hip)
     trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
@@ -444,12 +444,17 @@ def retarget_translation(src_hip, tgt_hip,
         
         trans_data = apply_scale(trans_data, tgt_locator_scale, inverse=True)
 
-        trans_data *= height_ratio
-        set_keyframe(tgt_hip, trans_data, trans_attr)
+        trans_data_main = trans_data * height_ratio
+        # trans_data_main = trans_data * height_ratio
+        set_keyframe(tgt_hip, trans_data_main, trans_attr)
 
         # subchain
-        for subchain_root in subchain_roots:
-            set_keyframe(subchain_root, trans_data, trans_attr)
+        for i, subchain_root in enumerate(subchain_roots):
+            diff = hip_height_diff[i]
+            # trans_data_sub = trans_data_main - (trans_data * diff)
+            trans_data_sub = trans_data_main - (trans_data_main * (height_ratio - diff))
+            # trans_data_sub_ = trans_data * diff
+            set_keyframe(subchain_root, trans_data_sub, trans_attr)
 
     return trans_data
 
@@ -468,7 +473,65 @@ def matrix_to_mmatrix(matrix):
     # Create MMatrix directly from the flattened list
     return om.MMatrix(matrix_list)
 
-def retarget_rotation(src_common_joints, src_Tpose_localrots, # src 
+def get_all_equivalent_euler_angles(matrix, prev_angles=None):
+    """
+    Get all equivalent Euler angle combinations for a given rotation matrix
+    Returns the combination closest to prev_angles if provided
+    """
+    base_rotation = om.MEulerRotation.decompose(matrix, om.MEulerRotation.kXYZ)
+    base_angles = [math.degrees(angle) for angle in base_rotation]
+
+    matrix = np.array(matrix).reshape(4, 4)
+    
+    # Generate all equivalent rotations
+    equivalent_angles = []
+    
+    # Try combinations of adding/subtracting 360 degrees to each axis
+    for x_mult in [-2, -1, 0, 1, 2]:  # Try more multiples for wider range
+        for y_mult in [-2, -1, 0, 1, 2]:
+            for z_mult in [-2, -1, 0, 1, 2]:
+                new_angles = [
+                    base_angles[0] + 360 * x_mult,
+                    base_angles[1] + 360 * y_mult,
+                    base_angles[2] + 360 * z_mult
+                ]
+                
+                # Verify this combination produces the same rotation
+                test_rot = om.MEulerRotation(
+                    math.radians(new_angles[0]),
+                    math.radians(new_angles[1]),
+                    math.radians(new_angles[2]),
+                    om.MEulerRotation.kXYZ
+                )
+                test_matrix = test_rot.asMatrix()
+                test_matrix = np.array(test_matrix).reshape(4, 4)
+                
+                # Check if matrices are approximately equal
+                is_same = all(abs(matrix[i,j] - test_matrix[i,j]) < 1e-10 
+                            for i in range(3) for j in range(3))
+                
+                if is_same:
+                    equivalent_angles.append(new_angles)
+    
+    if prev_angles is not None:
+        # Find the combination closest to previous angles
+        min_diff = float('inf')
+        best_angles = None
+        
+        for angles in equivalent_angles:
+            # Calculate weighted difference (you can adjust weights if needed)
+            diff = sum((a - p) ** 2 for a, p in zip(angles, prev_angles))
+            
+            if diff < min_diff:
+                min_diff = diff
+                best_angles = angles
+        
+        return best_angles
+    else:
+        # For first frame, return the base decomposition
+        return base_angles
+
+def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
                       tgt_common_joints, tgt_Tpose_localrots, tgt_joints_template_indices,  Tpose_trfs, # tgt
                       tgt_subchains, subchain_Tpose_localrots, tgt_subchain_template_indices, subchain_Tpose_trfs, # subchaint
                       len_frame,):
@@ -490,10 +553,6 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src
                     subchain_indices.append(subjoint_jid)
                     # print(f"joint {j} {tgt_joint} : subchain {subjoint_jid} {tgt_subchains[0][subjoint_jid]}")
 
-        # get data 
-        _, rot_data = get_keyframe_data(src_joint)
-        rot_data = get_array_from_keyframe_data(rot_data, rot_attr, src_joint)
-
         # Get source T-pose pre-rotation
         source_tpose_rot = src_Tpose_localrots[j]
         source_tpose_matrix = om.MEulerRotation(
@@ -512,9 +571,10 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src
             om.MEulerRotation.kXYZ
         ).asMatrix()
 
-        # retarget 
+        # retarget
         def set_keyframe_for_joint(tgt_joint, target_tpose_matrix, T_mat, jid):
             tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
+            prev_angles = np.zeros(3)
             for frame in range(len_frame):
                 # source rotation
                 cmds.currentTime(frame)
@@ -533,11 +593,13 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src
                 converted_offset = convert_matric * source_offset * convert_matric.inverse()
                 final_matrix = converted_offset * target_tpose_matrix
 
-                final_rotation = om.MEulerRotation.decompose(final_matrix, om.MEulerRotation.kXYZ)
-                tgt_perjoint_local_angle[frame] = [math.degrees(angle) for angle in final_rotation]
+                # Extract Euler angles directly from matrix
+                current_angles = get_all_equivalent_euler_angles(final_matrix, prev_angles)
 
-
-            # update by joint
+                # Unwrap angles if not first frame
+                tgt_perjoint_local_angle[frame] = current_angles
+                prev_angles = current_angles
+                
             set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
 
         set_keyframe_for_joint(tgt_joint, target_tpose_matrix, Tpose_trfs[j], j)
