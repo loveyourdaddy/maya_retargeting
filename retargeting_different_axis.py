@@ -202,7 +202,6 @@ def main():
         sub_hip_height = get_distance_from_toe_to_root(tgt_joints_common, root)
         sub_height_ratio = sub_hip_height / src_hip_height
         hip_height_diff.append(sub_height_ratio)
-        # import pdb; pdb.set_trace()
 
 
     # locator rotation 업데이트
@@ -210,7 +209,7 @@ def main():
         # locator ~ root 위 조인트 포함
         tgt_locator_rot = update_root_to_locator_rotation(tgt_joints_wNS, tgt_root, tgt_locator_rot)
 
-    # locator and meshes 
+    # locator and meshes
     locators_list = cmds.ls(type='locator')
     src_locator_list = list(set(locators_list) - set(tgt_locator_list))
     if len(src_locator_list)!=0:

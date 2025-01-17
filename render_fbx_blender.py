@@ -1,5 +1,6 @@
 # blender -b -P render_fbx.py -- "./output/Adori/1-8_Waacking_Twirl_RT0702.fbx" "/Users/inseo/2024_KAI_Retargeting/"
 # blender -b -P render_fbx.py -- "./test_results/20250107_122504/Adori_qc/Adori_qc/Confident_004_RT0830.fbx" "/Users/inseo/2024_KAI_Retargeting/test_videos/20250107_122504/Adori2.1/Adori2.1"
+# blender -b -P render_fbx.py -- "./Confident_004_RT0830.fbx" "./Confident_004_RT0830.mp4"
 
 import bpy
 import math
@@ -7,7 +8,7 @@ import os
 import sys
 import time
 from mathutils import Vector
-import time 
+import time
 
 def clean_scene():
     """새로운 씬을 생성합니다."""
