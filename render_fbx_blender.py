@@ -9,6 +9,53 @@ import time
 from mathutils import Vector
 import time 
 
+
+def assign_simple_material_to_all_meshes(obj):
+    """
+    Creates a new Principled BSDF material and assigns it
+    to every MESH object in the scene.
+    """
+    
+    # 1) Create (or get) a Principled material
+    mat_name = "BasicMaterial"
+    if mat_name in bpy.data.materials:
+        mat = bpy.data.materials[mat_name]
+    else:
+        mat = bpy.data.materials.new(name=mat_name)
+        mat.use_nodes = True
+        
+        # Clear out default nodes if you want a fresh start
+        for node in mat.node_tree.nodes:
+            mat.node_tree.nodes.remove(node)
+        
+        # Create a Principled BSDF node
+        nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
+        principled = nodes.new(type="ShaderNodeBsdfPrincipled")
+        principled.location = (0, 0)
+        # Base Color, Metallic, Roughness
+        principled.inputs["Base Color"].default_value = (0.8, 0.8, 0.8, 1.0)
+        principled.inputs["Metallic"].default_value = 0.1
+        principled.inputs["Roughness"].default_value = 0.2
+
+        # Create the Material Output
+        output_node = nodes.new(type="ShaderNodeOutputMaterial")
+        output_node.location = (200, 0)
+        links.new(principled.outputs["BSDF"], output_node.inputs["Surface"])
+
+    # 2) Assign it to every MESH object
+    for obj in bpy.context.scene.objects:
+        if obj.type == 'MESH':
+            if not obj.data:
+                continue  # just in case
+            # If there's already a material slot, replace the first
+            if obj.data.materials:
+                obj.data.materials[0] = mat
+            else:
+                obj.data.materials.append(mat)
+    print("Assigned 'BasicMaterial' to all mesh objects.")
+
+
 def clean_scene():
     """새로운 씬을 생성합니다."""
     bpy.ops.object.select_all(action='SELECT')
@@ -24,6 +71,46 @@ def clean_scene():
     for cam in bpy.data.cameras:
         bpy.data.cameras.remove(cam)
 
+
+def setup_lighting_new(camera_obj, opp_loc, opp_direction):
+
+    key_light = bpy.data.lights.new(name="Key_Light", type='SUN')
+    key_light.energy = 20.0
+    key_light.color = (1.0, 0.95, 0.85)  # warm color
+
+    key_light_obj = bpy.data.objects.new(name="Key_Light", object_data=key_light)
+    bpy.context.scene.collection.objects.link(key_light_obj)
+    
+    print(camera_obj.rotation_euler)
+
+    key_light_obj.location = camera_obj.location
+    key_light_obj.rotation_euler = (-0.5, 5 ,-5)
+
+    sec_light = bpy.data.lights.new(name="Fill_Light", type='SUN')
+    sec_light.energy = 20.0
+    sec_light.color = (1.0, 0.95, 0.85)  # warm color
+
+    sec_light = bpy.data.objects.new(name="Fill_Light", object_data=sec_light)
+    bpy.context.scene.collection.objects.link(sec_light)
+    
+    print(camera_obj.rotation_euler)
+
+    sec_light.location = camera_obj.location
+    sec_light.rotation_euler = (1.5, 5, -5)
+
+    thi_light = bpy.data.lights.new(name="Fill_Light", type='SUN')
+    thi_light.energy = 20.0
+    thi_light.color = (1.0, 0.95, 0.85)  # warm color
+
+    thi_light = bpy.data.objects.new(name="Fill_Light", object_data=thi_light)
+    bpy.context.scene.collection.objects.link(thi_light)
+    
+    print(camera_obj.rotation_euler)
+
+    thi_light.location = camera_obj.location
+    thi_light.rotation_euler = (-2, 5, -5)
+    
+
 def setup_lighting():
     """조명을 설정합니다."""
     # 키 라이트 (주 조명)
@@ -35,22 +122,6 @@ def setup_lighting():
     key_light_obj.location = (5, -5, 10)
     key_light_obj.rotation_euler = (-0.785, 0.785, 0)
 
-    # # 필 라이트 (보조 조명)
-    # fill_light = bpy.data.lights.new(name='Fill_Light', type='SUN')
-    # fill_light.energy = 2.0
-    # fill_light.color = (0.8, 0.8, 1)
-    # fill_light_obj = bpy.data.objects.new(name='Fill_Light', object_data=fill_light)
-    # bpy.context.scene.collection.objects.link(fill_light_obj)
-    # fill_light_obj.location = (-5, 5, 8)
-    # fill_light_obj.rotation_euler = (-0.523, -0.785, 0)
-
-    # # 백 라이트 (뒷면 조명)
-    # back_light = bpy.data.lights.new(name='Back_Light', type='SUN')
-    # back_light.energy = 3.0
-    # back_light_obj = bpy.data.objects.new(name='Back_Light', object_data=back_light)
-    # bpy.context.scene.collection.objects.link(back_light_obj)
-    # back_light_obj.location = (0, -5, 8)
-    # back_light_obj.rotation_euler = (-0.785, 0, 0)
 
 def calculate_camera_position(obj):
     """객체의 바운딩 박스를 기반으로 카메라 위치를 계산합니다."""
@@ -61,13 +132,19 @@ def calculate_camera_position(obj):
     # 객체의 크기와 중심점 계산
     dimensions = bbox_max - bbox_min
     center = (bbox_max + bbox_min) / 2
+
+    # length of half dioganal
+    radius = (bbox_max - bbox_min).length * 0.5
     
     # 카메라 거리 계산
-    max_dim = max(dimensions.x, dimensions.y, dimensions.z)
-    camera_distance = max_dim * 2.5
-    
+    # max_dim = max(dimensions.x, dimensions.y, dimensions.z)
+    # camera_distance = max_dim * 2.5
+    print(radius)
+    camera_distance = radius * 10
+
     # 카메라 위치 계산 (15도 위에서 바라보기)
-    angle = math.radians(15)
+    # angle = math.radians(15)
+    angle = math.radians(5) # changed angle to the 5 radians
     camera_pos = center + Vector((0, -camera_distance * math.cos(angle), camera_distance * math.sin(angle)))
     
     return camera_pos, center
@@ -147,14 +224,14 @@ def setup_render_settings():
     scene.render.ffmpeg.ffmpeg_preset = 'REALTIME' # BEST', 'GOOD', 'REALTIME'
     
     # 프레임 레이트 설정
-    scene.render.fps = 30
+    scene.render.fps = 60
     
     # EEVEE 특정 설정
-    scene.eevee.use_soft_shadows = False  # 하드 섀도우가 더 빠름
-    scene.eevee.use_bloom = False         # 불필요한 효과 비활성화
-    scene.eevee.use_ssr = False           # 반사 효과 비활성화
-    scene.eevee.use_ssr_refraction = False
-    scene.eevee.taa_render_samples = 1    # 샘플링 수 줄이기
+    # scene.eevee.use_soft_shadows = False  # 하드 섀도우가 더 빠름
+    # scene.eevee.use_bloom = False         # 불필요한 효과 비활성화
+    # scene.eevee.use_ssr = False           # 반사 효과 비활성화
+    # scene.eevee.use_ssr_refraction = False
+    scene.eevee.taa_render_samples = 16    # 샘플링 수 줄이기
 
 def setup_animation():
     """애니메이션 프레임 범위를 설정합니다."""
@@ -201,19 +278,77 @@ def main():
     args = sys.argv[sys.argv.index("--") + 1:]
     input_fbx = args[0]
     output_dir = args[1]
-    
+
+    # fbxs = find_fbx_files_with_pathlib('/home/user/Desktop/Amin/maya_retargeting/Asooni')
+    # print(fbxs)
+    # for fbx in fbxs:
+        # input_fbx = str(fbx)
+        # ls = input_fbx.split('/')
+        # print(ls[7])
+        # output_dir = f"/home/user/Desktop/Amin/maya_retargeting/res/{ls[7]}"
+
     try:
         time0 = time.time()
+        
         # 씬 초기화
         clean_scene()
-        
+        # Simple environment brightness
+        world = bpy.data.worlds["World"]
+        world.use_nodes = True
+        bg_node = world.node_tree.nodes["Background"]
+        bg_node.inputs[0].default_value = (0.05, 0.05, 0.05, 1)  # dim gray
+        bg_node.inputs[1].default_value = 1.5
         # 렌더링 설정
-        setup_lighting()
-        setup_camera()
-        setup_render_settings()
+        # setup_lighting_new()
+        # setup_camera()
+        # setup_render_settings()
         
+        camera_obj = setup_camera()
+        obj = import_fbx(input_fbx)
+        assign_simple_material_to_all_meshes(obj)
+
+        # mat = bpy.data.materials.new(name="BasicMaterial")
+        # mat.use_nodes = True
+        
+        # # 2. Grab the nodes in the material's node tree
+        # nodes = mat.node_tree.nodes
+        # links = mat.node_tree.links
+        
+        # # Optional: Clear all default nodes to start clean
+        # for node in nodes:
+        #     nodes.remove(node)
+        
+        # # 3. Create the Principled BSDF node
+        # principled_node = nodes.new(type="ShaderNodeBsdfPrincipled")
+        # principled_node.location = (0, 0)
+        # # Set the properties
+        # # Principled node uses RGBA, so give 4-tuple for color
+        # principled_node.inputs["Base Color"].default_value = (0.8, 0.8, 0.8, 1.0)
+        # principled_node.inputs["Metallic"].default_value = 0.0
+        # principled_node.inputs["Roughness"].default_value = 0.5
+
+        # # 4. Create the Material Output node
+        # output_node = nodes.new(type="ShaderNodeOutputMaterial")
+        # output_node.location = (200, 0)
+
+        # # 5. Link the Principled BSDF to the Material Output
+        # links.new(principled_node.outputs["BSDF"], output_node.inputs["Surface"])
+
+        # # 6. Assign to the object
+        # if obj.data.materials:
+        #     # Replace the first material slot
+        #     obj.data.materials[0] = mat
+        # else:
+        #     # No materials yet; append a new slot
+        #     obj.data.materials.append(mat)
+
+
+        setup_lighting_new(camera_obj=camera_obj, opp_loc=None, opp_direction=None)
+        setup_render_settings()
+
+
         # FBX 임포트 및 설정
-        import_fbx(input_fbx)
+        
         start_frame, end_frame = setup_animation()
         print(f"Frame: {start_frame} ~ {end_frame}")
         
