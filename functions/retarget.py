@@ -450,23 +450,29 @@ def retarget_translation(src_hip, tgt_hip,
 
         # subchain
         for i, subchain_root in enumerate(subchain_roots):
-            diff = hip_height_diff[i]
+            trans_data_sub = trans_data_main.copy()
             # trans_data_sub = trans_data_main - (trans_data * diff)
             # y값: 차이를 main root의 delta 값으로 사용
-            trans_data_sub = trans_data_main - (trans_data_main * (height_ratio - diff))
+            # trans_data_sub = trans_data_main - (trans_data_main * (height_ratio - diff))
 
             # x, z 값은 같게
-            # y_axis = (tgt_rot_mat[0] @ np.array([0,1,0])) 
             x_axis = (tgt_rot_mat[0] @ np.array([1,0,0])) 
+            y_axis = (tgt_rot_mat[0] @ np.array([0,1,0])) 
             z_axis = (tgt_rot_mat[0] @ np.array([0,0,1])) 
-            x_component = int(np.argmax(np.abs(x_axis)))
-            z_component = int(np.argmax(np.abs(z_axis)))
 
+            x_component = int(np.argmax(np.abs(x_axis)))
+            y_component = int(np.argmax(np.abs(y_axis)))
+            z_component = int(np.argmax(np.abs(z_axis)))
+            
+            # x, z component
             trans_data_sub[:, x_component] = trans_data_main[:, x_component]
             trans_data_sub[:, z_component] = trans_data_main[:, z_component]
+
+            # y component 
+            diff_vec = hip_height_diff[i]
+            trans_data_sub[:, y_component] = trans_data_main[:, y_component] + diff_vec
             # import pdb; pdb.set_trace()
             
-            # import pdb; pdb.set_trace()
             # trans_data_sub_ = trans_data * diff
             set_keyframe(subchain_root, trans_data_sub, trans_attr)
 
@@ -530,7 +536,7 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
         # retarget
         def set_keyframe_for_joint(tgt_joint, target_tpose_matrix, T_mat, jid):
             tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
-            prev_angles = np.zeros(3)
+            # prev_angles = np.zeros(3)
             for frame in range(len_frame):
                 # source rotation
                 cmds.currentTime(frame)

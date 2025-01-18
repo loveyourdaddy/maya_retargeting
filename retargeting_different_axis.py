@@ -190,6 +190,7 @@ def main():
     # 발끝부터 root 까지의 거리를 계산
     src_hip_height = get_distance_from_toe_to_root(src_joints_common, src_root)
     tgt_hip_height = get_distance_from_toe_to_root(tgt_joints_common, tgt_root)
+    # tgt_hip_pos = np.array(cmds.xform(tgt_root, query=True, translation=True, worldSpace=True))
 
     # ratio
     height_ratio = tgt_hip_height / src_hip_height
@@ -198,10 +199,13 @@ def main():
     hip_height_diff = []
     for root in subchain_roots:
         # sub_hip_height = cmds.xform(root, query=True, translation=True, worldSpace=True)[1]
-        # diff = sub_hip_height / tgt_hip_height
+        # sub_hip_pos = np.array(cmds.xform(root, query=True, translation=True, worldSpace=True))
+        # sub_hip_height = get_distance_from_toe_to_root(tgt_joints_common, root)
+
         sub_hip_height = get_distance_from_toe_to_root(tgt_joints_common, root)
-        sub_height_ratio = sub_hip_height / src_hip_height
-        hip_height_diff.append(sub_height_ratio)
+        sub_height_ratio = sub_hip_height - tgt_hip_height
+        hip_height_diff.append(sub_height_ratio) # diff value
+        # import pdb; pdb.set_trace()
 
 
     # locator rotation 업데이트
