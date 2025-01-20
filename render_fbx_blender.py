@@ -1,5 +1,6 @@
 # blender -b -P render_fbx.py -- "./output/Adori/1-8_Waacking_Twirl_RT0702.fbx" "/Users/inseo/2024_KAI_Retargeting/"
 # blender -b -P render_fbx.py -- "./test_results/20250107_122504/Adori_qc/Adori_qc/Confident_004_RT0830.fbx" "/Users/inseo/2024_KAI_Retargeting/test_videos/20250107_122504/Adori2.1/Adori2.1"
+# blender -b -P render_fbx_blender.py -- "/Users/inseo/2024_KAI_Retargeting/test_results/20250107_122504/Adori_qc/Adori/Confident_004_RT0830.fbx" "/Users/inseo/2024_KAI_Retargeting/"
 
 import bpy
 import math
@@ -7,7 +8,7 @@ import os
 import sys
 import time
 from mathutils import Vector
-import time 
+import time
 
 
 def assign_simple_material_to_all_meshes(obj):
@@ -75,8 +76,9 @@ def clean_scene():
 def setup_lighting_new(camera_obj, opp_loc, opp_direction):
 
     key_light = bpy.data.lights.new(name="Key_Light", type='SUN')
-    key_light.energy = 20.0
+    key_light.energy = 5.0 # 20.0
     key_light.color = (1.0, 0.95, 0.85)  # warm color
+    key_light.use_shadow = False  # Disable shadows for key light
 
     key_light_obj = bpy.data.objects.new(name="Key_Light", object_data=key_light)
     bpy.context.scene.collection.objects.link(key_light_obj)
@@ -87,8 +89,9 @@ def setup_lighting_new(camera_obj, opp_loc, opp_direction):
     key_light_obj.rotation_euler = (-0.5, 5 ,-5)
 
     sec_light = bpy.data.lights.new(name="Fill_Light", type='SUN')
-    sec_light.energy = 20.0
+    sec_light.energy = 3.0 # 20.0
     sec_light.color = (1.0, 0.95, 0.85)  # warm color
+    sec_light.use_shadow = False
 
     sec_light = bpy.data.objects.new(name="Fill_Light", object_data=sec_light)
     bpy.context.scene.collection.objects.link(sec_light)
@@ -99,8 +102,9 @@ def setup_lighting_new(camera_obj, opp_loc, opp_direction):
     sec_light.rotation_euler = (1.5, 5, -5)
 
     thi_light = bpy.data.lights.new(name="Fill_Light", type='SUN')
-    thi_light.energy = 20.0
+    thi_light.energy = 2.0 # 20.0
     thi_light.color = (1.0, 0.95, 0.85)  # warm color
+    thi_light.use_shadow = False
 
     thi_light = bpy.data.objects.new(name="Fill_Light", object_data=thi_light)
     bpy.context.scene.collection.objects.link(thi_light)
@@ -177,7 +181,7 @@ def import_fbx(fbx_path):
         
         if not imported_objects:
             raise Exception("No valid objects found in the imported FBX")
-            
+        
         # 첫 번째 메시 또는 아마추어를 기준으로 카메라 위치 계산
         main_obj = imported_objects[0]
         camera_pos, look_at = calculate_camera_position(main_obj)
@@ -224,13 +228,14 @@ def setup_render_settings():
     scene.render.ffmpeg.ffmpeg_preset = 'REALTIME' # BEST', 'GOOD', 'REALTIME'
     
     # 프레임 레이트 설정
-    scene.render.fps = 60
+    scene.render.fps = 120 # 360 # 60
     
     # EEVEE 특정 설정
     # scene.eevee.use_soft_shadows = False  # 하드 섀도우가 더 빠름
     # scene.eevee.use_bloom = False         # 불필요한 효과 비활성화
     # scene.eevee.use_ssr = False           # 반사 효과 비활성화
     # scene.eevee.use_ssr_refraction = False
+    scene.eevee.use_gtao = False
     scene.eevee.taa_render_samples = 16    # 샘플링 수 줄이기
 
 def setup_animation():
@@ -296,8 +301,9 @@ def main():
         world = bpy.data.worlds["World"]
         world.use_nodes = True
         bg_node = world.node_tree.nodes["Background"]
-        bg_node.inputs[0].default_value = (0.05, 0.05, 0.05, 1)  # dim gray
-        bg_node.inputs[1].default_value = 1.5
+        bg_node.inputs[0].default_value = (0.02, 0.02, 0.02, 1)  # dim gray
+        bg_node.inputs[1].default_value = 0.5 # 1.5
+        
         # 렌더링 설정
         # setup_lighting_new()
         # setup_camera()
