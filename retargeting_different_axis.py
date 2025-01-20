@@ -1,5 +1,6 @@
 # mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
 # mayapy retargeting_different_axis.py --sourceChar "./models/Asooni_qc/Asooni_qc.fbx" --sourceMotion "./motions/Asooni_qc/11166_Javan_004_RT1228.fbx" --targetChar "./models/UE/UE.fbx"
+# mayapy retargeting_different_axis.py --sourceChar "./models/Asooni_qc/Asooni_qc.fbx" --sourceMotion "./motions/Asooni_qc/11166_Javan_004_RT1228.fbx" --targetChar "./models/Metahuman/Metahuman.fbx"
 
 ''' 
 Naming
@@ -198,21 +199,22 @@ def main():
     tgt_hip_index = get_root_joint(tgt_joints_common)
     src_root = src_joints_common[src_hip_index]
     tgt_root = tgt_joints_common[tgt_hip_index]
-    #  hip height  
-    src_hip_height = get_distance_from_toe_to_root(src_joints_common, src_root, src_locator_rot)
-    tgt_hip_height = get_distance_from_toe_to_root(tgt_joints_common, tgt_root, tgt_locator_rot)
+    # hip height  
+    src_hip_height = get_distance_from_toe_to_root(src_joints_common, src_root)
+    tgt_hip_height = get_distance_from_toe_to_root(tgt_joints_common, tgt_root)
 
     # ratio
     height_ratio = tgt_hip_height / src_hip_height
     
-    # subchain height ratio
+    # subchain: relative vector 
+    tgt_hip_pos = np.array(cmds.xform(tgt_root, query=True, translation=True, worldSpace=True))
     hip_height_diff = []
     for root in subchain_roots:
-        sub_hip_height = get_distance_from_toe_to_root(tgt_joints_common, root)
-        sub_height_ratio = sub_hip_height - tgt_hip_height
-        hip_height_diff.append(sub_height_ratio)
+        sub_hip_pos = cmds.xform(root, query=True, translation=True, worldSpace=True)
+        sub_height_ratio = sub_hip_pos - tgt_hip_pos
+        hip_height_diff.append(sub_height_ratio) 
 
-    
+
     ''' import src motion '''
     mel.eval('FBXImport -f"{}"'.format(sourceMotion))
 
@@ -236,17 +238,26 @@ def main():
         if tgt_locator is None:
             tgt_locator_rot, tgt_locator_scale = None, None
         
+        # Get data
+        trans_data, _ = get_keyframe_data(src_root) # trans, rot 
+        trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
+        trans_data = get_array_from_keyframe_data(trans_data, trans_attr, src_root)
+        len_frame = len(trans_data)
+
+        # rot
+        tgt_local_angles = retarget_rotation(src_joints_common, src_Tpose_rots_common,
+                          tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, conversion_matrics, 
+                          subchain_common_joints, subchain_Tpose_rots_common, tgt_subchain_template_indices, subchain_conversion_matrics,
+                          len_frame)
+        
         # trans
-        trans_data = retarget_translation(src_root, tgt_root,
+        trans_data = retarget_translation(src_root, tgt_root, 
+                                          trans_data, tgt_local_angles[:, 0],
                                           subchain_roots,
                                           src_locator, src_locator_rot, src_locator_scale,
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,
-                                            height_ratio, hip_height_diff)
-        # rot
-        retarget_rotation(src_joints_common, src_Tpose_rots_common,
-                          tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, conversion_matrics, 
-                          subchain_common_joints, subchain_Tpose_rots_common, tgt_subchain_template_indices, subchain_conversion_matrics,
-                          len(trans_data))
+                                            height_ratio, hip_height_diff, 
+                                            len_frame)
     else:
         print(">> retarget without locator")
         raise ValueError("No locator") # TODO

@@ -388,92 +388,79 @@ def get_conversion_matrix(src_joint_hierarchy, tgt_joint_hierarchy):
 
     return t_matricies
 
+""" 위치 데이터를 locator 기반으로 변환하는 함수 """
+def apply_rotation(rot_mat, data):
+    return np.einsum('ijk,ik->ij', rot_mat, data)
+
+def repeat_matrix(matrix, len_frame):
+    return matrix[None, :].repeat(len_frame, axis=0)
+
+def get_rotation_matrix(rot_values, len_frame, inverse=False): # TODO: move rotations.py
+    if rot_values is None:
+        return None
+    
+    rot_mat = E_to_R(np.array(rot_values))
+    if inverse:
+        rot_mat = np.linalg.inv(rot_mat)
+
+    return repeat_matrix(rot_mat, len_frame)
+
+def apply_scale(data, scale, inverse=False):
+    if scale is not None:
+        for i in range(3):
+            data[:, i] *= (1/scale[i] if inverse else scale[i])
+    return data
+
 def retarget_translation(src_hip, tgt_hip, 
+                         trans_data, root_tgt_local_angles,
                          subchain_roots, 
                          src_locator=None, src_locator_rot=None, src_locator_scale=None,
                          tgt_locator=None, tgt_locator_rot=None, tgt_locator_scale=None, tgt_locator_pos=None, 
-                         height_ratio=1, hip_height_diff=[]):
-    # translation data
-    trans_data, _ = get_keyframe_data(src_hip)
+                         height_ratio=1, hip_height_diff=[], 
+                         len_frame=0):
     trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
-    trans_data = get_array_from_keyframe_data(trans_data, trans_attr, src_hip)
-    len_frame = len(trans_data)
-
-    if len_frame == 0:
-        return trans_data
-    
-    """ 위치 데이터를 locator 기반으로 변환하는 함수 """
-    def apply_rotation(rot_mat, data):
-        return np.einsum('ijk,ik->ij', rot_mat, data)
-    
-    def repeat_matrix(matrix):
-        return matrix[None, :].repeat(len_frame, axis=0)
-    
-    def get_rotation_matrix(rot_values, inverse=False):
-        if rot_values is None:
-            return None
-        rot_mat = E_to_R(np.array(rot_values))
-        if inverse:
-            rot_mat = np.linalg.inv(rot_mat)
-        return repeat_matrix(rot_mat)
-    
-    def apply_scale(data, scale, inverse=False):
-        if scale is not None:
-            for i in range(3):
-                data[:, i] *= (1/scale[i] if inverse else scale[i])
-        return data
 
     # Source locator 처리
     if src_locator:
-        src_rot_mat = get_rotation_matrix(src_locator_rot)
-        trans_data = apply_rotation(src_rot_mat, trans_data)
+        src_loc_rotmat = get_rotation_matrix(src_locator_rot, len_frame)
+        trans_data = apply_rotation(src_loc_rotmat, trans_data)
         trans_data = apply_scale(trans_data, src_locator_scale)
 
     # Target locator 처리
     if tgt_locator:
-        tgt_rot_mat = get_rotation_matrix(tgt_locator_rot, inverse=True)
-        trans_data = apply_rotation(tgt_rot_mat, trans_data)
+        tgt_loc_rotmat = get_rotation_matrix(tgt_locator_rot, len_frame, inverse=True)
+        trans_data = apply_rotation(tgt_loc_rotmat, trans_data)
         
         # locator 포지션 반영
         if tgt_locator_pos is not None:
-            tgt_pos = repeat_matrix(np.array(tgt_locator_pos))
+            tgt_pos = repeat_matrix(np.array(tgt_locator_pos), len_frame)
             if src_locator:
-                tgt_pos = apply_rotation(src_rot_mat, tgt_pos)
-            tgt_pos = apply_rotation(tgt_rot_mat, tgt_pos)
+                tgt_pos = apply_rotation(src_loc_rotmat, tgt_pos)
+            tgt_pos = apply_rotation(tgt_loc_rotmat, tgt_pos)
             trans_data = trans_data - tgt_pos
         
         trans_data = apply_scale(trans_data, tgt_locator_scale, inverse=True)
 
         trans_data_main = trans_data * height_ratio
-        # trans_data_main = trans_data * height_ratio
         set_keyframe(tgt_hip, trans_data_main, trans_attr)
 
         # subchain
         for i, subchain_root in enumerate(subchain_roots):
             trans_data_sub = trans_data_main.copy()
-            # trans_data_sub = trans_data_main - (trans_data * diff)
-            # y값: 차이를 main root의 delta 값으로 사용
-            # trans_data_sub = trans_data_main - (trans_data_main * (height_ratio - diff))
-
-            # x, z 값은 같게
-            x_axis = (tgt_rot_mat[0] @ np.array([1,0,0])) 
-            y_axis = (tgt_rot_mat[0] @ np.array([0,1,0])) 
-            z_axis = (tgt_rot_mat[0] @ np.array([0,0,1])) 
-
-            x_component = int(np.argmax(np.abs(x_axis)))
-            y_component = int(np.argmax(np.abs(y_axis)))
-            z_component = int(np.argmax(np.abs(z_axis)))
             
-            # x, z component
-            trans_data_sub[:, x_component] = trans_data_main[:, x_component]
-            trans_data_sub[:, z_component] = trans_data_main[:, z_component]
+            # parent rot 
+            root_rotmat = E_to_R(root_tgt_local_angles)
+            # parent_rotaion = tgt_loc_rotmat @ root_tgt_local_angles[:, :, None] 
+            parent_rotaion = tgt_loc_rotmat @ root_rotmat
+            # parent_rotaion = parent_rotaion.squeeze(-1)
 
-            # y component 
+            # diff vec
             diff_vec = hip_height_diff[i]
-            trans_data_sub[:, y_component] = trans_data_main[:, y_component] + diff_vec
-            # import pdb; pdb.set_trace()
-            
-            # trans_data_sub_ = trans_data * diff
+
+            # update diff vector
+            rotated_diff_vec = parent_rotaion @ diff_vec
+            trans_data_sub = trans_data_main + rotated_diff_vec
+
             set_keyframe(subchain_root, trans_data_sub, trans_attr)
 
     return trans_data
@@ -496,10 +483,11 @@ def matrix_to_mmatrix(matrix):
 def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
                       tgt_common_joints, tgt_Tpose_localrots, tgt_joints_template_indices,  Tpose_trfs, # tgt
                       tgt_subchains, subchain_Tpose_localrots, tgt_subchain_template_indices, subchain_Tpose_trfs, # subchaint
-                      len_frame,):
+                      len_frame):
     # rotation
     rot_attr = {'rotateX': [], 'rotateY': [], 'rotateZ': []}
     len_joint = len(tgt_common_joints)
+    tgt_local_angles = np.full((len_frame, len_joint, 3), None, dtype=np.float32)
     for j in range(len_joint):
         # joint 
         src_joint = src_common_joints[j]
@@ -535,8 +523,7 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
 
         # retarget
         def set_keyframe_for_joint(tgt_joint, target_tpose_matrix, T_mat, jid):
-            tgt_perjoint_local_angle = np.full((len_frame+1, 3), None, dtype=np.float32)
-            # prev_angles = np.zeros(3)
+            tgt_perjoint_local_angle = np.full((len_frame, 3), None, dtype=np.float32)
             for frame in range(len_frame):
                 # source rotation
                 cmds.currentTime(frame)
@@ -562,8 +549,10 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
                 tgt_perjoint_local_angle[frame] = euler_angle 
 
             set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
+            return tgt_perjoint_local_angle
 
-        set_keyframe_for_joint(tgt_joint, target_tpose_matrix, Tpose_trfs[j], j)
+        tgt_perjoint_local_angle = set_keyframe_for_joint(tgt_joint, target_tpose_matrix, Tpose_trfs[j], j)
+        tgt_local_angles[:, j] = tgt_perjoint_local_angle
 
         # subchain
         for chain_id, subjoint_jid in enumerate(subchain_indices):
@@ -577,4 +566,5 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
                 om.MEulerRotation.kXYZ
             ).asMatrix()
 
-            set_keyframe_for_joint(subjoint, subjoint_tpose_matrix, subchain_Tpose_trfs[subjoint_jid], subjoint_jid) # is_subjoint=True
+            set_keyframe_for_joint(subjoint, subjoint_tpose_matrix, subchain_Tpose_trfs[subjoint_jid], subjoint_jid)
+    return tgt_local_angles
