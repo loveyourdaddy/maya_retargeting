@@ -150,5 +150,6 @@ def get_distance_from_toe_to_root(joint, root):
     root_pos = cmds.xform(root, query=True, translation=True, worldSpace=True)
     
     # 발끝에서 루트까지의 수직 거리를 계산합니다.
-    hip_height = root_pos[1] - toe_pos[1]
+    y_component = 1
+    hip_height = root_pos[y_component] - toe_pos[y_component]
     return hip_height

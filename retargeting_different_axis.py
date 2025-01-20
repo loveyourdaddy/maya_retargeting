@@ -144,6 +144,28 @@ def main():
     src_joints_origin = get_src_joints(tgt_joints_wNS)
     src_joints_template, _, _ = rename_joint_by_template(src_joints_origin)
 
+    # locator
+    locators_list = cmds.ls(type='locator')
+    src_locator_list = list(set(locators_list) - set(tgt_locator_list))
+    if len(src_locator_list)!=0:
+        # Select right locator
+        src_locator_list = sorted(src_locator_list, key=lambda x: len(cmds.listRelatives(x, children=True) or []), reverse=True)
+        
+        # src locator선택: namespace tgt가 없는 경우
+        src_locator_candidate = [] 
+        for locator in src_locator_list:
+            if locator.split(':')[0] != 'tgt':
+                src_locator_candidate.append(locator)
+
+        # 가장 많은 자식을 가진 locator를 선택하기 위해 0을 선택
+        src_locator = src_locator_candidate[0]
+
+        # Get locator info 
+        src_locator, src_locator_rot, src_locator_scale, src_locator_pos = get_locator(src_locator)
+    else:
+        src_locator = None
+
+    
     ''' common skeleton '''
     # common joint 
     src_joints_common, src_Tpose_rots_common, \
@@ -171,26 +193,14 @@ def main():
         subchain_conversion_matrics.append(subchain_conversion_matrics)
     tgt_subchain_template_indices = tgt_subchain_template_indices_refined
     
-    # import src motion
-    mel.eval('FBXImport -f"{}"'.format(sourceMotion))
-
-
-    ''' Root, height '''
     # root 
     src_hip_index = get_root_joint(src_joints_common)
     tgt_hip_index = get_root_joint(tgt_joints_common)
-    # src_joints_common
     src_root = src_joints_common[src_hip_index]
     tgt_root = tgt_joints_common[tgt_hip_index]
-
-    # hip height
-    src_hip_height = cmds.xform(src_root, query=True, translation=True, worldSpace=True)[1]
-    tgt_hip_height = cmds.xform(tgt_root, query=True, translation=True, worldSpace=True)[1]
-
-    # 발끝부터 root 까지의 거리를 계산
-    src_hip_height = get_distance_from_toe_to_root(src_joints_common, src_root)
-    tgt_hip_height = get_distance_from_toe_to_root(tgt_joints_common, tgt_root)
-    # tgt_hip_pos = np.array(cmds.xform(tgt_root, query=True, translation=True, worldSpace=True))
+    #  hip height  
+    src_hip_height = get_distance_from_toe_to_root(src_joints_common, src_root, src_locator_rot)
+    tgt_hip_height = get_distance_from_toe_to_root(tgt_joints_common, tgt_root, tgt_locator_rot)
 
     # ratio
     height_ratio = tgt_hip_height / src_hip_height
@@ -198,41 +208,19 @@ def main():
     # subchain height ratio
     hip_height_diff = []
     for root in subchain_roots:
-        # sub_hip_height = cmds.xform(root, query=True, translation=True, worldSpace=True)[1]
-        # sub_hip_pos = np.array(cmds.xform(root, query=True, translation=True, worldSpace=True))
-        # sub_hip_height = get_distance_from_toe_to_root(tgt_joints_common, root)
-
         sub_hip_height = get_distance_from_toe_to_root(tgt_joints_common, root)
         sub_height_ratio = sub_hip_height - tgt_hip_height
-        hip_height_diff.append(sub_height_ratio) # diff value
-        # import pdb; pdb.set_trace()
+        hip_height_diff.append(sub_height_ratio)
+
+    
+    ''' import src motion '''
+    mel.eval('FBXImport -f"{}"'.format(sourceMotion))
 
 
-    # locator rotation 업데이트
+    ''' Refine locator rotation '''
     if tgt_locator is not None:
         # locator ~ root 위 조인트 포함
         tgt_locator_rot = update_root_to_locator_rotation(tgt_joints_wNS, tgt_root, tgt_locator_rot)
-
-    # locator and meshes
-    locators_list = cmds.ls(type='locator')
-    src_locator_list = list(set(locators_list) - set(tgt_locator_list))
-    if len(src_locator_list)!=0:
-        # Select right locator
-        src_locator_list = sorted(src_locator_list, key=lambda x: len(cmds.listRelatives(x, children=True) or []), reverse=True)
-        
-        # src locator선택: namespace tgt가 없는 경우
-        src_locator_candidate = [] 
-        for locator in src_locator_list:
-            if locator.split(':')[0] != 'tgt':
-                src_locator_candidate.append(locator)
-
-        # 가장 많은 자식을 가진 locator를 선택하기 위해 0을 선택
-        src_locator = src_locator_candidate[0]
-
-        # Get locator info 
-        src_locator, src_locator_rot, src_locator_scale, src_locator_pos = get_locator(src_locator)
-    else:
-        src_locator = None
 
     # src meshes
     all_meshes = cmds.ls(type='mesh')
