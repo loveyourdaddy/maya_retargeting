@@ -207,12 +207,17 @@ def main():
     height_ratio = tgt_hip_height / src_hip_height
     
     # subchain: relative vector 
+    # position 
     tgt_hip_pos = np.array(cmds.xform(tgt_root, query=True, translation=True, worldSpace=True))
     hip_height_diff = []
     for root in subchain_roots:
-        sub_hip_pos = cmds.xform(root, query=True, translation=True, worldSpace=True)
+        sub_hip_pos = np.array(cmds.xform(root, query=True, translation=True, worldSpace=True))
         sub_height_ratio = sub_hip_pos - tgt_hip_pos
         hip_height_diff.append(sub_height_ratio) 
+
+    # rotation 
+    # root_Tpose_world_angle = cmds.xform(tgt_root, query=True, worldSpace=True, rotation=True)
+    # root_Tpose_world_R = E_to_R(np.array(root_Tpose_world_angle), order='zyx')
 
 
     ''' import src motion '''
@@ -250,9 +255,29 @@ def main():
                           subchain_common_joints, subchain_Tpose_rots_common, tgt_subchain_template_indices, subchain_conversion_matrics,
                           len_frame)
         
+        # Delta rotation for root 
+        # root_R = E_to_R(tgt_local_angles[:, 0], order='zyx') # xyz로 변경 가능
+        # root_Tpose_R = E_to_R(np.array(tgt_Tpose_rots_common[src_hip_index]), order='zyx')
+        # root_delta_rot = np.linalg.inv(root_Tpose_R) @ root_R
+
+        # # locator rotation
+        # tgt_locator_R = E_to_R(tgt_locator_rot) # TODO: check euler angle 
+        # tgt_locator_R_inv = np.linalg.inv(tgt_locator_R)
+        # tgt_locator_R_inv = np.repeat(tgt_locator_R_inv[None,:,:], axis=0, repeats=len_frame)
+
+        # # update diff vector
+        # diff_vec = hip_height_diff[0]
+        # delta_diff_vec = root_delta_rot @ diff_vec
+        # rotated_diff_vec = tgt_locator_R_inv @ delta_diff_vec[:,:,None]
+        # rotated_diff_vec = rotated_diff_vec[:, :, 0]
+        # rotated_diff_vec = (np.repeat(root_Tpose_world_R[None,:,:], axis=0, repeats=len_frame) @ delta_diff_vec[:,:,None])[:, :, 0]
+        # rotated_diff_vec = (delta_diff_vec[:,:,None] @ np.repeat(root_Tpose_world_R[None,:,:], axis=0, repeats=len_frame))[:, :, 0]
+
+        # import pdb; pdb.set_trace()
+
         # trans
         trans_data = retarget_translation(src_root, tgt_root, 
-                                          trans_data, tgt_local_angles[:, 0],
+                                          trans_data, tgt_local_angles[:, src_hip_index], tgt_Tpose_rots_common[src_hip_index],
                                           subchain_roots,
                                           src_locator, src_locator_rot, src_locator_scale,
                                           tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,

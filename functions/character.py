@@ -100,12 +100,12 @@ def update_root_to_locator_rotation(tgt_joints_origin, tgt_root, tgt_locator_rot
     parent_rotation = np.eye(3)
     parent_joint = cmds.listRelatives(tgt_joints_origin[index], parent=True, shapes=True)[0]
 
-    # get parent
+    # get parent: Root -> locator
     while(parent_joint in tgt_joints_origin):
         # get rotation 
         parent_index = tgt_joints_origin.index(parent_joint)
         rotation = get_localrot_of_joint(tgt_joints_origin[parent_index])
-        parent_rotation = parent_rotation @ rotation
+        parent_rotation = parent_rotation @ rotation # parent은 오른쪽에 곱함
 
         # parent index 
         index = parent_index
