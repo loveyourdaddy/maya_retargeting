@@ -399,7 +399,6 @@ def get_rotation_matrix(rot_values, len_frame, inverse=False): # TODO: move rota
     if rot_values is None:
         return None
     
-    # rot_mat = E_to_R(np.array(rot_values), order='zyx')
     rot_mat = E_to_R(np.array(rot_values))
     if inverse:
         rot_mat = np.linalg.inv(rot_mat)
@@ -448,7 +447,7 @@ def retarget_translation(src_hip, tgt_hip,
         # subchain
         for i, subchain_root in enumerate(subchain_roots):
             # Delta rotation for root 
-            root_R = E_to_R(tgt_root_local_angles, order='zyx') # xyz로 변경 가능
+            root_R = E_to_R(tgt_root_local_angles, order='zyx') # TODO check
             root_Tpose_R = E_to_R(np.array(tgt_Tpose_root_angle), order='zyx')
             root_delta_rot = np.linalg.inv(root_Tpose_R) @ root_R
 
@@ -549,7 +548,7 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
 
                 # E_to_R 사용
                 final_matrix = np.array(final_matrix).reshape(4, 4)
-                euler_angle = R_to_E_(final_matrix)
+                euler_angle = R_to_E_(final_matrix) # TODO 변경 
                 
                 tgt_perjoint_local_angle[frame] = euler_angle 
 

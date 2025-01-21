@@ -94,7 +94,7 @@ def get_locator(tgt_locator):
     return tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos
 
 ''' joint hierarchy '''
-def update_root_to_locator_rotation(tgt_joints_origin, tgt_root, tgt_locator_rot):
+def update_root_to_locator_rotation(tgt_joints_origin, tgt_root, tgt_locator_angle):
     # 조인트들: root joint -> locator
     index = tgt_joints_origin.index(tgt_root)
     parent_rotation = np.eye(3)
@@ -112,10 +112,10 @@ def update_root_to_locator_rotation(tgt_joints_origin, tgt_root, tgt_locator_rot
         parent_joint = cmds.listRelatives(tgt_joints_origin[index], parent=True, shapes=True)[0]
 
     # E to R
-    tgt_locator_rot = E_to_R(np.array(tgt_locator_rot))
+    tgt_locator_rot = E_to_R(np.array(tgt_locator_angle))
     tgt_locator_rot = parent_rotation @ tgt_locator_rot
-    tgt_locator_rot = R_to_E(tgt_locator_rot)
-    return tgt_locator_rot
+    updated_locator_angle = R_to_E(tgt_locator_rot)
+    return updated_locator_angle
 
 ''' delete '''
 def delete_locator_and_hierarchy(locator_name):

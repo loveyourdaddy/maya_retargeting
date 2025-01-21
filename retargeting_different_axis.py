@@ -264,12 +264,12 @@ def main():
                           len_frame)
         
         # Delta rotation for root 
-        # root_R = E_to_R(tgt_local_angles[:, 0], order='zyx') # xyz로 변경 가능
-        # root_Tpose_R = E_to_R(np.array(tgt_Tpose_rots_common[src_hip_index]), order='zyx')
+        # root_R = E_to_R(tgt_local_angles[:, 0]) 
+        # root_Tpose_R = E_to_R(np.array(tgt_Tpose_rots_common[src_hip_index]))
         # root_delta_rot = np.linalg.inv(root_Tpose_R) @ root_R
 
         # # locator rotation
-        # tgt_locator_R = E_to_R(tgt_locator_rot) # TODO: check euler angle 
+        # tgt_locator_R = E_to_R(tgt_locator_rot) # TODO check
         # tgt_locator_R_inv = np.linalg.inv(tgt_locator_R)
         # tgt_locator_R_inv = np.repeat(tgt_locator_R_inv[None,:,:], axis=0, repeats=len_frame)
 
