@@ -399,7 +399,8 @@ def get_rotation_matrix(rot_values, len_frame, inverse=False): # TODO: move rota
     if rot_values is None:
         return None
     
-    rot_mat = E_to_R(np.array(rot_values))
+    rot_mat = E_to_R(np.array(rot_values), order='zyx')
+    # rot_mat = E_to_R(np.array(rot_values))
     if inverse:
         rot_mat = np.linalg.inv(rot_mat)
 
@@ -465,7 +466,6 @@ def retarget_translation(src_hip, tgt_hip,
             
             # update to subchain
             trans_data_sub = trans_data_main + rotated_diff_vec
-            # import pdb; pdb.set_trace()
 
             set_keyframe(subchain_root, trans_data_sub, trans_attr)
 
