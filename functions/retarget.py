@@ -439,15 +439,17 @@ def retarget_translation(src_hip, tgt_hip,
             tgt_pos = apply_rotation(tgt_loc_rotmat_inv, tgt_pos)
             trans_data = trans_data - tgt_pos
         
+        # scale 
         trans_data = apply_scale(trans_data, tgt_locator_scale, inverse=True)
 
+        # update 
         trans_data_main = trans_data * height_ratio
         set_keyframe(tgt_hip, trans_data_main, trans_attr)
 
         # subchain
         for i, subchain_root in enumerate(subchain_roots):
             # Delta rotation for root 
-            root_R = E_to_R(tgt_root_local_angles, order='zyx') # TODO check
+            root_R = E_to_R(tgt_root_local_angles, order='zyx') # TODO 변경필요
             root_Tpose_R = E_to_R(np.array(tgt_Tpose_root_angle), order='zyx')
             root_delta_rot = np.linalg.inv(root_Tpose_R) @ root_R
 
@@ -464,7 +466,6 @@ def retarget_translation(src_hip, tgt_hip,
             
             # update to subchain
             trans_data_sub = trans_data_main + rotated_diff_vec
-
             set_keyframe(subchain_root, trans_data_sub, trans_attr)
 
     return trans_data
@@ -546,9 +547,9 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
                 converted_offset = convert_matric * source_offset * convert_matric.inverse()
                 final_matrix = converted_offset * target_tpose_matrix
 
-                # E_to_R 사용
+                # euler angle 
                 final_matrix = np.array(final_matrix).reshape(4, 4)
-                euler_angle = R_to_E_(final_matrix) # TODO 변경 
+                euler_angle = R_to_E(final_matrix, order='xyz') # MAYA rotation order: XYZ
                 
                 tgt_perjoint_local_angle[frame] = euler_angle 
 
@@ -571,4 +572,5 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
             ).asMatrix()
 
             set_keyframe_for_joint(subjoint, subjoint_tpose_matrix, subchain_Tpose_trfs[subjoint_jid], subjoint_jid)
+
     return tgt_local_angles

@@ -38,7 +38,7 @@ def main():
     # src
     sourceMotion = args.sourceMotion
     sourceChar = sourceMotion.split('/')[-2]
-    print(">>({}, {}) ->  {}".format(sourceChar, sourceMotion, targetChar))
+    print(">> Source: ({}, {}) -> Target: {}".format(sourceChar, sourceMotion, targetChar))
 
 
     ''' tgt '''
@@ -325,7 +325,7 @@ def main():
     delete_all_transform_nodes()
 
     # export
-    print(">>({}, {}) -> {}".format(sourceChar, sourceMotion, targetChar))
+    print(">> Source: ({}, {}) -> Target: {}".format(sourceChar, sourceMotion, targetChar))
     export(args, targetChar, targetMotion)
     
     # end
@@ -336,7 +336,7 @@ def main():
     execution_time = end_time - start_time
     minutes = int(execution_time // 60)
     seconds = execution_time % 60
-    print(f">> Execution time: {execution_time:.3f}, {minutes}m {seconds:.3f}s")
+    print(f">> Execution time: {execution_time:.3f}, ({minutes}m {seconds:.3f}s)")
 
 if __name__=="__main__":
     main()

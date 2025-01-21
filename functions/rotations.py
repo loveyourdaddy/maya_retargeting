@@ -1,36 +1,54 @@
 import numpy as np 
 import maya.cmds as cmds
 
+# maya rotation order: XYZ
+# local rotation multiplication order: ZYX (z축부터 회전시켜야함)
+
 # zyx euler angles
-def R_to_E(R):
-    beta = np.arcsin(-R[2, 0]) # beta (y axis)
+# ZYX 순서로 euler angle 추출
+def R_to_E(R, order='zyx'):
+    """
+    Convert rotation matrix to Euler angles based on specified rotation order.
     
-    # Calculate alpha(z axis) and gamma (x axis) based on the value of cos(beta)
-    if np.cos(beta) != 0:
-        alpha = np.arctan2(R[2, 1], R[2, 2])
-        gamma = np.arctan2(R[1, 0], R[0, 0])
+    Args:
+        R: 3x3 or 4x4 rotation matrix
+        order: rotation order, either 'xyz' or 'zyx' (default: 'xyz')
+    
+    Returns:
+        np.array: [alpha, beta, gamma] in degrees
+    """
+    # Ensure R is 3x3
+    if R.shape == (4, 4):
+        R = R[:3, :3]
+    
+    order = order.lower()
+    if order == 'xyz':
+        # XYZ order (Maya default)
+        beta = np.arcsin(-R[0,2])  # y axis
+        
+        if np.cos(beta) > 1e-10:  
+            # Not at singularity
+            alpha = np.arctan2(R[1,2], R[2,2])  # z axis
+            gamma = np.arctan2(R[0,1], R[0,0])  # x axis
+        else:  
+            # At singularity (gimbal lock)
+            alpha = 0  # arbitrary
+            gamma = np.arctan2(-R[1,0], R[1,1])  # x axis
+            
+    elif order == 'zyx':
+        # ZYX order: local rotation을 구할때 default로 사용
+        beta = np.arcsin(-R[2,0])  # y axis
+        
+        if np.cos(beta) != 0:  
+            # Not at singularity
+            alpha = np.arctan2(R[2,1], R[2,2])  # z axis
+            gamma = np.arctan2(R[1,0], R[0,0])  # x axis
+        else:  
+            # At singularity (gimbal lock)
+            alpha = np.arctan2(-R[1,2], R[1,1])  # z axis
+            gamma = 0  # arbitrary
     else:
-        # gimbal lock (beta == +-90)
-        alpha = np.arctan2(-R[1, 2], R[1, 1])
-        gamma = 0
-
-    # Convert radians to degrees
-    alpha = np.degrees(alpha)
-    beta = np.degrees(beta)
-    gamma = np.degrees(gamma)
-
-    return np.array([alpha, beta, gamma])
-
-# xyz Euler angles
-def R_to_E_(R):
-    beta = np.arcsin(-R[0,2])  # beta (y axis)
-    
-    if np.cos(beta) > 1e-10:  # Not at singularity
-        alpha = np.arctan2(R[1,2], R[2,2])  # z axis
-        gamma = np.arctan2(R[0,1], R[0,0])  # x axis
-    else:  # At singularity
-        alpha = 0  # arbitrary
-        gamma = np.arctan2(-R[1,0], R[1,1])
+        raise ValueError(f"Unsupported rotation order: {order}. Use 'xyz' or 'zyx'.")
         
     # Convert to degrees
     alpha = np.degrees(alpha)
@@ -39,7 +57,7 @@ def R_to_E_(R):
     
     return np.array([alpha, beta, gamma])
 
-def E_to_R(E, order="xyz", radians=False):
+def E_to_R(E, order="xyz", radians=False): # remove order 
     """
     Args:
         E: (..., 3) Euler angles array
@@ -71,17 +89,11 @@ def E_to_R(E, order="xyz", radians=False):
         else:
             raise ValueError(f"Invalid axis: {axis}")
         return np.stack(R_flat, axis=-1).reshape(angle.shape + (3, 3))
-
-    # Create rotation matrices for each axis
+    
+    # Multiply matrices 
     R = [_euler_axis_to_R(E[..., i], order[i]) for i in range(3)]
-    
-    # Multiply matrices in reverse order
-    # For example: 'xyz' order means R = Rz * Ry * Rx (reverse order)
-    R_final = R[2] # TODO: 변경
-    for i in range(1, -1, -1):
-        R_final = np.matmul(R_final, R[i])
-    
-    return R_final
+    # local axis에서는 z, y, x 순서로 곱해야함
+    return np.matmul(np.matmul(R[2], R[1]), R[0])
 
 def normalize_rotmat(rot_data):
     # normalize each row of rotation matrix

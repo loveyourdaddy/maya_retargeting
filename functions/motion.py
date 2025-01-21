@@ -33,7 +33,7 @@ import math
 import maya.OpenMaya as om
 def mmatrix_to_numpy(mmatrix):
     values = []
-    for row in range(4):         # 4x4 행렬 순회
+    for row in range(4): # 4x4 행렬 순회
         for col in range(4):
             values.append(mmatrix(row, col))  # 각 요소 추가
     return np.array(values).reshape(4, 4)  # numpy 배열로 변환 후 4x4 형태로 reshape
@@ -46,19 +46,3 @@ def get_Tpose_localrot(joints):
         rot = cmds.getAttr(f"{joint}.rotate")[0]
         Tpose_local_rots.append(rot)
     return Tpose_local_rots
-
-# def get_Tpose_localrot(joints):
-#     # get Tpose
-#     Tpose_local_rots = []
-#     for joint in joints:
-#         world_rot = get_worldrot_of_joint(joint)
-
-#         # # parent 
-#         # parent = cmds.listRelatives(joint, parent=True)[0]
-#         # parent_world_rot = get_worldrot_of_joint(parent)
-
-#         # # local rot 
-#         # local_rot = np.linalg.inv(parent_world_rot) @ world_rot
-#         Tpose_local_rots.append(world_rot)
-
-#     return Tpose_local_rots

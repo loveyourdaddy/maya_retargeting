@@ -141,7 +141,6 @@ def delete_all_transform_nodes():
         # print(node)
         if cmds.listRelatives(node, children=True)==None and cmds.nodeType(node)!='joint': # mobject.apiType() == om.MFn.kTransform and 
             # Delete the node
-            # print(f"Deleted transform node: {node}")
             cmds.delete(node)
 
 def get_distance_from_toe_to_root(joint, root):
