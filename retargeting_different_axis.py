@@ -87,6 +87,14 @@ def main():
         parent_node = cmds.listRelatives(root, parent=True, shapes=True)[-1]
         tgt_parent_node_list.append(parent_node)
 
+    # 다른 locator가 있다면 추가해주기
+    additional_locators_list = cmds.ls(type='locator')
+    for additional_loctor in additional_locators_list:
+        if additional_loctor not in tgt_locator_list:
+            tgt_locator_list.append(additional_loctor)
+            tgt_locator_list.append(additional_loctor+'Shape')
+    
+
     # 타겟 조인트를 selected chain으로 변경
     parent_node = tgt_parent_node_list[tgt_chain_index]
     tgt_joints_wNS = tgt_joints_list[tgt_chain_index]
@@ -273,7 +281,6 @@ def main():
         # rotated_diff_vec = (np.repeat(root_Tpose_world_R[None,:,:], axis=0, repeats=len_frame) @ delta_diff_vec[:,:,None])[:, :, 0]
         # rotated_diff_vec = (delta_diff_vec[:,:,None] @ np.repeat(root_Tpose_world_R[None,:,:], axis=0, repeats=len_frame))[:, :, 0]
 
-        # import pdb; pdb.set_trace()
 
         # trans
         trans_data = retarget_translation(src_root, tgt_root, 
@@ -311,7 +318,7 @@ def main():
             if cmds.objExists('tgt:'+joint):
                 cmds.rename('tgt:'+joint, joint)
     
-    # rename tgt locator
+    # rename tgt locat
     tgt_locator_list = remove_namespace_for_joints(tgt_locator_list)[0]
 
     # Delete node 
