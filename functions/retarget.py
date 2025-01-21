@@ -399,8 +399,8 @@ def get_rotation_matrix(rot_values, len_frame, inverse=False): # TODO: move rota
     if rot_values is None:
         return None
     
-    rot_mat = E_to_R(np.array(rot_values), order='zyx')
-    # rot_mat = E_to_R(np.array(rot_values))
+    # rot_mat = E_to_R(np.array(rot_values), order='zyx')
+    rot_mat = E_to_R(np.array(rot_values))
     if inverse:
         rot_mat = np.linalg.inv(rot_mat)
 
@@ -454,7 +454,6 @@ def retarget_translation(src_hip, tgt_hip,
 
             # locator rotation
             tgt_locator_R = E_to_R(tgt_locator_rot) # TODO: check euler angle. 통일해서 Test 해보기. zyx가 올바른 값인지 확인. 
-            # import pdb; pdb.set_trace()
             tgt_locator_R_inv = np.linalg.inv(tgt_locator_R)
             tgt_locator_R_inv = np.repeat(tgt_locator_R_inv[None,:,:], axis=0, repeats=len_frame)
 
