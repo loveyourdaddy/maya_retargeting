@@ -93,7 +93,8 @@ def E_to_R(E, order="xyz", radians=False): # remove order
     # Multiply matrices 
     R = [_euler_axis_to_R(E[..., i], order[i]) for i in range(3)]
     # local axis에서는 z, y, x 순서로 곱해야함
-    return np.matmul(np.matmul(R[2], R[1]), R[0])
+    # return np.matmul(np.matmul(R[2], R[1]), R[0])
+    return np.matmul(np.matmul(R[0], R[1]), R[2])
 
 def normalize_rotmat(rot_data):
     # normalize each row of rotation matrix

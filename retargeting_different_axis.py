@@ -41,7 +41,7 @@ def main():
     print(">> Source: ({}, {}) -> Target: {}".format(sourceChar, sourceMotion, targetChar))
 
 
-    ''' tgt '''
+    ''' Target '''
     # character
     mel.eval('FBXImportSmoothingGroups -v true')
     mel.eval('FBXImport -f"{}"'.format(args.targetChar))
@@ -94,7 +94,6 @@ def main():
             tgt_locator_list.append(additional_loctor)
             tgt_locator_list.append(additional_loctor+'Shape')
     
-
     # 타겟 조인트를 selected chain으로 변경
     parent_node = tgt_parent_node_list[tgt_chain_index]
     tgt_joints_wNS = tgt_joints_list[tgt_chain_index]
@@ -126,7 +125,7 @@ def main():
     
     # locator
     if parent_node is not None:
-        tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos = get_locator(parent_node)
+        tgt_locator, tgt_locator_angle, tgt_locator_scale, tgt_locator_pos = get_locator(parent_node)
         # add namespace
         tgt_locator = "tgt:" + tgt_locator
     else:
@@ -140,7 +139,7 @@ def main():
     tgt_meshes = add_namespace_for_meshes(tgt_meshes, "tgt_mesh")
 
 
-    ''' src '''
+    ''' Source char '''
     sourceChar_path = './models/' + sourceChar + '/' + sourceChar + '.fbx'
 
     # import source character
@@ -170,12 +169,12 @@ def main():
         src_locator = src_locator_candidate[0]
 
         # Get locator info 
-        src_locator, src_locator_rot, src_locator_scale, src_locator_pos = get_locator(src_locator)
+        src_locator, src_locator_angle, src_locator_scale, src_locator_pos = get_locator(src_locator)
     else:
         src_locator = None
 
-    
-    ''' common skeleton '''
+
+    ''' Common skeleton '''
     # common joint 
     src_joints_common, src_Tpose_rots_common, \
     tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, \
@@ -202,40 +201,37 @@ def main():
         subchain_conversion_matrics.append(subchain_conversion_matrics)
     tgt_subchain_template_indices = tgt_subchain_template_indices_refined
     
-    # root 
+    # root
     src_hip_index = get_root_joint(src_joints_common)
     tgt_hip_index = get_root_joint(tgt_joints_common)
     src_root = src_joints_common[src_hip_index]
     tgt_root = tgt_joints_common[tgt_hip_index]
-    # hip height  
+    # hip height
     src_hip_height = get_distance_from_toe_to_root(src_joints_common, src_root)
     tgt_hip_height = get_distance_from_toe_to_root(tgt_joints_common, tgt_root)
 
     # ratio
     height_ratio = tgt_hip_height / src_hip_height
-    
-    # subchain: relative vector 
-    # position 
-    tgt_hip_pos = np.array(cmds.xform(tgt_root, query=True, translation=True, worldSpace=True))
-    hip_height_diff = []
+
+    # subchain
+    # position
+    hip_local_pos = np.array(cmds.xform(tgt_root, query=True, translation=True, worldSpace=False))
+    # diff vec wo root rotation
+    subchain_local_diff_vec = []
     for root in subchain_roots:
-        sub_hip_pos = np.array(cmds.xform(root, query=True, translation=True, worldSpace=True))
-        sub_height_ratio = sub_hip_pos - tgt_hip_pos
-        hip_height_diff.append(sub_height_ratio) 
-
-    # rotation 
-    # root_Tpose_world_angle = cmds.xform(tgt_root, query=True, worldSpace=True, rotation=True)
-    # root_Tpose_world_R = E_to_R(np.array(root_Tpose_world_angle), order='zyx')
+        sub_hip_local_pos = np.array(cmds.xform(root, query=True, translation=True, worldSpace=False))
+        local_diff_vec = sub_hip_local_pos - hip_local_pos
+        subchain_local_diff_vec.append(local_diff_vec)
 
 
-    ''' import src motion '''
+    ''' Source motion '''
     mel.eval('FBXImport -f"{}"'.format(sourceMotion))
 
 
     ''' Refine locator rotation '''
     if tgt_locator is not None:
         # locator ~ root 위 조인트 포함
-        tgt_locator_rot = update_root_to_locator_rotation(tgt_joints_wNS, tgt_root, tgt_locator_rot)
+        tgt_locator_angle = update_root_to_locator_rotation(tgt_joints_wNS, tgt_root, tgt_locator_angle)
 
     # src meshes
     all_meshes = cmds.ls(type='mesh')
@@ -247,9 +243,9 @@ def main():
         # 둘 중 하나라도 locator가 있는 경우 
         # 예외처리
         if src_locator is None:
-            src_locator_rot, src_locator_scale = None, None
+            src_locator_angle, src_locator_scale = None, None
         if tgt_locator is None:
-            tgt_locator_rot, tgt_locator_scale = None, None
+            tgt_locator_angle, tgt_locator_scale = None, None
         
         # Get data
         trans_data, _ = get_keyframe_data(src_root) # trans, rot 
@@ -263,32 +259,13 @@ def main():
                           subchain_common_joints, subchain_Tpose_rots_common, tgt_subchain_template_indices, subchain_conversion_matrics,
                           len_frame)
         
-        # Delta rotation for root 
-        # root_R = E_to_R(tgt_local_angles[:, 0]) 
-        # root_Tpose_R = E_to_R(np.array(tgt_Tpose_rots_common[src_hip_index]))
-        # root_delta_rot = np.linalg.inv(root_Tpose_R) @ root_R
-
-        # # locator rotation
-        # tgt_locator_R = E_to_R(tgt_locator_rot) # TODO check
-        # tgt_locator_R_inv = np.linalg.inv(tgt_locator_R)
-        # tgt_locator_R_inv = np.repeat(tgt_locator_R_inv[None,:,:], axis=0, repeats=len_frame)
-
-        # # update diff vector
-        # diff_vec = hip_height_diff[0]
-        # delta_diff_vec = root_delta_rot @ diff_vec
-        # rotated_diff_vec = tgt_locator_R_inv @ delta_diff_vec[:,:,None]
-        # rotated_diff_vec = rotated_diff_vec[:, :, 0]
-        # rotated_diff_vec = (np.repeat(root_Tpose_world_R[None,:,:], axis=0, repeats=len_frame) @ delta_diff_vec[:,:,None])[:, :, 0]
-        # rotated_diff_vec = (delta_diff_vec[:,:,None] @ np.repeat(root_Tpose_world_R[None,:,:], axis=0, repeats=len_frame))[:, :, 0]
-
-
         # trans
         trans_data = retarget_translation(src_root, tgt_root, 
                                           trans_data, tgt_local_angles[:, src_hip_index], tgt_Tpose_rots_common[src_hip_index],
                                           subchain_roots,
-                                          src_locator, src_locator_rot, src_locator_scale,
-                                          tgt_locator, tgt_locator_rot, tgt_locator_scale, tgt_locator_pos,
-                                            height_ratio, hip_height_diff, 
+                                          src_locator, src_locator_angle, src_locator_scale,
+                                          tgt_locator, tgt_locator_angle, tgt_locator_scale, tgt_locator_pos,
+                                            height_ratio, subchain_local_diff_vec, 
                                             len_frame)
     else:
         print(">> retarget without locator")

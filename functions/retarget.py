@@ -414,21 +414,21 @@ def apply_scale(data, scale, inverse=False):
 def retarget_translation(src_hip, tgt_hip, 
                          trans_data, tgt_root_local_angles, tgt_Tpose_root_angle, 
                          subchain_roots, 
-                         src_locator=None, src_locator_rot=None, src_locator_scale=None,
-                         tgt_locator=None, tgt_locator_rot=None, tgt_locator_scale=None, tgt_locator_pos=None, 
-                         height_ratio=1, hip_height_diff=[], 
+                         src_locator=None, src_locator_angle=None, src_locator_scale=None,
+                         tgt_locator=None, tgt_locator_angle=None, tgt_locator_scale=None, tgt_locator_pos=None, 
+                         height_ratio=1, subchain_local_diff_vec=[], 
                          len_frame=0):
     trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
 
     # Source locator 처리
     if src_locator:
-        src_loc_rotmat = get_rotation_matrix(src_locator_rot, len_frame)
+        src_loc_rotmat = get_rotation_matrix(src_locator_angle, len_frame)
         trans_data = apply_rotation(src_loc_rotmat, trans_data)
         trans_data = apply_scale(trans_data, src_locator_scale)
 
     # Target locator 처리
     if tgt_locator:
-        tgt_loc_rotmat_inv = get_rotation_matrix(tgt_locator_rot, len_frame, inverse=True)
+        tgt_loc_rotmat_inv = get_rotation_matrix(tgt_locator_angle, len_frame, inverse=True)
         trans_data = apply_rotation(tgt_loc_rotmat_inv, trans_data)
         
         # locator 포지션 반영
@@ -444,28 +444,25 @@ def retarget_translation(src_hip, tgt_hip,
 
         # update 
         trans_data_main = trans_data * height_ratio
+        # import pdb; pdb.set_trace()
         set_keyframe(tgt_hip, trans_data_main, trans_attr)
 
         # subchain
+        tgt_locator_R = E_to_R(tgt_locator_angle)
         for i, subchain_root in enumerate(subchain_roots):
             # Delta rotation for root 
-            root_R = E_to_R(tgt_root_local_angles, order='zyx') # TODO 변경필요
-            root_Tpose_R = E_to_R(np.array(tgt_Tpose_root_angle), order='zyx')
-            root_delta_rot = np.linalg.inv(root_Tpose_R) @ root_R
-
-            # locator rotation
-            tgt_locator_R = E_to_R(tgt_locator_rot) # TODO: check euler angle. 통일해서 Test 해보기. zyx가 올바른 값인지 확인. 
-            tgt_locator_R_inv = np.linalg.inv(tgt_locator_R)
-            tgt_locator_R_inv = np.repeat(tgt_locator_R_inv[None,:,:], axis=0, repeats=len_frame)
+            mainroot_R = E_to_R(tgt_root_local_angles)
+            # mainroot_worldR = mainroot_R @ tgt_locator_R # parent은 오른쪽에 곱함
+            mainroot_worldR = tgt_locator_R @ mainroot_R 
 
             # update diff vector
-            diff_vec = hip_height_diff[i]
-            delta_diff_vec = root_delta_rot @ diff_vec
-            rotated_diff_vec = tgt_locator_R_inv @ delta_diff_vec[:,:,None]
-            rotated_diff_vec = rotated_diff_vec[:, :, 0]
+            diff_vec = subchain_local_diff_vec[i]
+            diff_vec_extended = np.repeat(diff_vec[None,:], axis=0, repeats=len_frame)[:,:,None]
+            delta_diff_vec = (mainroot_worldR @ diff_vec_extended)[:, :, 0]
             
             # update to subchain
-            trans_data_sub = trans_data_main + rotated_diff_vec
+            trans_data_sub = trans_data_main + delta_diff_vec
+            import pdb; pdb.set_trace()
             set_keyframe(subchain_root, trans_data_sub, trans_attr)
 
     return trans_data
