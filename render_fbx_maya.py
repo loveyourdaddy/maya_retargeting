@@ -1,4 +1,5 @@
 # mayapy render_fbx_maya.py "./test_results/20250107_123149/Asooni_qc/ZEPETO/11166_Javan_004_RT1228.fbx" "/Users/inseo/2024_KAI_Retargeting/test_videos/20250107_123149/Asooni_qc/UE"
+# mayapy render_fbx_maya.py "./output/SKM_Manny_Tpose/Confident_004_RT0830.fbx" "/Users/inseo/2024_KAI_Retargeting/"
 
 import maya.cmds as cmds
 # import logging
@@ -204,7 +205,6 @@ def setup_playback():
     cmds.playbackOptions(maxTime=end_time)
     
     return start_time, end_time
-
 
 def setup_software_renderer():
     # 렌더러를 Maya Software로 설정

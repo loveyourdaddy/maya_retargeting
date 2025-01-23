@@ -444,25 +444,25 @@ def retarget_translation(src_hip, tgt_hip,
 
         # update 
         trans_data_main = trans_data * height_ratio
-        # import pdb; pdb.set_trace()
         set_keyframe(tgt_hip, trans_data_main, trans_attr)
 
         # subchain
-        tgt_locator_R = E_to_R(tgt_locator_angle)
+        # tgt_locator_R = E_to_R(tgt_locator_angle)
+        Tpose_root_R = E_to_R(np.array(tgt_Tpose_root_angle)) 
+        Tpose_root_R_ext = np.repeat(Tpose_root_R[None, :], repeats=len_frame, axis=0)
         for i, subchain_root in enumerate(subchain_roots):
-            # Delta rotation for root 
-            mainroot_R = E_to_R(tgt_root_local_angles)
-            # mainroot_worldR = mainroot_R @ tgt_locator_R # parent은 오른쪽에 곱함
-            mainroot_worldR = tgt_locator_R @ mainroot_R 
+            root_R = E_to_R(tgt_root_local_angles)
+            delta_R = np.linalg.inv(Tpose_root_R_ext) @ root_R
+            # delta_R = root_R @ np.linalg.inv(Tpose_root_R_ext)
 
             # update diff vector
             diff_vec = subchain_local_diff_vec[i]
-            diff_vec_extended = np.repeat(diff_vec[None,:], axis=0, repeats=len_frame)[:,:,None]
-            delta_diff_vec = (mainroot_worldR @ diff_vec_extended)[:, :, 0]
+            diff_vec_ext = np.repeat(diff_vec[None,:], repeats=len_frame, axis=0)[:,:,None]
+            delta_diff_vec = (delta_R @ diff_vec_ext)[:, :, 0]
             
             # update to subchain
             trans_data_sub = trans_data_main + delta_diff_vec
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             set_keyframe(subchain_root, trans_data_sub, trans_attr)
 
     return trans_data
