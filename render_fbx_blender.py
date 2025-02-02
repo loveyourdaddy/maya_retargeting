@@ -143,7 +143,8 @@ def calculate_camera_position(obj):
     # max_dim = max(dimensions.x, dimensions.y, dimensions.z)
     # camera_distance = max_dim * 2.5
     print(radius)
-    camera_distance = radius * 10
+    camera_distance = radius * 15
+    # camera_distance = radius * 10
 
     # 카메라 위치 계산 (15도 위에서 바라보기)
     # angle = math.radians(15)

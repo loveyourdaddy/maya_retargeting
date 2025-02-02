@@ -462,7 +462,6 @@ def retarget_translation(src_hip, tgt_hip,
             
             # update to subchain
             trans_data_sub = trans_data_main + delta_diff_vec
-            # import pdb; pdb.set_trace()
             set_keyframe(subchain_root, trans_data_sub, trans_attr)
 
     return trans_data
@@ -548,7 +547,7 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
                 final_matrix = np.array(final_matrix).reshape(4, 4)
                 euler_angle = R_to_E(final_matrix, order='xyz') # MAYA rotation order: XYZ
                 
-                tgt_perjoint_local_angle[frame] = euler_angle 
+                tgt_perjoint_local_angle[frame] = euler_angle
 
             set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
             return tgt_perjoint_local_angle
@@ -569,5 +568,45 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
             ).asMatrix()
 
             set_keyframe_for_joint(subjoint, subjoint_tpose_matrix, subchain_Tpose_trfs[subjoint_jid], subjoint_jid)
+    
+    # Refine angle as continue value
+    tgt_local_angles = unwrap_rotation(tgt_local_angles)
 
     return tgt_local_angles
+
+def unwrap_rotation(rotation_array, threshold=170):
+    """
+    Euler angle discontinuity를 해결하여 연속적인 rotation 값으로 변환
+    
+    Args:
+        rotation_array: shape (n, 3)의 rotation 데이터
+        threshold: 불연속으로 간주할 각도 차이 (기본값: 170도)
+    
+    Returns:
+        연속적인 값으로 변환된 rotation array
+    """
+    result = rotation_array.copy()
+    
+    # x, y, z 각 축별로 처리
+    for axis in range(3):
+        # 이전 프레임과의 차이 계산
+        diff = np.diff(result[..., axis], axis=0)
+        
+        # 큰 변화가 있는 joint 찾기 (threshold 이상의 차이)
+        discontinuities = np.where(np.abs(diff) > threshold)
+        discontinuous_joint = discontinuities[1]
+        
+        # 각 불연속 지점에 대해
+        offset = 0
+        for i, jid in enumerate(discontinuous_joint):
+            discontinuous_f = discontinuities[0][i]
+            # 부호 결정 (양수에서 음수로 가면 +360, 음수에서 양수로 가면 -360)
+            if diff[discontinuous_f, jid] < 0:  # 양수에서 음수로 갈 때
+                offset += 360
+            else:  # 음수에서 양수로 갈 때
+                offset -= 360
+            
+            # idx+1부터 끝까지의 모든 값에 offset 적용
+            result[discontinuous_f+1:, jid, axis] += offset
+            
+    return result

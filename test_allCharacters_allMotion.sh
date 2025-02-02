@@ -34,18 +34,18 @@ src_characters=(
 )
 
 tgt_characters=(
-    "Adori"
-    "Adori2.0"
-    "Asooni"
-    "Adori2.1"
-    "Asooni2.0"
+    # "Adori"
+    # "Adori2.0"
+    # "Asooni"
+    # "Adori2.1"
+    # "Asooni2.0"
 
-    "Metahuman" # "Metahuman_woMesh"
-    # "Minecraft"
-    "Readyplayerme"
-    "Roblox"
-    # "UE"
-    "Zepeto"
+    "Metahuman_body_and_face" # "Metahuman" "Metahuman_woMesh"
+    # # "Minecraft"
+    # "Readyplayerme"
+    # "Roblox"
+    # # "UE"
+    # "Zepeto"
 )
 
 # 로그 함수
