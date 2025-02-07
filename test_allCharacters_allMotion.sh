@@ -18,7 +18,7 @@ LOG_FILE="$LOGS_DIR/retargeting_test_$(date +%Y%m%d_%H%M%S).log"
 TEST_RESULTS="$LOGS_DIR/test_results_$(date +%Y%m%d_%H%M%S).txt" # failed test list
 
 # 변수
-GENERATE_VIDEO=true # true false
+GENERATE_VIDEO=false # true false
 
 # 캐릭터 폴더 리스트
 src_characters=(
@@ -36,15 +36,16 @@ src_characters=(
 tgt_characters=(
     "Adori"
     "Adori2.0"
-    "Asooni"
     "Adori2.1"
+    "Asooni"
     "Asooni2.0"
 
-    "Metahuman" # "Metahuman_woMesh"
-    # "Minecraft"
+    # "Minecraft"  
+    "Metahuman_body_and_face" # "Metahuman_woMesh"
     "Readyplayerme"
     "Roblox"
-    # "UE"
+    "SKM_Manny_Tpose" # "UE"
+    "SKM_Quinn_Tpose"
     "Zepeto"
 )
 
@@ -100,7 +101,7 @@ run_test_case() {
                 # MP4 변환
                 log "Converting FBX to MP4 using Maya..."
                 mkdir -p "$result_full_dir"
-                if [ $3 = "./models/UE/UE.fbx" ]; then
+                if [$3="./models/UE/UE.fbx"] || [$3="./models/SKM_Manny_Tpose/SKM_Manny_Tpose.fbx"] || [$3="./models/SKM_Quinn_Tpose/SKM_Quinn_Tpose.fbx"]; then 
                     # maya
                     echo "mayapy render_fbx_maya.py "$result_dir/$result_file" "$result_full_dir""
                     mayapy render_fbx_maya.py "$result_dir/$result_file" "$result_full_dir"
@@ -127,7 +128,7 @@ get_first_motion() {
     local motion_dir="./motions/${character}"
     
     # local first_motion=$(find "$motion_dir" -name "*.fbx" | sort | head -n 5 | tail -n 1)
-    local first_motion=$(find "$motion_dir" -name "*.fbx" | grep -iv "Tpose\|t-pose\|t_pose" | sort | head -n 5 | tail -n 1)
+    local first_motion=$(find "$motion_dir" -name "*.fbx" -not -path "*/old/*" | grep -iv "Tpose\|t-pose\|t_pose" | sort | head -n 5 | tail -n 1)
 
     if [ -n "$first_motion" ]; then
         echo "$first_motion"
@@ -143,8 +144,14 @@ get_all_motions() {
     local motion_dir="./motions/${character}"
     
     # T-pose 관련 파일을 제외한 모든 FBX 파일 찾기
-    local motions=($(find "$motion_dir" -name "*.fbx" | grep -iv "Tpose\|t-pose\|t_pose" | sort))
+    local motions=($(find "$motion_dir" -name "*.fbx" -not -path "*/old/*"  | grep -iv "Tpose\|t-pose\|t_pose" | sort))
     
+    # log "Found motions:"
+    # for motion in "${motions[@]}"; do
+    #     local motion_name=$(basename "$motion")
+    #     log "- $motion_name"
+    # done
+
     if [ ${#motions[@]} -eq 0 ]; then
         log "Warning: No motions found for $character in $motion_dir"
         echo "./motions/${character}/Tpose.fbx"  # 기본값 반환
@@ -164,7 +171,7 @@ for source in "${src_characters[@]}"; do
     mkdir -p "$SOURCE_DIR"
 
     # 소스 캐릭터의 첫 번째 모션 / 모든 모션 가져오기
-    motion_files=($(get_first_motion "$source")) # get_all_motions
+    motion_files=($(get_first_motion "$source")) # get_first_motion get_all_motions
     log "Found ${#motion_files[@]} motion files for $source"
     
     # 각 모션 파일에 대해 테스트

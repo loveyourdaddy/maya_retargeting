@@ -1,6 +1,6 @@
+# Adori Asooni Metahuman UE
 # mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
-# mayapy retargeting_different_axis.py --sourceChar "./models/Asooni_qc/Asooni_qc.fbx" --sourceMotion "./motions/Asooni_qc/11166_Javan_004_RT1228.fbx" --targetChar "./models/UE/UE.fbx"
-# mayapy retargeting_different_axis.py --sourceChar "./models/Asooni_qc/Asooni_qc.fbx" --sourceMotion "./motions/Asooni_qc/11166_Javan_004_RT1228.fbx" --targetChar "./models/Metahuman/Metahuman.fbx"
+# mayapy retargeting_different_axis.py --sourceChar "./models/Adori/Adori.fbx" --sourceMotion "./motions/Adori/Nonsense_RT0227.fbx" --targetChar "./models/Asooni/Asooni.fbx"
 
 ''' 
 Naming
@@ -227,6 +227,10 @@ def main():
     ''' Source motion '''
     mel.eval('FBXImport -f"{}"'.format(sourceMotion))
 
+    # Set fps of source motion
+    current_fps = mel.eval('currentTimeUnitToFPS')
+    mel.eval(f'currentUnit "{current_fps}fps"')
+    print("fps: ", current_fps)
 
     ''' Refine locator rotation '''
     if tgt_locator is not None:
