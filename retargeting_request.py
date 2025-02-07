@@ -6,7 +6,7 @@ python retargeting_request.py ./models/Asooni/Asooni.fbx "./motions/Asooni/0048_
 
 import requests
 import os
-from functions.parser import *
+# from functions.parser import *
 import sys
 
 class Mingle_API(): 

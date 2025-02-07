@@ -97,6 +97,7 @@ run_test_case() {
             # 결과 fbx 파일이 존재하면 해당 디렉토리로 이동
             mv "$result_file" "$result_dir/"
 
+            # Render 
             if [ "$GENERATE_VIDEO" = true ]; then
                 # MP4 변환
                 log "Converting FBX to MP4 using Maya..."

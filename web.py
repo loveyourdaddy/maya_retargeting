@@ -21,6 +21,32 @@ if not os.path.exists(app.config['OUTPUT_FOLDER']):
 # key: tranaction_id, value: target_character, source_character, source_motion
 transactions = {}
 
+# 업로드된 임시 파일들을 정리하는 함수
+def cleanup_files(file_paths):
+    for file_path in file_paths:
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print(f"Removed: {file_path}")
+        except Exception as e:
+            print(f"Error removing {file_path}: {e}")
+
+# Maya 작업 후 생성된 파일들을 정리하는 함수
+def cleanup_maya_files(target_char, source_char, source_motion):
+    try:
+        # models 폴더 정리
+        if os.path.exists(f'./models/{target_char}'):
+            shutil.rmtree(f'./models/{target_char}')
+        if os.path.exists(f'./models/{source_char}'):
+            shutil.rmtree(f'./models/{source_char}')
+        
+        # motions 폴더 정리
+        if os.path.exists(f'./motions/{source_char}'):
+            shutil.rmtree(f'./motions/{source_char}')
+            
+        print(f"Cleaned up Maya working directories")
+    except Exception as e:
+        print(f"Error cleaning up Maya files: {e}")
 
 ''' upload '''
 # 파일 업로드를 위한 HTML 폼을 제공하는 라우트
@@ -181,6 +207,7 @@ def upload_form():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     character_select = request.form.get('characterSelect')
+    uploaded_files = []  # 업로드된 파일 경로 추적
 
     # 'ETC'가 선택되지 않은 경우 해당 캐릭터의 파일 경로 설정
     if character_select != "ETC":
@@ -193,17 +220,20 @@ def upload_file():
         target_character = request.files['target_character']
         target_character_path = os.path.join(app.config['UPLOAD_FOLDER'], target_character.filename)
         target_character.save(target_character_path)
+        uploaded_files.append(target_character_path)
 
     source_character = request.files['source_character']
     source_motion = request.files['source_motion']
 
     if source_character.filename == '' or source_motion.filename == '':
+        cleanup_files(uploaded_files)
         return jsonify({'message': 'No selected files'})
 
     source_character_path = os.path.join(app.config['UPLOAD_FOLDER'], source_character.filename)
     source_motion_path = os.path.join(app.config['UPLOAD_FOLDER'], source_motion.filename)
     source_character.save(source_character_path)
     source_motion.save(source_motion_path)
+    uploaded_files.extend([source_character_path, source_motion_path])
 
     # 저장한 파일 경로를 세션에 저장
     session['target_character_path'] = target_character_path
@@ -213,14 +243,26 @@ def upload_file():
         print("run")
         result = run_maya_script(target_character_path, source_character_path, source_motion_path)
         print(result)
+
+        # Maya 작업 완료 후 임시 파일 정리
+        cleanup_files(uploaded_files)
+        cleanup_maya_files(
+            target_character_path.split('/')[-1][:-4],
+            source_character_path.split('/')[-1][:-4],
+            source_motion_path.split('/')[-1][:-4]
+        )
+
         return jsonify({'message': 'Processing complete. You can download the file.'})
     except Exception as e:
-        print("error")
+        print(">>> run_maya_script Failed")
+        cleanup_files(uploaded_files)
         return jsonify({'message': 'An error occurred: ' + str(e)})
 
 @app.route('/upload_api', methods=['POST'])
 def upload_file_api():
+    uploaded_files = []
     global target_character_path, source_motion_path
+
     if 'target_character' not in request.files or 'source_character' not in request.files or 'source_motion' not in request.files:
         return jsonify({'message': 'No file parts'})
 
@@ -232,12 +274,16 @@ def upload_file_api():
         return jsonify({'message': 'No selected files'})
 
     if target_character and source_character and source_motion:
+        # Path
         target_character_path = os.path.join(app.config['UPLOAD_FOLDER'], target_character.filename)
         source_character_path = os.path.join(app.config['UPLOAD_FOLDER'], source_character.filename)
         source_motion_path = os.path.join(app.config['UPLOAD_FOLDER'], source_motion.filename)
+
+        # save 
         target_character.save(target_character_path)
         source_character.save(source_character_path)
         source_motion.save(source_motion_path)
+        uploaded_files.extend([target_character_path, source_character_path, source_motion_path])
 
         # transaction_id 생성
         import uuid
@@ -254,9 +300,19 @@ def upload_file_api():
         try:
             print("run")
             result = run_maya_script(target_character_path, source_character_path, source_motion_path)
+
+            # Maya 작업 완료 후 임시 파일 정리
+            cleanup_files(uploaded_files)
+            cleanup_maya_files(
+                target_character_path.split('/')[-1][:-4],
+                source_character_path.split('/')[-1][:-4],
+                source_motion_path.split('/')[-1][:-4]
+            )
+
             return jsonify({'message': 'Processing complete. You can download the file.', 'transaction_id': transaction_id})
         except Exception as e:
-            print("error")
+            print(">>> run_maya_script Failed")
+            cleanup_files(uploaded_files)
             return jsonify({'message': 'An error occurred: ' + str(e)})
 
 ''' run maya script '''
@@ -337,6 +393,17 @@ def download_file():
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
             response.headers["X-Filename"] = source_motion_path.split('/')[-1]
+
+            # 다운로드 후 output 폴더의 파일 정리 
+            try:
+                output_file = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, motion_name)
+                import pdb; pdb.set_trace()
+                if os.path.exists(output_file):
+                    os.remove(output_file)
+
+            except Exception as e:
+                print(f"Error cleaning up output directory: {e}")
+
             return response
         else:
             return jsonify({'message': 'File not found'}), 404
@@ -367,12 +434,24 @@ def download_file_api():
             response = send_file(file_to_download, as_attachment=True)
             response.headers["X-Filename"] = source_motion_path.split('/')[-1]
             print("download end")
+
+            # 다운로드 후 output 폴더의 파일 정리 
+            try:
+                output_file = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, motion_name)
+                if os.path.exists(output_file):
+                    os.remove(output_file)
+                    
+                # transaction 정리
+                del transactions[transaction_id]
+            except Exception as e:
+                print(f"Error cleaning up output directory: {e}")
+
             return response
         else:
             return jsonify({'message': 'File not found'}), 404
     else:
         return jsonify({'message': 'No file paths available for download'}), 400
-    
+
 
 # Flask 서버 실행
 if __name__ == "__main__":
