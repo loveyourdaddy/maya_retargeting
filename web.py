@@ -397,7 +397,6 @@ def download_file():
             # 다운로드 후 output 폴더의 파일 정리 
             try:
                 output_file = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, motion_name)
-                import pdb; pdb.set_trace()
                 if os.path.exists(output_file):
                     os.remove(output_file)
 
