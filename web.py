@@ -45,14 +45,17 @@ def cleanup_maya_files(target_char, source_char, source_motion):
         if target_char not in preserved_characters:
             if os.path.exists(f'./models/{target_char}'):
                 shutil.rmtree(f'./models/{target_char}')
+                print(f"Removed model directory: ./models/{target_char}")
                 
         if source_char not in preserved_characters:
             if os.path.exists(f'./models/{source_char}'):
                 shutil.rmtree(f'./models/{source_char}')
+                print(f"Removed model directory: ./models/{source_char}")
         
             # motions 폴더 정리
             if os.path.exists(f'./motions/{source_char}'):
                 shutil.rmtree(f'./motions/{source_char}')
+                print(f"Removed model directory: ./motions/{source_char}")
             
         print(f"Cleaned up Maya working directories")
     except Exception as e:
