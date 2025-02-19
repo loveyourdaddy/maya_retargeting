@@ -33,16 +33,20 @@ def cleanup_files(file_paths):
 
 # Maya 작업 후 생성된 파일들을 정리하는 함수
 def cleanup_maya_files(target_char, source_char, source_motion):
+    preserved_characters = ['Adori', 'Asooni', 'Bear', 'Roblox']
     try:
         # models 폴더 정리
-        if os.path.exists(f'./models/{target_char}'):
-            shutil.rmtree(f'./models/{target_char}')
-        if os.path.exists(f'./models/{source_char}'):
-            shutil.rmtree(f'./models/{source_char}')
+        if target_char not in preserved_characters:
+            if os.path.exists(f'./models/{target_char}'):
+                shutil.rmtree(f'./models/{target_char}')
+                
+        if source_char not in preserved_characters:
+            if os.path.exists(f'./models/{source_char}'):
+                shutil.rmtree(f'./models/{source_char}')
         
-        # motions 폴더 정리
-        if os.path.exists(f'./motions/{source_char}'):
-            shutil.rmtree(f'./motions/{source_char}')
+            # motions 폴더 정리
+            if os.path.exists(f'./motions/{source_char}'):
+                shutil.rmtree(f'./motions/{source_char}')
             
         print(f"Cleaned up Maya working directories")
     except Exception as e:
@@ -244,7 +248,7 @@ def upload_file():
         result = run_maya_script(target_character_path, source_character_path, source_motion_path)
         print(result)
 
-        # Maya 작업 완료 후 임시 파일 정리
+        # Maya 작업 완료 후 임시 파일 정리 
         cleanup_files(uploaded_files)
         cleanup_maya_files(
             target_character_path.split('/')[-1][:-4],

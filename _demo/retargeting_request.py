@@ -1,7 +1,7 @@
 """
 Usage 
 source char, source motion, target char, 
-python retargeting_request.py ./models/Asooni/Asooni.fbx "./motions/Asooni/0048_Basic Roll_01_RT0104.fbx" ./models/Adori/Adori.fbx 
+python retargeting_request.py ./models/Asooni/Asooni.fbx "./motions/Asooni/Lovely_004_RT1018.fbx" ./models/Adori/Adori.fbx 
 """
 
 import requests
