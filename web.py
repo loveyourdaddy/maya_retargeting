@@ -22,18 +22,24 @@ if not os.path.exists(app.config['OUTPUT_FOLDER']):
 transactions = {}
 
 # 업로드된 임시 파일들을 정리하는 함수
+preserved_characters = ['Adori', 'Asooni', 'Bear', 'Roblox']
 def cleanup_files(file_paths):
     for file_path in file_paths:
         try:
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                print(f"Removed: {file_path}")
+            # 파일 이름에서 확장자를 제외한 부분 추출
+            filename = os.path.basename(file_path)
+            name_without_ext = os.path.splitext(filename)[0]
+
+            # 보존할 캐릭터가 아닌 경우에만 삭제
+            if name_without_ext not in preserved_characters:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    print(f"Removed: {file_path}")
         except Exception as e:
             print(f"Error removing {file_path}: {e}")
 
 # Maya 작업 후 생성된 파일들을 정리하는 함수
 def cleanup_maya_files(target_char, source_char, source_motion):
-    preserved_characters = ['Adori', 'Asooni', 'Bear', 'Roblox']
     try:
         # models 폴더 정리
         if target_char not in preserved_characters:
