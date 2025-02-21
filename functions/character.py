@@ -120,18 +120,33 @@ def update_root_to_locator_rotation(tgt_joints_origin, tgt_root, tgt_locator_ang
 ''' delete '''
 def delete_locator_and_hierarchy(locator_name):
     if cmds.objExists(locator_name):
+        locator_paths = cmds.ls(locator_name, long=True)
+        if not locator_paths:
+            return
+        
+        locator_full_path = locator_paths[0]  # Use the first full path if mul
+
         # List all descendants of the locator
-        descendants = cmds.listRelatives(locator_name, allDescendents=True) or []
+        descendants = cmds.listRelatives(locator_full_path, allDescendents=True, fullPath=True) or []
         
         # Add the locator itself to the list
-        descendants.append(locator_name)
+        descendants.append(locator_full_path)
+
         
         # Delete the locator and its hierarchy
-        cmds.delete(descendants)
+        # cmds.delete(descendants)
+
+        # find and delete 
+        for desc in descendants:
+            try:
+                if cmds.objExists(desc):
+                    # Get the full path again in case it changed
+                    current_paths = cmds.ls(desc, long=True)
+                    if current_paths:
+                        cmds.delete(current_paths[0])
+            except Exception as e:
+                print(f"Error deleting {desc}: {str(e)}")
         # print(f"{locator_name} and its hierarchy have been deleted.")
-    else:
-        pass
-        # print(f"{locator_name} does not exist.")
 
 def delete_all_transform_nodes():
     # Get the list of all nodes in the scene

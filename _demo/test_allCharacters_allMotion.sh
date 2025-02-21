@@ -95,6 +95,7 @@ run_test_case() {
 
         if [ -f "$result_file" ]; then
             # 결과 fbx 파일이 존재하면 해당 디렉토리로 이동
+            log " mv "$result_file" "$result_dir/""
             mv "$result_file" "$result_dir/"
 
             # Render 

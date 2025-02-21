@@ -1,5 +1,5 @@
 # Adori Asooni Metahuman UE
-# mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Super shy - New Jeans_RT1226.fbx" --targetChar "./models/Adori/Adori.fbx"
+# mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Supershy.fbx" --targetChar "./models/Adori/Adori.fbx"
 # mayapy retargeting_different_axis.py --sourceChar "./models/Adori/Adori.fbx" --sourceMotion "./motions/Adori/Nonsense_RT0227.fbx" --targetChar "./models/Asooni/Asooni.fbx"
 
 ''' 
@@ -21,6 +21,176 @@ from functions.motion import *
 from functions.maya import *
 from functions.retarget import *
 import time
+import re
+
+class Joint:
+    def __init__(self, name, parent=None):
+        self.name = name
+        self.parent = parent
+        self.full_path = f"{parent.full_path}|{name}" if parent else name
+
+def create_keyframe(channel, frame, value):
+    """각 채널에 대한 키프레임 생성"""
+    try:
+        cmds.setKeyframe(channel, time=frame, value=float(value))
+    except Exception as e:
+        print(f"키프레임 생성 오류 - 채널: {channel}, 프레임: {frame}, 값: {value}")
+        print(f"오류 메시지: {e}")
+        
+def parse_channels(line, joint_name):
+    """채널 정보 파싱"""
+    translation_dict = {
+        'Xposition': 'translateX',
+        'Yposition': 'translateY',
+        'Zposition': 'translateZ',
+        'Xrotation': 'rotateX',
+        'Yrotation': 'rotateY',
+        'Zrotation': 'rotateZ'
+    }
+    
+    space_re = re.compile(r"\s+")
+    chan_info = space_re.split(line.strip())
+    channels = []
+    
+    for i in range(int(chan_info[1])):
+        channel_type = chan_info[2 + i]
+        maya_attr = translation_dict.get(channel_type)
+        if maya_attr:
+            channels.append(f"{joint_name}.{maya_attr}")
+    
+    return channels
+
+def import_bvh(file_path, scale=1.0, frame_offset=0, rotation_order=0):
+    """BVH 파일을 Maya로 임포트하고 키프레임 생성"""
+    channels = []
+    motion = False
+    safe_close = False
+    space_re = re.compile(r"\s+")
+    current_joint = None
+    
+    with open(file_path) as f:
+        # BVH 파일 유효성 검사
+        if not f.readline().startswith("HIERARCHY"):
+            raise ValueError("유효하지 않은 BVH 파일입니다")
+
+        # 루트 그룹 생성
+        mocap_name = os.path.basename(file_path)
+        grp = cmds.group(em=True, name=f"_mocap_{mocap_name}_grp")
+        cmds.setAttr(f"{grp}.scale", scale, scale, scale)
+        root_group = Joint(grp)
+        current_joint = root_group
+        
+        frame_data = []  # 모션 데이터 저장
+        
+        for line in f:
+            line = line.replace("\t", " ").strip()
+            
+            if not motion:
+                if line.startswith("ROOT"):
+                    joint_name = line[5:].strip()
+                    joint_name = joint_name.split('|')[-1]
+                    
+                    # 기존 조인트 검색 또는 새로 생성
+                    existing_joints = cmds.ls(joint_name, type='joint', long=True)
+                    maya_joint = existing_joints[0] if existing_joints else cmds.joint(name=joint_name, p=(0, 0, 0))
+                    maya_joint = maya_joint.split('|')[-1]
+                    
+                    current_joint = Joint(maya_joint, current_joint)
+                    cmds.setAttr(f"{current_joint.name}.rotateOrder", rotation_order)
+
+                elif "JOINT" in line:
+                    joint_name = space_re.split(line)[1].split('|')[-1]
+                    
+                    existing_joints = cmds.ls(joint_name, type='joint', long=True)
+                    maya_joint = existing_joints[0] if existing_joints else cmds.joint(name=joint_name, p=(0, 0, 0))
+                    maya_joint = maya_joint.split('|')[-1]
+                    
+                    current_joint = Joint(maya_joint, current_joint)
+                    cmds.setAttr(f"{current_joint.name}.rotateOrder", rotation_order)
+
+                elif "End Site" in line:
+                    safe_close = True
+
+                elif "}" in line:
+                    if safe_close:
+                        safe_close = False
+                        continue
+                    if current_joint and current_joint.parent:
+                        current_joint = current_joint.parent
+                        if current_joint:
+                            cmds.select(current_joint.name)
+
+                elif "CHANNELS" in line:
+                    channels.extend(parse_channels(line, current_joint.name))
+                    
+                elif "MOTION" in line:
+                    motion = True
+            else:
+                if "Frame Time:" in line:
+                    continue
+                if "Frames:" in line:
+                    continue
+                    
+                # 모션 데이터 처리
+                data = space_re.split(line)
+                if len(data) > 1:  # 유효한 데이터 라인인지 확인
+                    frame_data.append(data)
+        
+        # 키프레임 생성
+        for frame_idx, data in enumerate(frame_data):
+            for chan_idx, value in enumerate(data):
+                # if frame_idx==60:
+                #     import pdb; pdb.set_trace()
+                if chan_idx < len(channels):
+                    create_keyframe(channels[chan_idx], frame_idx + frame_offset, value)
+
+        # # 조인트별로 채널 그룹화
+        # joint_channels = {}
+        # for channel in channels:
+        #     joint_name = channel.split('.')[0]
+        #     if joint_name not in joint_channels:
+        #         joint_channels[joint_name] = []
+        #     joint_channels[joint_name].append(channel)
+
+        # # 각 프레임에 대해
+        # for frame_idx, data in enumerate(frame_data):
+        #     data_idx = 0
+        #     # 각 조인트에 대해
+        #     for joint_name, joint_chans in joint_channels.items():
+        #         # XYZ 순서로 채널 정렬
+        #         sorted_channels = []
+                
+        #         # Position channels (XYZ)
+        #         for axis in ['translateX', 'translateY', 'translateZ']:
+        #             for channel in joint_chans:
+        #                 if axis in channel:
+        #                     sorted_channels.append(channel)
+                
+        #         # Rotation channels (XYZ)
+        #         for axis in ['rotateX', 'rotateY', 'rotateZ']:
+        #             for channel in joint_chans:
+        #                 if axis in channel:
+        #                     sorted_channels.append(channel)
+                
+        #         # 정렬된 채널에 대해 키프레임 생성
+        #         for channel in sorted_channels:
+        #             if data_idx < len(data):
+        #                 value = data[data_idx]
+        #                 create_keyframe(channel, frame_idx + frame_offset, value)
+        #                 data_idx += 1
+
+    return grp
+
+def import_motion_file(file_path, scale=1.0):
+    """Import motion file (FBX or BVH)"""
+    file_ext = os.path.splitext(file_path)[1].lower()
+    
+    if file_ext == '.fbx':
+        mel.eval('FBXImport -f"{}"'.format(file_path))
+    elif file_ext == '.bvh':
+        return import_bvh(file_path, scale=scale)
+    else:
+        raise ValueError(f"Unsupported file format: {file_ext}")
 
 def main():
     start_time = time.time()
@@ -225,11 +395,12 @@ def main():
 
 
     ''' Source motion '''
-    mel.eval('FBXImport -f"{}"'.format(sourceMotion))
+    # mel.eval('FBXImport -f"{}"'.format(sourceMotion))
+    import_motion_file(sourceMotion)
 
     # Set fps of source motion
     current_fps = mel.eval('currentTimeUnitToFPS')
-    mel.eval(f'currentUnit "{current_fps}fps"')
+    mel.eval(f'currentUnit "{current_fps}fps"') 
     print("fps: ", current_fps)
 
     ''' Refine locator rotation '''
@@ -277,30 +448,30 @@ def main():
     
     ''' export '''
     # Remove source locator
-    if src_locator is not None:
-        delete_locator_and_hierarchy(src_locator)
-    else:
-        delete_locator_and_hierarchy(src_joints_common[0])
+    # if src_locator is not None:
+    #     delete_locator_and_hierarchy(src_locator)
+    # else:
+    #     delete_locator_and_hierarchy(src_joints_common[0])
     
-    # meshes
-    cmds.delete(src_meshes)
+    # # meshes
+    # cmds.delete(src_meshes)
 
-    # rename tgt joint
-    for joint in tgt_joints_origin_woNS:
-        if len(joint.split(':'))>1:
-            # 만약 target name에 namespace가 있다면 
-            # change namespace
-            namespace = joint.split(':')[:-1][0] + ":"
-            joint = joint.split(':')[-1]
-            # 만약 조인트가 존재한다면 
-            if cmds.objExists('tgt:'+joint):
-                cmds.rename('tgt:'+joint, namespace+joint)
-        else:
-            if cmds.objExists('tgt:'+joint):
-                cmds.rename('tgt:'+joint, joint)
+    # # rename tgt joint
+    # for joint in tgt_joints_origin_woNS:
+    #     if len(joint.split(':'))>1:
+    #         # 만약 target name에 namespace가 있다면 
+    #         # change namespace
+    #         namespace = joint.split(':')[:-1][0] + ":"
+    #         joint = joint.split(':')[-1]
+    #         # 만약 조인트가 존재한다면 
+    #         if cmds.objExists('tgt:'+joint):
+    #             cmds.rename('tgt:'+joint, namespace+joint)
+    #     else:
+    #         if cmds.objExists('tgt:'+joint):
+    #             cmds.rename('tgt:'+joint, joint)
     
-    # rename tgt locat
-    tgt_locator_list = remove_namespace_for_joints(tgt_locator_list)[0]
+    # # rename tgt locat
+    # tgt_locator_list = remove_namespace_for_joints(tgt_locator_list)[0]
 
     # Delete node 
     delete_all_transform_nodes()

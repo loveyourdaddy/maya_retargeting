@@ -29,3 +29,4 @@ example.py
 Server_datas/
 _videos/
 _backup/
+*.bvh
