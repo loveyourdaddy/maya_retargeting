@@ -9,8 +9,8 @@ from functions.rotations import normalize_rotmat
 alter_joint_name = {
     "Hips":["Root", "Pelvis", "LowerTorso", "Bone"], 
     "Spine":["UpperTorso", 'spine'], 
-    "Spine1":["chest", "spine_1", "spine_02"], # TODO: spine_02 제거
-    "Spine2":["chestUpper", "spine_2", "spine_03"], 
+    "Spine1":["spine_1", "spine_02"], # TODO: spine_02 제거
+    "Spine2":["chest", "spine_2", "spine_03"], # "chestUpper", 
     "Spine3":["chestUpper", "spine_3", "spine_04"], 
     "Spine4":["chestUpper", "spine_4", "spine_05", "BoneFBXASC046001"], 
 

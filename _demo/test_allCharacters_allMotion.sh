@@ -19,6 +19,7 @@ TEST_RESULTS="$LOGS_DIR/test_results_$(date +%Y%m%d_%H%M%S).txt" # failed test l
 
 # 변수
 GENERATE_VIDEO=false # true false
+GET_ALL_MOTIONS=true # false: first motions 
 
 # 캐릭터 폴더 리스트
 src_characters=(
@@ -34,18 +35,18 @@ src_characters=(
 )
 
 tgt_characters=(
-    "Adori"
-    "Adori2.0"
-    "Adori2.1"
-    "Asooni"
-    "Asooni2.0"
+    # "Adori"
+    # "Adori2.0"
+    # "Adori2.1"
+    # "Asooni"
+    # "Asooni2.0"
 
-    # "Minecraft"  
-    # "Metahuman_body_and_face" # "Metahuman_woMesh"
-    "Readyplayerme"
-    "Roblox"
-    "SKM_Manny_Tpose" # "UE"
-    "SKM_Quinn_Tpose"
+    # # "Minecraft"  
+    # # "Metahuman_body_and_face" # "Metahuman_woMesh"
+    # "Readyplayerme"
+    # "Roblox"
+    # "SKM_Manny_Tpose" # "UE"
+    # "SKM_Quinn_Tpose"
     "Zepeto"
 )
 
@@ -166,6 +167,20 @@ get_all_motions() {
 total_tests=0
 passed_tests=0
 
+for source in "${src_characters[@]}"; do
+    # 소스 캐릭터별 디렉토리 생성
+    SOURCE_DIR="$BASE_TEST_DIR/${source}"
+    mkdir -p "$SOURCE_DIR"
+
+    # 소스 캐릭터의 첫 번째 모션 / 모든 모션 가져오기
+    # motion_files=($(get_all_motions "$source")) # get_first_motion get_all_motions
+    if $GET_ALL_MOTIONS; then
+        motion_files=($(get_all_motions "$source"))
+    else
+        motion_files=($(get_first_motion "$source"))
+    fi
+    log "Found ${#motion_files[@]} motion files for $source"
+    
 # 각 캐릭터 조합으로 테스트 실행
 for source in "${src_characters[@]}"; do
     # 소스 캐릭터별 디렉토리 생성
@@ -173,7 +188,7 @@ for source in "${src_characters[@]}"; do
     mkdir -p "$SOURCE_DIR"
 
     # 소스 캐릭터의 첫 번째 모션 / 모든 모션 가져오기
-    motion_files=($(get_first_motion "$source")) # get_first_motion get_all_motions
+    motion_files=($(get_all_motions "$source")) # get_first_motion get_all_motions
     log "Found ${#motion_files[@]} motion files for $source"
     
     # 각 모션 파일에 대해 테스트
