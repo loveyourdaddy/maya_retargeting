@@ -1,4 +1,4 @@
-""" 
+"""
 Usage 
 source char, source motion, target char, 
 python retargeting_request.py ./models/Asooni/Asooni.fbx "./motions/Asooni/Lovely_004_RT1018.fbx" ./models/Adori/Adori.fbx 
@@ -9,9 +9,9 @@ import os
 # from functions.parser import *
 import sys
 
-ㅠㅣㅕclass Mingle_API(): 
-    # def __init__(self, url='http://127.0.0.1:5000/'): # local
-    def __init__(self, url='http://183.107.15.4:5000/'): # window server 
+class Mingle_API(): 
+    def __init__(self, url='http://127.0.0.1:5000/'): # local
+    # def __init__(self, url='http://183.107.15.4:5000/'): # window server 
         self.base_url = url
 
     def call_retargeting_api(self, target_character, source_character, source_motion): 

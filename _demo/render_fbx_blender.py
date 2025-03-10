@@ -1,5 +1,4 @@
-# blender -b -P render_fbx_blender.py -- "./output/Adori/1-8_Waacking_Twirl_RT0702.fbx" "/Users/inseo/2024_KAI_Retargeting/"
-# blender -b -P render_fbx_blender.py -- "/Users/inseo/2024_KAI_Retargeting/test_results/20250107_122504/Adori_qc/Adori/Confident_004_RT0830.fbx" "/Users/inseo/2024_KAI_Retargeting/"
+# blender -b -P render_fbx_blender.py -- "./output/Mixamo/It's OK Challenge_0.fbx" "/Users/inseo/2024_KAI_Retargeting/"
 
 import bpy
 import math
