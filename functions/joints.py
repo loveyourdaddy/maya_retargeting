@@ -268,11 +268,79 @@ def add_namespace_for_joints(joints, namespace):
 def add_namespace_for_meshes(meshes, namespace):
     if not cmds.namespace(exists=namespace):
         cmds.namespace(add=namespace)
-    
+    existing_namespaces = cmds.namespaceInfo(listOnlyNamespaces=True)
+    print("현재 존재하는 네임스페이스:", existing_namespaces)
+    if namespace not in existing_namespaces:
+        print(f"add {namespace} namespace")
+        cmds.namespace(add=namespace)
+
     new_meshes = []
     for mesh in meshes:
-        new_meshes.append(add_namespace(mesh, namespace))
+        # import pdb; pdb.set_trace()
+        if not cmds.objExists(mesh):
+            # new_meshes.append(mesh)
+            continue
+        transform = cmds.listRelatives(mesh, parent=True)[0]
+        # short_name = mesh.split('|')[-1]
+        short_name = transform.split('|')[-1]
+        
+        # 이미 네임스페이스가 있는지 확인
+        if ':' in short_name:
+            base_name = short_name.split(':')[-1]
+        else:
+            base_name = short_name
+
+        # 새 이름 생성
+        new_name = f"{namespace}:{base_name}"
+        
+        # 조인트를 src 네임스페이스로 이동
+        renamed_transform = cmds.rename(transform, new_name)
+        print("mesh {} -> {}".format(mesh, renamed_transform))
+
+        renamed_mesh = cmds.listRelatives(renamed_transform, shapes=True)[0]
+        new_meshes.append(renamed_mesh)
+
     return new_meshes
+
+def remove_namespace_from_objects(objects):
+    """
+    모든 오브젝트에서 네임스페이스를 제거합니다.
+    """
+    new_objects = []
+    
+    for obj in objects:
+        # 전체 경로에서 짧은 이름 추출
+        short_name = obj.split('|')[-1]
+        
+        # 네임스페이스가 있는지 확인
+        if ':' in short_name:
+            # 네임스페이스 없이 기본 이름만 가져오기
+            base_name = short_name.split(':')[-1]
+            
+            # 오브젝트 이름 변경
+            # import pdb; pdb.set_trace()
+            renamed = cmds.rename(obj, base_name)
+            print("Object {} -> {}".format(obj, renamed))
+            new_objects.append(renamed)
+        else:
+            # 이미 네임스페이스가 없으면 그대로 추가
+            new_objects.append(obj)
+            
+    return new_objects
+
+def remove_transform_node(objs):
+    transform_nodes = []
+    for obj in objs:
+        # 부모 변형 노드 찾기
+        parents = cmds.listRelatives(obj, parent=True)
+        if parents:
+            transform_nodes.extend(parents)
+
+    # 중복 제거
+    transform_nodes = list(set(transform_nodes))
+
+    # 변형 노드 삭제 (자식 메시 노드도 함께 삭제됨)
+    cmds.delete(transform_nodes)
 
 def remove_namespace_for_joints(joints):
     new_joints = []

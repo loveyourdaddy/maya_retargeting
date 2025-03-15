@@ -306,7 +306,7 @@ def main():
     
     # meshes
     tgt_meshes = cmds.ls(type='mesh')
-    tgt_meshes = add_namespace_for_meshes(tgt_meshes, "tgt_mesh")
+    tgt_meshes = add_namespace_for_meshes(tgt_meshes, "tgt")
 
 
     ''' Source char '''
@@ -319,6 +319,14 @@ def main():
         raise ValueError("No source character")
     
     mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
+
+    # # rename src meshes
+    all_meshes = cmds.ls(type='mesh')
+    src_meshes = list(set(all_meshes) - set(tgt_meshes))
+    # refine src_meshes
+    src_meshes = [mesh for mesh in src_meshes if not mesh.startswith('tgt:')]
+
+
     src_joints_origin = get_src_joints(tgt_joints_wNS)
     src_joints_template, _, _ = rename_joint_by_template(src_joints_origin)
 
@@ -395,7 +403,6 @@ def main():
 
 
     ''' Source motion '''
-    # mel.eval('FBXImport -f"{}"'.format(sourceMotion))
     import_motion_file(sourceMotion)
 
     # Set fps of source motion
@@ -407,10 +414,6 @@ def main():
     if tgt_locator is not None:
         # locator ~ root 위 조인트 포함
         tgt_locator_angle = update_root_to_locator_rotation(tgt_joints_wNS, tgt_root, tgt_locator_angle)
-
-    # src meshes
-    all_meshes = cmds.ls(type='mesh')
-    src_meshes = list(set(all_meshes) - set(tgt_meshes))
 
 
     ''' Retarget '''
@@ -447,34 +450,47 @@ def main():
         raise ValueError("No locator") # TODO
     
     ''' export '''
-    # Remove source locator
-    # if src_locator is not None:
-    #     delete_locator_and_hierarchy(src_locator)
-    # else:
-    #     delete_locator_and_hierarchy(src_joints_common[0])
-    
-    # # meshes
-    # cmds.delete(src_meshes)
+    # Remove source
+    # source locator and joints
+    if src_locator is not None:
+        delete_locator_and_hierarchy(src_locator)
+    else:
+        delete_locator_and_hierarchy(src_joints_common[0])
+    #  meshes
+    remove_transform_node(src_meshes)
 
-    # # rename tgt joint
-    # for joint in tgt_joints_origin_woNS:
-    #     if len(joint.split(':'))>1:
-    #         # 만약 target name에 namespace가 있다면 
-    #         # change namespace
-    #         namespace = joint.split(':')[:-1][0] + ":"
-    #         joint = joint.split(':')[-1]
-    #         # 만약 조인트가 존재한다면 
-    #         if cmds.objExists('tgt:'+joint):
-    #             cmds.rename('tgt:'+joint, namespace+joint)
-    #     else:
-    #         if cmds.objExists('tgt:'+joint):
-    #             cmds.rename('tgt:'+joint, joint)
-    
-    # # rename tgt locat
-    # tgt_locator_list = remove_namespace_for_joints(tgt_locator_list)[0]
 
-    # Delete node 
-    delete_all_transform_nodes()
+    # Rename tgt 
+    # joint
+    for joint in tgt_joints_origin_woNS:
+        if len(joint.split(':'))>1:
+            # 만약 target name에 namespace가 있다면 change namespace
+            namespace = joint.split(':')[:-1][0] + ":"
+            joint = joint.split(':')[-1]
+            # 만약 조인트가 존재한다면 
+            if cmds.objExists('tgt:'+joint):
+                cmds.rename('tgt:'+joint, namespace+joint)
+        else:
+            if cmds.objExists('tgt:'+joint):
+                cmds.rename('tgt:'+joint, joint)
+
+    # mesh 
+    # 변형 노드 가져오기
+    meshes = cmds.ls(type='mesh')
+    transforms = []
+    for mesh in meshes:
+        parent = cmds.listRelatives(mesh, parent=True)
+        if parent:
+            transforms.append(parent[0])
+    # 중복 제거
+    transforms = list(set(transforms))  
+
+    # 변형 노드에서 네임스페이스 제거
+    new_transforms = remove_namespace_from_objects(transforms)
+    
+    # rename tgt locat
+    tgt_locator_list = remove_namespace_for_joints(tgt_locator_list)[0]
+
 
     # export
     print(">> Source: ({}, {}) -> Target: {}".format(sourceChar, sourceMotion, targetChar))
