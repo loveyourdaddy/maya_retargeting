@@ -1,6 +1,6 @@
 # Adori Asooni Metahuman UE
-# mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Supershy.fbx" --targetChar "./models/Adori/Adori.fbx"
-# mayapy retargeting_different_axis.py --sourceChar "./models/Adori/Adori.fbx" --sourceMotion "./motions/Adori/Nonsense_RT0227.fbx" --targetChar "./models/Asooni/Asooni.fbx"
+# mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/Supershy_wMesh.fbx" --targetChar "./models/Asooni/Asooni.fbx"
+# mayapy retargeting_different_axis.py --sourceChar "./models/Adori/Adori.fbx" --sourceMotion "./motions/Adori/Supershy.fbx" --targetChar "./models/Asooni/Asooni.fbx"
 
 ''' 
 Naming
@@ -20,6 +20,7 @@ from functions.character import *
 from functions.motion import *
 from functions.maya import *
 from functions.retarget import *
+from make_Tpose import make_Tpose
 import time
 import re
 
@@ -207,7 +208,11 @@ def main():
     targetMotion = get_name(args.sourceMotion)
     # src
     sourceMotion = args.sourceMotion
-    sourceChar = sourceMotion.split('/')[-2]
+    # src char 
+    if args.sourceChar != '':
+        sourceChar = args.sourceChar.split('/')[-2]
+    else:
+        sourceChar = sourceMotion.split('/')[-2]
     print(">> Source: ({}, {}) -> Target: {}".format(sourceChar, sourceMotion, targetChar))
 
 
@@ -310,23 +315,29 @@ def main():
 
 
     ''' Source char '''
-    sourceChar_path = './models/' + sourceChar + '/' + sourceChar + '.fbx'
-
     # import source character
-    if os.path.exists(sourceChar_path)==False:
-        # source character가 없을때, 0 frame을 Tpose로 사용.
-        print(">> no source character")
-        raise ValueError("No source character")
-    
-    mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
+    sourceChar_path = './models/' + sourceChar + '/' + sourceChar + '.fbx'
+    # sourceCharacter가 없거나, sourceChar가 입력으로 들어오지 않는다면,  
+    if os.path.exists(sourceChar_path)==False or args.sourceChar == '':
+        if os.path.exists(sourceChar_path)==False:
+            print(">> no source character")
+        if args.sourceChar == '':
+            print(">> source character is not feded")
 
-    # # rename src meshes
+        import_motion_file(sourceMotion)
+        make_Tpose()
+    
+    # source character가 없을때, 0 frame을 Tpose로 사용.
+    else:
+        mel.eval('FBXImport -f"{}"'.format(sourceChar_path))
+ 
+    # rename src meshes
     all_meshes = cmds.ls(type='mesh')
     src_meshes = list(set(all_meshes) - set(tgt_meshes))
     # refine src_meshes
     src_meshes = [mesh for mesh in src_meshes if not mesh.startswith('tgt:')]
 
-
+    # joints 
     src_joints_origin = get_src_joints(tgt_joints_wNS)
     src_joints_template, _, _ = rename_joint_by_template(src_joints_origin)
 
@@ -352,14 +363,15 @@ def main():
         src_locator = None
 
 
-    ''' Common skeleton '''
-    # common joint 
+    # ''' Common skeleton '''
+    # # common joint 
     src_joints_common, src_Tpose_rots_common, \
     tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, \
     conversion_matrics \
         = get_conversion(
             src_joints_origin, src_joints_template, 
             tgt_joints_wNS, tgt_joints_template, tgt_joints_template_indices)
+    # import pdb; pdb.set_trace()
 
     # for subchain joints 
     subchain_conversion_matrics = []
