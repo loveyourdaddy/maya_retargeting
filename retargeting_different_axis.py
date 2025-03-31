@@ -1,9 +1,14 @@
-# Adori Asooni Metahuman UE
-# mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/Supershy_wMesh.fbx" --targetChar "./models/Asooni/Asooni.fbx"
-# mayapy retargeting_different_axis.py --sourceChar "./models/Adori/Adori.fbx" --sourceMotion "./motions/Adori/Supershy.fbx" --targetChar "./models/Asooni/Asooni.fbx"
+"""
+Adori Asooni Metahuman UE
+# 3개 입력 
+mayapy retargeting_different_axis.py --sourceChar "./models/Adori/Adori.fbx" --sourceMotion "./motions/Adori/Supershy.fbx" --targetChar "./models/Asooni/Asooni.fbx"
+
+# Source char 없이 
+mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/Supershy_wMesh.fbx" --targetChar "./models/Asooni/Asooni.fbx"
+"""
 
 ''' 
-Naming
+Naming TODO: cleanup this 
 원본 이름 
 tgt_joints_real_origin
 
@@ -23,6 +28,8 @@ from functions.retarget import *
 from make_Tpose import make_Tpose
 import time
 import re
+import logging
+import datetime
 
 class Joint:
     def __init__(self, name, parent=None):
@@ -145,41 +152,6 @@ def import_bvh(file_path, scale=1.0, frame_offset=0, rotation_order=0):
                 if chan_idx < len(channels):
                     create_keyframe(channels[chan_idx], frame_idx + frame_offset, value)
 
-        # # 조인트별로 채널 그룹화
-        # joint_channels = {}
-        # for channel in channels:
-        #     joint_name = channel.split('.')[0]
-        #     if joint_name not in joint_channels:
-        #         joint_channels[joint_name] = []
-        #     joint_channels[joint_name].append(channel)
-
-        # # 각 프레임에 대해
-        # for frame_idx, data in enumerate(frame_data):
-        #     data_idx = 0
-        #     # 각 조인트에 대해
-        #     for joint_name, joint_chans in joint_channels.items():
-        #         # XYZ 순서로 채널 정렬
-        #         sorted_channels = []
-                
-        #         # Position channels (XYZ)
-        #         for axis in ['translateX', 'translateY', 'translateZ']:
-        #             for channel in joint_chans:
-        #                 if axis in channel:
-        #                     sorted_channels.append(channel)
-                
-        #         # Rotation channels (XYZ)
-        #         for axis in ['rotateX', 'rotateY', 'rotateZ']:
-        #             for channel in joint_chans:
-        #                 if axis in channel:
-        #                     sorted_channels.append(channel)
-                
-        #         # 정렬된 채널에 대해 키프레임 생성
-        #         for channel in sorted_channels:
-        #             if data_idx < len(data):
-        #                 value = data[data_idx]
-        #                 create_keyframe(channel, frame_idx + frame_offset, value)
-        #                 data_idx += 1
-
     return grp
 
 def import_motion_file(file_path, scale=1.0):
@@ -192,6 +164,44 @@ def import_motion_file(file_path, scale=1.0):
         return import_bvh(file_path, scale=scale)
     else:
         raise ValueError(f"Unsupported file format: {file_ext}")
+
+def setup_logger(sourceChar, sourceMotion, targetChar): # targetChar, sourceMotion
+    """로깅 시스템 설정"""
+    # 로그 디렉토리 생성
+    log_dir = "./logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    # 타임스탬프를 포함한 로그 파일 이름 생성
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    # sourceChar, sourceMotion, targetChar
+    sourceMotion_name = os.path.basename(sourceMotion).split('.')[0]
+    # log_filename = f"{log_dir}/{timestamp}_{targetChar}_{sourceMotion_name}.log"
+    
+    log_filename = f"{log_dir}/{timestamp}_{sourceChar}_{sourceMotion_name}_2_{targetChar}.log"
+    
+    # 로거 설정
+    logger = logging.getLogger('retargeting')
+    logger.setLevel(logging.DEBUG)
+    
+    # 파일 핸들러
+    file_handler = logging.FileHandler(log_filename)
+    file_handler.setLevel(logging.DEBUG)
+    
+    # 콘솔 핸들러
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    
+    # 포맷 설정
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+    
+    # 핸들러 추가
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    
+    return logger
 
 def main():
     start_time = time.time()
@@ -215,6 +225,11 @@ def main():
         sourceChar = sourceMotion.split('/')[-2]
     print(">> Source: ({}, {}) -> Target: {}".format(sourceChar, sourceMotion, targetChar))
 
+    # 로거 설정
+    logger = setup_logger(sourceChar, sourceMotion, targetChar)
+    logger.info("Start retargeting process")
+    logger.info(f"Source: ({sourceChar}, {sourceMotion}) -> Target: {targetChar}")
+    
 
     ''' Target '''
     # character
@@ -517,6 +532,7 @@ def main():
     minutes = int(execution_time // 60)
     seconds = execution_time % 60
     print(f">> Execution time: {execution_time:.3f}, ({minutes}m {seconds:.3f}s)")
+    logger.info(f"Execution time: {execution_time:.3f}, ({minutes}m {seconds:.3f}s)")
 
 if __name__=="__main__":
     main()
