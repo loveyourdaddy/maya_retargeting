@@ -7,26 +7,23 @@
 *.swp
 *.log
 *.txt
+*.swatch
+*.mp4
+*.bvh
+
 /videos/*
 /ppts/*
 /output/*
+Server_datas/
+_videos/
+_backup/
+
 models/Dancstruct/SKM_Asooni_1207.fbm/.mayaSwatches/ACHID UV 1122 512.jpg_hcm.swatch
 __pycache__/retargeting_different_axis.cpython-39.pyc
 /Document/*
 /models/*
 /etc/*
 /flask_session/*
-
-*.swatch
-
-motions/_DATA/Asooni/._Tpose.fbm
-
-*.mp4
-
+motions/_DATA/Asooni/*
 
 example.py
-
-Server_datas/
-_videos/
-_backup/
-*.bvh

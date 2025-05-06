@@ -9,7 +9,7 @@ app.secret_key = 'supersecretkey'  # 세션을 사용하기 위해 필요한 비
 app.config['UPLOAD_FOLDER'] = './Server_datas/'  # 파일을 저장할 경로
 app.config['OUTPUT_FOLDER'] = './output/' # 파일을 불러올 경로
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 파일 크기 제한 (1024 MB)
-
+is_remove = True # False
 
 # 업로드 폴더가 없으면 생성
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
@@ -239,7 +239,8 @@ def upload_file():
     source_motion = request.files['source_motion']
 
     if source_character.filename == '' or source_motion.filename == '':
-        cleanup_files(uploaded_files)
+        if is_remove:
+            cleanup_files(uploaded_files)
         return jsonify({'message': 'No selected files'})
 
     source_character_path = os.path.join(app.config['UPLOAD_FOLDER'], source_character.filename)
@@ -255,20 +256,22 @@ def upload_file():
     try:
         print("run")
         result = run_maya_script(target_character_path, source_character_path, source_motion_path)
-        print(result)
+        print("Result:", result)
 
         # Maya 작업 완료 후 임시 파일 정리 
-        cleanup_files(uploaded_files)
-        cleanup_maya_files(
-            target_character_path.split('/')[-1][:-4],
-            source_character_path.split('/')[-1][:-4],
-            source_motion_path.split('/')[-1][:-4]
-        )
+        if is_remove:
+            cleanup_files(uploaded_files)
+            cleanup_maya_files(
+                target_character_path.split('/')[-1][:-4],
+                source_character_path.split('/')[-1][:-4],
+                source_motion_path.split('/')[-1][:-4]
+            )
 
         return jsonify({'message': 'Processing complete. You can download the file.'})
     except Exception as e:
         print(">>> run_maya_script Failed")
-        cleanup_files(uploaded_files)
+        if is_remove:
+            cleanup_files(uploaded_files)
         return jsonify({'message': 'An error occurred: ' + str(e)})
 
 @app.route('/upload_api', methods=['POST'])
@@ -315,12 +318,13 @@ def upload_file_api():
             result = run_maya_script(target_character_path, source_character_path, source_motion_path)
 
             # Maya 작업 완료 후 임시 파일 정리
-            cleanup_files(uploaded_files)
-            cleanup_maya_files(
-                target_character_path.split('/')[-1][:-4],
-                source_character_path.split('/')[-1][:-4],
-                source_motion_path.split('/')[-1][:-4]
-            )
+            if is_remove:
+                cleanup_files(uploaded_files)
+                cleanup_maya_files(
+                    target_character_path.split('/')[-1][:-4],
+                    source_character_path.split('/')[-1][:-4],
+                    source_motion_path.split('/')[-1][:-4]
+                )
 
             return jsonify({'message': 'Processing complete. You can download the file.', 'transaction_id': transaction_id})
         except Exception as e:
@@ -340,11 +344,14 @@ def run_maya_script(target_char_path, source_char_path, source_motion_path):
         print("Unsupported OS")
         return
 
-    # window 
+    # path
     script_path = "retargeting_different_axis.py"
     target_char = target_char_path.split('/')[-1][:-len('.fbx')]
     source_char = source_char_path.split('/')[-1][:-len('.fbx')]
-    source_motion = source_motion_path.split('/')[-1][:-len('.fbx')]
+    # source motion
+    source_motion_format = source_motion_path.split('/')[-1].split('.')[-1]
+    source_motion = source_motion_path.split('/')[-1][:-4]
+    
     print(f"Retargetring: source_char {source_char} source_motion {source_motion} -> target_char {target_char}")
 
     # mkdir 
@@ -354,8 +361,8 @@ def run_maya_script(target_char_path, source_char_path, source_motion_path):
 
     # target path
     path_target_char = './models/' + target_char + '/'+ target_char + '.fbx'
-    path_source_char = './models/' + source_char + '/'+ source_char + '.fbx'
-    path_source_motion = './motions/' + source_char + '/' + source_motion + '.fbx'
+    path_source_char = './models/' + source_char + '/'+ source_char + '.fbx'    
+    path_source_motion = './motions/' + source_char + '/'+ source_motion + '.' + source_motion_format
     
     shutil.copy(target_char_path, path_target_char)
     shutil.copy(source_char_path, path_source_char)
@@ -398,8 +405,8 @@ def download_file():
     if target_character_path and source_motion_path:
         # Determine the output file path based on the uploaded file
         target_char_name = target_character_path.split('/')[-1][:-len('.fbx')] # .split('.')[0]
-        motion_name = source_motion_path.split('/')[-1]
-        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, motion_name)
+        output_motion_name = source_motion_path.split('/')[-1].split('.')[0]+'.fbx'
+        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, output_motion_name)
         print("file_to_download:", file_to_download)
         
         if os.path.exists(file_to_download):
@@ -408,8 +415,8 @@ def download_file():
 
             # 다운로드 후 output 폴더의 파일 정리 
             try:
-                output_file = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, motion_name)
-                if os.path.exists(output_file):
+                output_file = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, output_motion_name)
+                if os.path.exists(output_file) and is_remove:
                     os.remove(output_file)
 
             except Exception as e:
@@ -437,19 +444,18 @@ def download_file_api():
     # load 
     if target_character_path and source_motion_path:
         target_char_name = target_character_path.split('/')[-1][:-len('.fbx')] # .split('.')[0]
-        motion_name = source_motion_path.split('/')[-1]
-        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, motion_name)
-        # file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_character_path.split('/')[-1].split('.')[0], source_motion_path.split('/')[-1])
+        output_motion_name = source_motion_path.split('/')[-1].split('.')[0]+'.fbx'
+        file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, output_motion_name)
 
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
-            response.headers["X-Filename"] = source_motion_path.split('/')[-1]
+            response.headers["X-Filename"] = output_motion_name 
             print("download end")
 
             # 다운로드 후 output 폴더의 파일 정리 
             try:
-                output_file = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, motion_name)
-                if os.path.exists(output_file):
+                output_file = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, output_motion_name)
+                if os.path.exists(output_file) and is_remove:
                     os.remove(output_file)
                     
                 # transaction 정리
