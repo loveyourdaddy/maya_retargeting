@@ -276,12 +276,10 @@ def add_namespace_for_meshes(meshes, namespace):
 
     new_meshes = []
     for mesh in meshes:
-        # import pdb; pdb.set_trace()
         if not cmds.objExists(mesh):
             # new_meshes.append(mesh)
             continue
         transform = cmds.listRelatives(mesh, parent=True)[0]
-        # short_name = mesh.split('|')[-1]
         short_name = transform.split('|')[-1]
         
         # 이미 네임스페이스가 있는지 확인
@@ -295,7 +293,6 @@ def add_namespace_for_meshes(meshes, namespace):
         
         # 조인트를 src 네임스페이스로 이동
         renamed_transform = cmds.rename(transform, new_name)
-        # print("mesh {} -> {}".format(mesh, renamed_transform))
 
         renamed_mesh = cmds.listRelatives(renamed_transform, shapes=True)[0]
         new_meshes.append(renamed_mesh)
