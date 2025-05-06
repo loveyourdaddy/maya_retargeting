@@ -376,11 +376,10 @@ def run_maya_script(target_char_path, source_char_path, source_motion_path):
     # Retargeting
     start_time = time.time()
     process = subprocess.run(command, capture_output=True, text=True)
-    print("retargeting end")
-    #end time 
+    # end time 
     end_time = time.time()
     execution_time = end_time - start_time
-    print("execution_time: ", execution_time)
+    print("Retargeting end. execution_time: ", execution_time)
 
     if process.returncode != 0:
         print("Error on run maya script")

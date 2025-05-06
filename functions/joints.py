@@ -295,7 +295,7 @@ def add_namespace_for_meshes(meshes, namespace):
         
         # 조인트를 src 네임스페이스로 이동
         renamed_transform = cmds.rename(transform, new_name)
-        print("mesh {} -> {}".format(mesh, renamed_transform))
+        # print("mesh {} -> {}".format(mesh, renamed_transform))
 
         renamed_mesh = cmds.listRelatives(renamed_transform, shapes=True)[0]
         new_meshes.append(renamed_mesh)
@@ -320,7 +320,7 @@ def remove_namespace_from_objects(objects):
             # 오브젝트 이름 변경
             # import pdb; pdb.set_trace()
             renamed = cmds.rename(obj, base_name)
-            print("Object {} -> {}".format(obj, renamed))
+            # print("Object {} -> {}".format(obj, renamed))
             new_objects.append(renamed)
         else:
             # 이미 네임스페이스가 없으면 그대로 추가
