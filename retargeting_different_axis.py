@@ -8,7 +8,7 @@ mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/Supershy_wM
 # bvh 
 # bvh motion 입력받기
 mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/dancing.bvh" --targetChar "./models/Adori/Adori.fbx" 
-mayapy retargeting_different_axis.py --sourceMotion "./motions/SMPL/dancing.bvh" --targetChar "./models/Asooni/Asooni.fbx" # Tpose로부터 부르기
+mayapy retargeting_different_axis.py --sourceMotion "./motions/SMPL/dancing.bvh" --targetChar "./models/Asooni/Asooni.fbx"
 
 # Characters 
 Adori Asooni Metahuman UE

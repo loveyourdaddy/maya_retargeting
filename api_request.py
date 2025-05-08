@@ -1,11 +1,11 @@
 """
 Usage: source char, source motion, target char
-python retargeting_request.py ./models/Asooni/Asooni.fbx "./motions/Asooni/Lovely_004_RT1018.fbx" ./models/Adori/Adori.fbx 
+python api_request.py ./models/Asooni/Asooni.fbx "./motions/Asooni/Lovely_004_RT1018.fbx" ./models/Adori/Adori.fbx 
+python api_request.py ./models/SMPL/SMPL.fbx ./motions/SMPL/dancing.bvh ./models/Adori/Adori.fbx  
 """
 
 import requests
 import os
-# from functions.parser import *
 import sys
 
 class Mingle_API(): 
@@ -34,6 +34,7 @@ class Mingle_API():
         if download_response.status_code == 200:
             # 파일 저장
             filename = download_response.headers.get('X-Filename')
+            import pdb; pdb.set_trace()
             if filename:
                 with open(filename, 'wb') as f:
                     f.write(download_response.content)
