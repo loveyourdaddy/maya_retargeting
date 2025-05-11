@@ -59,6 +59,7 @@ def import_bvh(file_path, scale=1.0, frame_offset=0, rotation_order=0):
     safe_close = False
     space_re = re.compile(r"\s+")
     current_joint = None
+    fps = 30.0
     
     with open(file_path) as f:
         # BVH 파일 유효성 검사
@@ -120,6 +121,8 @@ def import_bvh(file_path, scale=1.0, frame_offset=0, rotation_order=0):
             # Parse MOTION
             else:
                 if "Frame Time:" in line:
+                    frame_time = float(line.split("Frame Time:")[1].strip())
+                    fps = round(1.0 / frame_time, 2)
                     continue
                 if "Frames:" in line:
                     continue
@@ -141,4 +144,4 @@ def import_bvh(file_path, scale=1.0, frame_offset=0, rotation_order=0):
                 if chan_idx < len(channels):
                     create_keyframe(channels[chan_idx], frame_idx, value) #  + frame_offset
 
-    return grp
+    return grp, fps

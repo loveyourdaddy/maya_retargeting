@@ -6,12 +6,7 @@ mayapy retargeting_different_axis.py --sourceChar "./models/Adori/Adori.fbx" --s
 mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/Supershy_wMesh.fbx" --targetChar "./models/Asooni/Asooni.fbx"
 
 # bvh 
-# bvh motion 입력받기
 mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/dancing.bvh" --targetChar "./models/Adori/Adori.fbx" 
-mayapy retargeting_different_axis.py --sourceMotion "./motions/SMPL/dancing.bvh" --targetChar "./models/Asooni/Asooni.fbx"
-
-# Characters 
-Adori Asooni Metahuman UE
 """
 
 '''
@@ -46,7 +41,8 @@ def import_motion_file(file_path, scale=1.0):
         mel.eval('FBXImport -f"{}"'.format(file_path))
         return 
     elif file_ext == '.bvh':
-        return import_bvh(file_path, scale=scale)
+        grp, fps = import_bvh(file_path, scale=scale)
+        return grp, fps
     else:
         raise ValueError(f"Unsupported file format: {file_ext}")
 
@@ -281,10 +277,19 @@ def main():
 
 
     ''' Source motion '''
-    import_motion_file(sourceMotion)
+    file_ext = os.path.splitext(sourceMotion)[1].lower()
+    current_fps =  None 
+    if file_ext == '.fbx':
+        import_motion_file(sourceMotion)
+    elif file_ext == '.bvh':
+        _, current_fps = import_motion_file(sourceMotion)
+    else:
+        raise ValueError(f"Unsupported file format: {file_ext}")
+
 
     # Set fps of source motion
-    current_fps = mel.eval('currentTimeUnitToFPS')
+    if current_fps is None:
+        current_fps = mel.eval('currentTimeUnitToFPS')
     mel.eval(f'currentUnit "{current_fps}fps"') 
     print("source fps: ", current_fps)
 

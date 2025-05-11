@@ -23,7 +23,6 @@ class Mingle_API():
         }
         response = requests.post(upload_url, files=files)
         transaction_id = response.json().get('transaction_id')
-        import pdb; pdb.set_trace()
 
         # download retargeted fbx
         download_url = os.path.join(self.base_url, 'download_api')
