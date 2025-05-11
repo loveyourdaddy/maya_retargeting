@@ -7,6 +7,7 @@ mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/Supershy_wM
 
 # bvh 
 mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/dancing.bvh" --targetChar "./models/Adori/Adori.fbx" 
+mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/Sticky.bvh" --targetChar "./models/Adori/Adori.fbx" 
 """
 
 '''
@@ -340,7 +341,8 @@ def main():
     else:
         delete_locator_and_hierarchy(src_joints_common[0])
     #  meshes
-    remove_transform_node(src_meshes)
+    if src_meshes in cmds.ls(type='mesh'):
+        remove_transform_node(src_meshes)
 
 
     # Rename tgt 

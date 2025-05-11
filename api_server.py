@@ -446,6 +446,7 @@ def download_file_api():
         target_char_name = target_character_path.split('/')[-1][:-len('.fbx')] # .split('.')[0]
         output_motion_name = source_motion_path.split('/')[-1].split('.')[0]+'.fbx'
         file_to_download = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, output_motion_name)
+        print("file_to_download:", file_to_download)
 
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
