@@ -10,8 +10,8 @@ import os
 import sys
 
 class Mingle_API(): 
-    def __init__(self, url='http://127.0.0.1:5000/'): # local
-    # def __init__(self, url='http://106.255.244.162:5000/'): # window server 
+    # def __init__(self, url='http://127.0.0.1:5000/'): # local
+    def __init__(self, url='http://106.255.244.162:5000/'): # window server 
         self.base_url = url
 
     def call_retargeting_api(self, target_character, source_character, source_motion): 
