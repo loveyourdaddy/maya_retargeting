@@ -17,13 +17,6 @@ class Mingle_API():
     def call_retargeting_api(self, target_character, source_character, source_motion): 
         # retarget api 
         upload_url = os.path.join(self.base_url, "upload_api_wo_fbx") # upload_api
-        # files = {
-        #     'target_character': target_character,
-        #     'source_character': open(source_character, 'rb'),
-        #     'source_motion': source_motion
-        #     # 'target_character': open(target_character, 'rb'),
-        #     # 'source_motion': open(source_motion, 'rb')
-        # }
 
         # 요청 데이터 준비
         request_data = {
@@ -31,7 +24,6 @@ class Mingle_API():
             'source_character': source_character,
             'source_motion': source_motion
         }
-        # response = requests.post(upload_url, files=files)
         response = requests.post(upload_url, json=request_data)
                                  
         print(f"response: {response}")

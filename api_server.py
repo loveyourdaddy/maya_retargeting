@@ -365,43 +365,25 @@ def upload_file_api_wo_fbx():
         return ext if ext else '.fbx'  # 기본값은 .fbx
     
     # 대상 캐릭터 처리
-    if '/' in target_character or '\\' in target_character:
-        # 경로가 제공된 경우
-        target_char_name = get_char_name_from_path(target_character)
-        target_char_ext = get_file_ext_from_path(target_character)
-    else:
-        # 이름만 제공된 경우
-        target_char_name = target_character
-        target_char_ext = '.fbx'
+    def get_character_name(path):
+        # 경로에서 파일 이름만 추출
+        filename = os.path.basename(path)
+        # 확장자 제거
+        name_without_ext = os.path.splitext(filename)[0]
+        return name_without_ext
     
     # 소스 캐릭터 처리
-    if '/' in source_character or '\\' in source_character:
-        source_char_name = get_char_name_from_path(source_character)
-        source_char_ext = get_file_ext_from_path(source_character)
-    else:
-        source_char_name = source_character
-        source_char_ext = '.fbx'
-    
-    # 소스 모션 처리
-    # if '/' in source_motion or '\\' in source_motion:
-    #     source_motion_name = get_char_name_from_path(source_motion)
-    #     source_motion_ext = get_file_ext_from_path(source_motion)
-    # else:
-    #     source_motion_name = source_motion
-    #     # 모션 파일은 fbx 또는 bvh일 수 있으므로 확장자를 확인
-    #     source_motion_ext = '.fbx'  # 기본값
-    #     if '.bvh' in source_motion:
-    #         source_motion_ext = '.bvh'
+    target_char_name = get_character_name(target_character)
+    source_char_name = get_char_name_from_path(source_character)
     
     # 표준 경로 구성
-    target_char_path = f'./models/{target_char_name}/{target_char_name}{target_char_ext}'
-    source_char_path = f'./models/{source_char_name}/{source_char_name}{source_char_ext}'
+    target_char_path = f'./models/{target_char_name}/{target_char_name}.fbx'
+    source_char_path = f'./models/{source_char_name}/{source_char_name}.fbx'
     source_motion_path = source_motion
     source_motion_name = source_motion.split('/')[-1].split('.')[0]
     print("target_char_path:", target_char_path)
     print("source_char_path:", source_char_path)
     print("source_motion_path:", source_motion_path)
-    # source_motion_path = f'./motions/{source_char_name}/{source_motion_name}{source_motion_ext}'
     
     # 파일 존재 확인
     if not os.path.exists(target_char_path):
