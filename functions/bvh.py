@@ -52,7 +52,7 @@ def parse_channels(line, joint_name):
     
     return channels
 
-def import_bvh(file_path, scale=1.0, frame_offset=0, rotation_order=0, trans_cm=False):
+def import_bvh(file_path, scale=1.0, frame_offset=0, rotation_order=0, trans_cm=True):
     """BVH 파일을 Maya로 임포트하고 키프레임 생성"""
     channels = []
     motion = False

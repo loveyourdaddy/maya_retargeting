@@ -428,6 +428,16 @@ def download_file():
     else:
         return jsonify({'message': 'No file paths available for download'}), 400
 
+def is_file_in_use(file_path):
+    """파일이 사용 중인지 확인하는 함수"""
+    try:
+        # 쓰기 모드로 파일을 열어보려고 시도 (Windows에서 효과적)
+        with open(file_path, 'r+') as f:
+            pass  # 파일을 열고 바로 닫음
+        return False  # 정상적으로 열리면 사용 중이 아님
+    except IOError:
+        return True  # 파일을 열 수 없으면 사용 중임
+    
 @app.route('/download_api', methods=['POST'])
 def download_file_api():
     # Get the transaction ID from the request data
@@ -456,7 +466,7 @@ def download_file_api():
             # 다운로드 후 output 폴더의 파일 정리 
             try:
                 output_file = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, output_motion_name)
-                if os.path.exists(output_file) and is_remove:
+                if os.path.exists(output_file) and is_remove and not is_file_in_use(output_file):
                     os.remove(output_file)
                     
                 # transaction 정리
