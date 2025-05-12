@@ -391,6 +391,7 @@ def run_maya_script(target_char_path, source_char_path, source_motion_path):
     if process.returncode != 0:
         print("Error on run maya script")
         raise Exception(process.stderr)
+    print(">>> run_maya_script done")
         
     return process.stdout
 
@@ -418,6 +419,7 @@ def download_file():
                 output_file = os.path.join(app.config['OUTPUT_FOLDER'], target_char_name, output_motion_name)
                 if os.path.exists(output_file) and is_remove:
                     os.remove(output_file)
+                print(">>> download_file done")
 
             except Exception as e:
                 print(f"Error cleaning up output directory: {e}")
@@ -450,7 +452,11 @@ def download_file_api():
 
         if os.path.exists(file_to_download):
             response = send_file(file_to_download, as_attachment=True)
-            response.headers["X-Filename"] = output_motion_name 
+            # # response.headers["X-Filename"] = output_motion_name 
+            
+            import urllib.parse
+            encoded_filename = urllib.parse.quote(output_motion_name)
+            response.headers["X-Filename"] = encoded_filename
             print("download end")
 
             # 다운로드 후 output 폴더의 파일 정리 
@@ -461,6 +467,7 @@ def download_file_api():
                     
                 # transaction 정리
                 del transactions[transaction_id]
+                print(">>> download_file_api done")
             except Exception as e:
                 print(f"Error cleaning up output directory: {e}")
 

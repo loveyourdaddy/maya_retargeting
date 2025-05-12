@@ -1,7 +1,7 @@
 """
 Usage: source char, source motion, target char
 python api_request.py ./models/Asooni/Asooni.fbx "./motions/Asooni/Lovely_004_RT1018.fbx" ./models/Adori/Adori.fbx 
-python api_request.py ./models/SMPL/SMPL.fbx ./motions/SMPL/dancing.bvh ./models/Adori/Adori.fbx  
+python api_request.py ./models/SMPL/SMPL.fbx ./motions/SMPL/dancing.bvh ./models/Asooni/Asooni.fbx  
 """
 
 import requests
@@ -9,7 +9,7 @@ import os
 import sys
 
 class Mingle_API(): 
-    # def __init__(self, url='http://127.0.0.1:5000/'): # local
+    # def __init__(self, url='http://127.0.0.1:5001/'): # local
     def __init__(self, url='http://106.255.244.162:5000/'): # window server 
         self.base_url = url
 
