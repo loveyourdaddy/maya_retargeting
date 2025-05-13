@@ -7,7 +7,7 @@ mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/Supershy_wM
 
 # bvh 
 mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/dancing.bvh" --targetChar "./models/Adori/Adori.fbx" 
-mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/Sticky.bvh" --targetChar "./models/Adori/Adori.fbx" 
+mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/IAM.bvh" --targetChar "./models/Asooni/Asooni.fbx"
 """
 
 '''
@@ -29,7 +29,7 @@ from functions.character import *
 from functions.motion import *
 from functions.maya import *
 from functions.retarget import *
-from functions.bvh import *
+from functions.bvh_parsing import *
 from functions.log import *
 from make_Tpose import make_Tpose
 import time
@@ -294,6 +294,7 @@ def main():
     mel.eval(f'currentUnit "{current_fps}fps"') 
     print("source fps: ", current_fps)
 
+
     ''' Refine locator rotation '''
     if tgt_locator is not None:
         # locator ~ root 위 조인트 포함
@@ -333,6 +334,7 @@ def main():
         print(">> retarget without locator")
         raise ValueError("No locator") # TODO
     
+
     ''' export '''
     # Remove source
     # source locator and joints
@@ -344,7 +346,7 @@ def main():
     if src_meshes in cmds.ls(type='mesh'):
         remove_transform_node(src_meshes)
 
-
+ 
     # Rename tgt 
     # joint
     for joint in tgt_joints_origin_woNS:
