@@ -1,5 +1,6 @@
 """
 This code comes from https://github.com/rubenvillegas/cvpr2018nkn/blob/master/datasets/fbx2bvh.py
+This should be done in bpy conda env 
 """
 import bpy
 import numpy as np
@@ -9,8 +10,8 @@ from os import listdir
 data_path = './_temp/fbx/' # './dataset/Mixamo/fbx/'
 save_path = './_temp/bvh/'
 
+import pdb; pdb.set_trace()
 directories = sorted([f for f in listdir(data_path) if not f.startswith(".")])
-# import pdb; pdb.set_trace()
 for d in directories:
     if not os.path.exists(data_path + d):
         os.mkdir(data_path + d)

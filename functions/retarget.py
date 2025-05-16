@@ -462,7 +462,6 @@ def retarget_translation(src_hip, tgt_hip,
             
             # update to subchain
             trans_data_sub = trans_data_main + delta_diff_vec
-            # import pdb; pdb.set_trace()
             set_keyframe(subchain_root, trans_data_sub, trans_attr)
 
     return trans_data
@@ -530,6 +529,8 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
                 # source rotation
                 cmds.currentTime(frame)
                 source_rot = cmds.getAttr(f"{src_joint}.rotate")[0]
+                source_rot = [source_rot[0], source_rot[1], source_rot[2]]
+
                 source_matrix = om.MEulerRotation(
                     math.radians(source_rot[0]),
                     math.radians(source_rot[1]),
@@ -539,7 +540,6 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
 
                 # om mat
                 convert_matric = matrix_to_mmatrix(T_mat)
-
                 source_offset = source_matrix * source_tpose_matrix.inverse()
                 converted_offset = convert_matric * source_offset * convert_matric.inverse()
                 final_matrix = converted_offset * target_tpose_matrix
@@ -547,8 +547,7 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
                 # euler angle 
                 final_matrix = np.array(final_matrix).reshape(4, 4)
                 euler_angle = R_to_E(final_matrix, order='xyz') # MAYA rotation order: XYZ
-                
-                tgt_perjoint_local_angle[frame] = euler_angle 
+                tgt_perjoint_local_angle[frame] = euler_angle
 
             # Refine angle as continue value
             tgt_perjoint_local_angle = unwrap_rotation(tgt_perjoint_local_angle)
@@ -561,6 +560,7 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
         # update
         tgt_perjoint_local_angle = set_keyframe_for_joint(tgt_joint, target_tpose_matrix, Tpose_trfs[j], j)
         tgt_local_angles[:, j] = tgt_perjoint_local_angle
+
 
         # subchain
         for chain_id, subjoint_jid in enumerate(subchain_indices):

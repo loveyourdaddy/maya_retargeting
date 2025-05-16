@@ -126,7 +126,7 @@ def import_bvh(file_path, scale=1.0, frame_offset=0, rotation_order=0, trans_cm=
                     continue
                 if "Frames:" in line:
                     continue
-                    
+                
                 # 모션 데이터 처리
                 data = space_re.split(line)
                 if len(data) > 1:  # 유효한 데이터 라인인지 확인
@@ -140,7 +140,6 @@ def import_bvh(file_path, scale=1.0, frame_offset=0, rotation_order=0, trans_cm=
                     frame_data[i][channel_idx] = float(frame_data[i][channel_idx]) * 100
         
         # 키프레임 생성
-        # import pdb; pdb.set_trace()
         for frame_idx, data in enumerate(frame_data):
             for chan_idx, value in enumerate(data):
                 if chan_idx < len(channels):
