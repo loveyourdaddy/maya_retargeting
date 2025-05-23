@@ -143,6 +143,6 @@ def import_bvh(file_path, scale=1.0, frame_offset=0, rotation_order=0, trans_cm=
         for frame_idx, data in enumerate(frame_data):
             for chan_idx, value in enumerate(data):
                 if chan_idx < len(channels):
-                    create_keyframe(channels[chan_idx], frame_idx, value) #  + frame_offset
+                    create_keyframe(channels[chan_idx], frame_idx, value)
 
     return grp, fps

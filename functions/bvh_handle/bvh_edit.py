@@ -149,7 +149,6 @@ def modify_joint_values(input_file, output_file, joint_index, start_frame, end_f
             modified_frames += 1
     
     # 수정된 BVH 파일 저장
-    # import pdb; pdb.set_trace()
     with open(output_file, 'w') as f:
         f.writelines(lines)
     
@@ -168,6 +167,7 @@ def copy_joint_values(input_file, output_file, joint_index, source_frame, start_
         start_frame (int): 붙여넣을 시작 프레임 (0부터 시작)
         end_frame (int): 붙여넣을 끝 프레임 (포함)
     """
+    
     # BVH 파일 읽기
     with open(input_file, 'r') as f:
         lines = f.readlines()
@@ -246,7 +246,7 @@ def copy_joint_values(input_file, output_file, joint_index, source_frame, start_
             line_idx = frames_index + frame_idx
             if line_idx >= len(lines) or not lines[line_idx].strip():
                 continue
-                
+            
             # 들여쓰기 보존
             indent = lines[line_idx][:len(lines[line_idx]) - len(lines[line_idx].lstrip())]
             data = lines[line_idx].strip().split()
@@ -272,23 +272,32 @@ def copy_joint_values(input_file, output_file, joint_index, source_frame, start_
 
 
 # 사용 예시
+import shutil
 if __name__ == "__main__":
     # BVH 파일 구조 분석
     input_file  = "./motions/SMPL/SuperShy.bvh"
     output_file = '.' + input_file.split('.')[1] + "_edited.bvh"
+    shutil.copyfile(input_file, output_file) 
+
+    # index 
+    joint_index =[15,  19,  19,  15]
+    source_frame=[126, 152, 306, 346]
+    start_frame =[127, 147, 307, 347]
+    end_frame   =[135, 151, 310, 357]
     
-    # try:
+    # analyiss bvh_structure
     joint_info = analyze_bvh_structure(input_file)
     
     # 특정 조인트의 특정 프레임 값 copy
-    copy_joint_values(
-        input_file=input_file,
-        output_file=output_file,
-        joint_index=15,
-        source_frame=126,      # 126 프레임에서 값을 복사
-        start_frame=127,       # 127 프레임부터
-        end_frame=135          # 135 프레임까지 붙여넣기
-    )
+    for i in range(len(joint_index)):
+        copy_joint_values(
+            input_file=output_file,
+            output_file=output_file,
+            joint_index=joint_index[i],
+            source_frame=source_frame[i],
+            start_frame =start_frame[i],
+            end_frame=end_frame[i]
+        )
 
     # 특정 조인트의 특정 프레임 값 수정
     # modify_joint_values(
