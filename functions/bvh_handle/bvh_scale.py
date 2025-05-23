@@ -1,8 +1,5 @@
 """
-python bvh_scale.py ./motions/SMPL/IAM.bvh ./motions/SMPL/IAM_scaled.bvh 0.01
-python bvh_scale.py ./motions/SMPL/120fps/IAM.bvh ./motions/SMPL/IAM_scaled.bvh --target_fps 24
-
-python functions/bvh_handle/bvh_scale.py --input_file ./motions/SMPL/120fps/IAM.bvh --output_file ./motions/SMPL/IAM_scaled.bvh --pos_scale 0.01 --skel_scale 0.01 --target_fps 24
+python functions/bvh_handle/bvh_scale.py
 """
 
 def scale_and_resample_bvh(input_file, output_file, skel_scale=0.01, pos_scale=0.01, target_fps=None):
@@ -26,6 +23,9 @@ def scale_and_resample_bvh(input_file, output_file, skel_scale=0.01, pos_scale=0
     frame_time_index = -1
     num_frames = 0
     frame_time = 0
+
+    # Flag
+    resample = False
     
     for i, line in enumerate(lines):
         if line.strip() == 'HIERARCHY':
@@ -87,25 +87,28 @@ def scale_and_resample_bvh(input_file, output_file, skel_scale=0.01, pos_scale=0
     
 
     # Resample frames if target_fps is provided
-    if target_fps is not None and source_fps is not None and target_fps != source_fps:
-        # Calculate frame sampling interval
-        sample_interval = source_fps / target_fps
-        resampled_frames = []
-        
-        for i in range(int(len(motion_frames) / sample_interval) + 1):
-            frame_index = int(i * sample_interval)
-            if frame_index < len(motion_frames):
-                resampled_frames.append(motion_frames[frame_index])
-        
-        # Update the number of frames and frame time in the file
-        new_num_frames = len(resampled_frames)
-        new_frame_time = 1.0 / target_fps
-        
-        frames_line_indent = lines[frame_time_index - 1][:len(lines[frame_time_index - 1]) - len(lines[frame_time_index - 1].lstrip())]
-        frame_time_indent = lines[frame_time_index][:len(lines[frame_time_index]) - len(lines[frame_time_index].lstrip())]
-        
-        lines[frame_time_index - 1] = f"{frames_line_indent}Frames: {new_num_frames}\n"
-        lines[frame_time_index] = f"{frame_time_indent}Frame Time: {new_frame_time}\n"
+    if resample:
+        if target_fps is not None and source_fps is not None and target_fps != source_fps:
+            # Calculate frame sampling interval
+            sample_interval = source_fps / target_fps
+            resampled_frames = []
+            
+            for i in range(int(len(motion_frames) / sample_interval) + 1):
+                frame_index = int(i * sample_interval)
+                if frame_index < len(motion_frames):
+                    resampled_frames.append(motion_frames[frame_index])
+            
+            # Update the number of frames and frame time in the file
+            new_num_frames = len(resampled_frames)
+            new_frame_time = 1.0 / target_fps
+            
+            frames_line_indent = lines[frame_time_index - 1][:len(lines[frame_time_index - 1]) - len(lines[frame_time_index - 1].lstrip())]
+            frame_time_indent = lines[frame_time_index][:len(lines[frame_time_index]) - len(lines[frame_time_index].lstrip())]
+            
+            lines[frame_time_index - 1] = f"{frames_line_indent}Frames: {new_num_frames}\n"
+            lines[frame_time_index] = f"{frame_time_indent}Frame Time: {new_frame_time}\n"
+    else:
+        resampled_frames = motion_frames
     
     # Create new file content
     new_lines = lines[:frames_index]
@@ -123,7 +126,7 @@ if __name__ == "__main__":
     import os
     import glob
     
-    input_folder = "./motions/SMPL"
+    input_folder = "./motions/SMPL/100scale"
     output_folder = "./motions/SMPL"
     skel_scale = 0.01
     pos_scale = 0.01

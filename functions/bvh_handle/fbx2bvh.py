@@ -1,6 +1,6 @@
 """
-This code comes from https://github.com/rubenvillegas/cvpr2018nkn/blob/master/datasets/fbx2bvh.py
 This should be done in bpy conda env 
+This code comes from https://github.com/rubenvillegas/cvpr2018nkn/blob/master/datasets/fbx2bvh.py
 """
 import bpy
 import numpy as np
@@ -17,7 +17,7 @@ for d in directories:
         os.mkdir(data_path + d)
     files = sorted([f for f in listdir(data_path + d) if f.endswith(".fbx")])
 
-    for f in files:
+    for f in files: 
         sourcepath = data_path + d + "/" + f
         dumppath = save_path+d + "/" + f.split(".fbx")[0].strip('0000_') + ".bvh"
         dumppath = dumppath.replace(' ',"_").replace('(1)','')
