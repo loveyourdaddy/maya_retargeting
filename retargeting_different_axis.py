@@ -6,7 +6,7 @@ mayapy retargeting_different_axis.py --sourceChar "./models/Adori/Adori.fbx" --s
 mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/Supershy_wMesh.fbx" --targetChar "./models/Asooni/Asooni.fbx"
 
 # bvh 
-mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/dancing.bvh" --targetChar "./models/Adori/Adori.fbx" 
+mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/SuperShy.bvh" --targetChar "./models/Asooni/Asooni.fbx" 
 mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/IAM.bvh" --targetChar "./models/Asooni/Asooni.fbx"
 """
 
@@ -336,17 +336,20 @@ def main():
     
 
     ''' export '''
-    # Remove source
+    # Remove source TODO: remove src
     # source locator and joints
     if src_locator is not None:
         delete_locator_and_hierarchy(src_locator)
     else:
         delete_locator_and_hierarchy(src_joints_common[0])
-    #  meshes
-    if src_meshes in cmds.ls(type='mesh'):
-        remove_transform_node(src_meshes)
+    
+    # meshes
+    # refine src_meshes in cmds.ls(type='mesh')
+    for mesh in src_meshes:
+        if mesh in cmds.ls(type='mesh'):
+            remove_transform_node([mesh])
 
- 
+
     # Rename tgt 
     # joint
     for joint in tgt_joints_origin_woNS:

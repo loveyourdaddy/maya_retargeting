@@ -325,13 +325,12 @@ def remove_namespace_from_objects(objects):
             
     return new_objects
 
-def remove_transform_node(objs):
+def remove_transform_node(obj):
     transform_nodes = []
-    for obj in objs:
-        # 부모 변형 노드 찾기
-        parents = cmds.listRelatives(obj, parent=True)
-        if parents:
-            transform_nodes.extend(parents)
+    # 부모 변형 노드 찾기
+    parents = cmds.listRelatives(obj, parent=True)
+    if parents:
+        transform_nodes.extend(parents)
 
     # 중복 제거
     transform_nodes = list(set(transform_nodes))
