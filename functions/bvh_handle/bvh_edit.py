@@ -275,15 +275,19 @@ def copy_joint_values(input_file, output_file, joint_index, source_frame, start_
 import shutil
 if __name__ == "__main__":
     # BVH 파일 구조 분석
-    input_file  = "./motions/SMPL/SuperShy.bvh"
+    input_file  = "./motions/SMPL/IAM.bvh"
     output_file = '.' + input_file.split('.')[1] + "_edited.bvh"
     shutil.copyfile(input_file, output_file) 
 
     # index 
-    joint_index =[15,  19,  19,  15]
-    source_frame=[126, 152, 306, 346]
-    start_frame =[127, 147, 307, 347]
-    end_frame   =[135, 151, 310, 357]
+    joint_index =[19, 20,  15,  15,  19,  19,  19,  19,  15,  15,  19]
+    source_frame=[66, 99,  124, 142, 231, 234, 373, 395, 395, 419, 233]
+    start_frame =[67, 100, 125, 143, 232, 235, 374, 396, 396, 420, 234]
+    end_frame   =[73, 107, 137, 149, 233, 236, 378, 398, 400, 422, 236]
+    # joint_index =[19,  19,  19,  15]
+    # source_frame=[338, 152, 306, 346]
+    # start_frame =[339, 147, 307, 347]
+    # end_frame   =[370, 151, 310, 357]
     
     # analyiss bvh_structure
     joint_info = analyze_bvh_structure(input_file)
