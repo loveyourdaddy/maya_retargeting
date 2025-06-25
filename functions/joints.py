@@ -346,6 +346,7 @@ def remove_namespace_for_joints(joints):
             new_joints.append(remove_namespace(joint))
         else:
             new_joints.append(joint)
+
     return new_joints
 
 """ Get prerot """

@@ -442,27 +442,26 @@ def retarget_translation(src_hip, tgt_hip,
         # scale 
         trans_data = apply_scale(trans_data, tgt_locator_scale, inverse=True)
 
-        # update 
-        trans_data_main = trans_data * height_ratio
-        set_keyframe(tgt_hip, trans_data_main, trans_attr)
+    # update 
+    trans_data_main = trans_data * height_ratio
+    set_keyframe(tgt_hip, trans_data_main, trans_attr)
 
-        # subchain
-        # tgt_locator_R = E_to_R(tgt_locator_angle)
-        Tpose_root_R = E_to_R(np.array(tgt_Tpose_root_angle)) 
-        Tpose_root_R_ext = np.repeat(Tpose_root_R[None, :], repeats=len_frame, axis=0)
-        for i, subchain_root in enumerate(subchain_roots):
-            root_R = E_to_R(tgt_root_local_angles)
-            delta_R = np.linalg.inv(Tpose_root_R_ext) @ root_R
-            # delta_R = root_R @ np.linalg.inv(Tpose_root_R_ext)
+    # subchain
+    Tpose_root_R = E_to_R(np.array(tgt_Tpose_root_angle)) 
+    Tpose_root_R_ext = np.repeat(Tpose_root_R[None, :], repeats=len_frame, axis=0)
+    for i, subchain_root in enumerate(subchain_roots):
+        root_R = E_to_R(tgt_root_local_angles)
+        delta_R = np.linalg.inv(Tpose_root_R_ext) @ root_R
+        # delta_R = root_R @ np.linalg.inv(Tpose_root_R_ext)
 
-            # update diff vector
-            diff_vec = subchain_local_diff_vec[i]
-            diff_vec_ext = np.repeat(diff_vec[None,:], repeats=len_frame, axis=0)[:,:,None]
-            delta_diff_vec = (delta_R @ diff_vec_ext)[:, :, 0]
-            
-            # update to subchain
-            trans_data_sub = trans_data_main + delta_diff_vec
-            set_keyframe(subchain_root, trans_data_sub, trans_attr)
+        # update diff vector
+        diff_vec = subchain_local_diff_vec[i]
+        diff_vec_ext = np.repeat(diff_vec[None,:], repeats=len_frame, axis=0)[:,:,None]
+        delta_diff_vec = (delta_R @ diff_vec_ext)[:, :, 0]
+        
+        # update to subchain
+        trans_data_sub = trans_data_main + delta_diff_vec
+        set_keyframe(subchain_root, trans_data_sub, trans_attr)
 
     return trans_data
 

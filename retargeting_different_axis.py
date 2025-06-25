@@ -8,6 +8,7 @@ mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/Supershy_wM
 # bvh 
 mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/SuperShy.bvh" --targetChar "./models/Asooni/Asooni.fbx" 
 mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/IAM.bvh" --targetChar "./models/Asooni/Asooni.fbx"
+mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/IAM.bvh" --targetChar "./models/SMPL/SMPL.fbx"
 """
 
 '''
@@ -105,14 +106,16 @@ def main():
     tgt_joints_list = []
     tgt_parent_node_list = []
     for root_id, root in enumerate(tgt_root_joints):
-        # update root 
+        # update root
         root = "tgt:" + root.split(":")[-1]
         
         # joints
         tgt_joints = get_joint_hierarchy(root)
         tgt_joints_list.append(tgt_joints)
         
-        # locator 
+        # locator
+        if cmds.listRelatives(root, parent=True, shapes=True)==None:
+            continue
         locator = cmds.listRelatives(root, parent=True, shapes=True)[-1]
         tgt_locator_list.append(locator)
         tgt_locator_list.append(locator+'Shape')
@@ -128,7 +131,10 @@ def main():
             tgt_locator_list.append(additional_loctor+'Shape')
     
     # 타겟 조인트를 selected chain으로 변경
-    parent_node = tgt_parent_node_list[tgt_chain_index]
+    if len(tgt_parent_node_list)!=0:
+        parent_node = tgt_parent_node_list[tgt_chain_index]
+    else:
+        parent_node = None
     tgt_joints_wNS = tgt_joints_list[tgt_chain_index]
     
     # joint templated
@@ -159,8 +165,7 @@ def main():
     # locator
     if parent_node is not None:
         tgt_locator, tgt_locator_angle, tgt_locator_scale, tgt_locator_pos = get_locator(parent_node)
-        # add namespace
-        tgt_locator = "tgt:" + tgt_locator
+        tgt_locator = "tgt:" + tgt_locator # add namespace
     else:
         tgt_locator = None
 
@@ -288,101 +293,96 @@ def main():
         raise ValueError(f"Unsupported file format: {file_ext}")
 
 
-    # # Set fps of source motion
-    # if current_fps is None:
-    #     current_fps = mel.eval('currentTimeUnitToFPS')
-    # mel.eval(f'currentUnit "{current_fps}fps"') 
-    # print("source fps: ", current_fps)
+    # Set fps of source motion
+    if current_fps is None:
+        current_fps = mel.eval('currentTimeUnitToFPS')
+    mel.eval(f'currentUnit "{current_fps}fps"') 
+    print("source fps: ", current_fps)
 
 
-    # ''' Refine locator rotation '''
-    # if tgt_locator is not None:
-    #     # locator ~ root 위 조인트 포함
-    #     tgt_locator_angle = update_root_to_locator_rotation(tgt_joints_wNS, tgt_root, tgt_locator_angle)
+    ''' Refine locator rotation '''
+    if tgt_locator is not None:
+        # locator ~ root 위 조인트 포함
+        tgt_locator_angle = update_root_to_locator_rotation(tgt_joints_wNS, tgt_root, tgt_locator_angle)
 
 
-    # ''' Retarget '''
+    ''' Retarget '''
     # if src_locator is not None or tgt_locator is not None:
-    #     # 둘 중 하나라도 locator가 있는 경우 
-    #     # 예외처리
-    #     if src_locator is None:
-    #         src_locator_angle, src_locator_scale = None, None
-    #     if tgt_locator is None:
-    #         tgt_locator_angle, tgt_locator_scale = None, None
-        
-    #     # Get data
-    #     trans_data, _ = get_keyframe_data(src_root) # trans, rot 
-    #     trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
-    #     trans_data = get_array_from_keyframe_data(trans_data, trans_attr, src_root)
-    #     len_frame = len(trans_data)
-
-    #     # rot
-    #     tgt_local_angles = retarget_rotation(src_joints_common, src_Tpose_rots_common,
-    #                       tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, conversion_matrics, 
-    #                       subchain_common_joints, subchain_Tpose_rots_common, tgt_subchain_template_indices, subchain_conversion_matrics,
-    #                       len_frame)
-        
-    #     # trans
-    #     trans_data = retarget_translation(src_root, tgt_root, 
-    #                                       trans_data, tgt_local_angles[:, src_hip_index], tgt_Tpose_rots_common[src_hip_index],
-    #                                       subchain_roots,
-    #                                       src_locator, src_locator_angle, src_locator_scale,
-    #                                       tgt_locator, tgt_locator_angle, tgt_locator_scale, tgt_locator_pos,
-    #                                         height_ratio, subchain_local_diff_vec, 
-    #                                         len_frame)
-    # else:
-    #     print(">> retarget without locator")
-    #     raise ValueError("No locator") # TODO
+    # 예외처리 # TODO clear
+    if src_locator is None:
+        src_locator_angle, src_locator_scale, src_locator_pos = None, None, None
+    if tgt_locator is None:
+        tgt_locator_angle, tgt_locator_scale, tgt_locator_pos = None, None, None
     
+    # Get data
+    trans_data, _ = get_keyframe_data(src_root) # trans, rot 
+    trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
+    trans_data = get_array_from_keyframe_data(trans_data, trans_attr, src_root)
+    len_frame = len(trans_data)
 
-    # ''' export '''
-    # # Remove source
-    # # source locator and joints
-    # if src_locator is not None:
-    #     delete_locator_and_hierarchy(src_locator)
-    # else:
-    #     delete_locator_and_hierarchy(src_joints_common[0])
+    # rot
+    tgt_local_angles = retarget_rotation(src_joints_common, src_Tpose_rots_common,
+                        tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, conversion_matrics, 
+                        subchain_common_joints, subchain_Tpose_rots_common, tgt_subchain_template_indices, subchain_conversion_matrics,
+                        len_frame)
     
-    # # meshes
-    # # refine src_meshes in cmds.ls(type='mesh')
-    # for mesh in src_meshes:
-    #     if mesh in cmds.ls(type='mesh'):
-    #         remove_transform_node([mesh])
+    # trans
+    trans_data = retarget_translation(src_root, tgt_root, 
+                                        trans_data, tgt_local_angles[:, src_hip_index], tgt_Tpose_rots_common[src_hip_index],
+                                        subchain_roots,
+                                        src_locator, src_locator_angle, src_locator_scale,
+                                        tgt_locator, tgt_locator_angle, tgt_locator_scale, tgt_locator_pos,
+                                        height_ratio, subchain_local_diff_vec, 
+                                        len_frame)
 
-
-    # # Rename tgt 
-    # # joint
-    # for joint in tgt_joints_origin_woNS:
-    #     if len(joint.split(':'))>1:
-    #         # 만약 target name에 namespace가 있다면 change namespace
-    #         namespace = joint.split(':')[:-1][0] + ":"
-    #         joint = joint.split(':')[-1]
-    #         # 만약 조인트가 존재한다면 
-    #         if cmds.objExists('tgt:'+joint):
-    #             cmds.rename('tgt:'+joint, namespace+joint)
-    #     else:
-    #         if cmds.objExists('tgt:'+joint):
-    #             cmds.rename('tgt:'+joint, joint)
-
-    # # mesh 
-    # # 변형 노드 가져오기
-    # meshes = cmds.ls(type='mesh')
-    # transforms = []
-    # for mesh in meshes:
-    #     parent = cmds.listRelatives(mesh, parent=True)
-    #     if parent:
-    #         transforms.append(parent[0])
-    # # 중복 제거
-    # transforms = list(set(transforms))  
-
-    # # 변형 노드에서 네임스페이스 제거
-    # new_transforms = remove_namespace_from_objects(transforms)
+    ''' export '''
+    ## Remove source
+    # source locator and joints
+    if src_locator is not None:
+        delete_locator_and_hierarchy(src_locator)
+    else:
+        delete_locator_and_hierarchy(src_joints_common[0])
     
-    # # rename tgt locat
-    # tgt_locator_list = remove_namespace_for_joints(tgt_locator_list)[0]
+    # meshes
+    # refine src_meshes in cmds.ls(type='mesh')
+    for mesh in src_meshes:
+        if mesh in cmds.ls(type='mesh'):
+            remove_transform_node([mesh])
 
+    ## Rename tgt
+    # joint
+    for joint in tgt_joints_origin_woNS:
+        if len(joint.split(':'))>1:
+            # 만약 target name에 namespace가 있다면 change namespace
+            namespace = joint.split(':')[:-1][0] + ":"
+            joint = joint.split(':')[-1]
+            # 만약 조인트가 존재한다면 
+            if cmds.objExists('tgt:'+joint):
+                cmds.rename('tgt:'+joint, namespace+joint)
+        else:
+            if cmds.objExists('tgt:'+joint):
+                cmds.rename('tgt:'+joint, joint)
 
-    # export and end
+    # mesh 
+    # 변형 노드 가져오기
+    meshes = cmds.ls(type='mesh')
+    transforms = []
+    for mesh in meshes:
+        parent = cmds.listRelatives(mesh, parent=True)
+        if parent:
+            transforms.append(parent[0])
+    # 중복 제거
+    transforms = list(set(transforms))  
+
+    # 변형 노드에서 네임스페이스 제거
+    new_transforms = remove_namespace_from_objects(transforms)
+    
+    # rename tgt locat
+    if len(tgt_locator_list)!=0:
+        tgt_locator_list = remove_namespace_for_joints(tgt_locator_list)
+
+    
+    ## export 
     export(args, targetChar, targetMotion)
     maya.standalone.uninitialize()
 
