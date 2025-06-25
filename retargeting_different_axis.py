@@ -8,6 +8,7 @@ mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/Supershy_wM
 # bvh 
 mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/SuperShy.bvh" --targetChar "./models/Asooni/Asooni.fbx" 
 mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/IAM.bvh" --targetChar "./models/Asooni/Asooni.fbx"
+mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/IAM.bvh" --targetChar "./models/SMPL/SMPL.fbx"
 """
 
 '''
@@ -105,14 +106,16 @@ def main():
     tgt_joints_list = []
     tgt_parent_node_list = []
     for root_id, root in enumerate(tgt_root_joints):
-        # update root 
+        # update root
         root = "tgt:" + root.split(":")[-1]
         
         # joints
         tgt_joints = get_joint_hierarchy(root)
         tgt_joints_list.append(tgt_joints)
         
-        # locator 
+        # locator
+        if cmds.listRelatives(root, parent=True, shapes=True)==None:
+            continue
         locator = cmds.listRelatives(root, parent=True, shapes=True)[-1]
         tgt_locator_list.append(locator)
         tgt_locator_list.append(locator+'Shape')
@@ -128,7 +131,10 @@ def main():
             tgt_locator_list.append(additional_loctor+'Shape')
     
     # 타겟 조인트를 selected chain으로 변경
-    parent_node = tgt_parent_node_list[tgt_chain_index]
+    if len(tgt_parent_node_list)!=0:
+        parent_node = tgt_parent_node_list[tgt_chain_index]
+    else:
+        parent_node = None
     tgt_joints_wNS = tgt_joints_list[tgt_chain_index]
     
     # joint templated
