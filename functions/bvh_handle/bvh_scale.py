@@ -126,8 +126,8 @@ if __name__ == "__main__":
     import os
     import glob
     
-    input_folder = "./motions/SMPL/100scale"
-    output_folder = "./motions/SMPL"
+    input_folder = "./motions/SMPL_250615" # 100scale
+    output_folder = "./motions/SMPL_250615/output"
     skel_scale = 0.01
     pos_scale = 0.01
     target_fps = 24

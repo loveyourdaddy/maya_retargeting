@@ -280,10 +280,10 @@ if __name__ == "__main__":
     shutil.copyfile(input_file, output_file) 
 
     # index 
-    joint_index =[19, 20,  15,  15,  19,  19,  19,  19,  15,  15,  19]
-    source_frame=[66, 99,  124, 142, 231, 234, 373, 395, 395, 419, 233]
-    start_frame =[67, 100, 125, 143, 232, 235, 374, 396, 396, 420, 234]
-    end_frame   =[73, 107, 137, 149, 233, 236, 378, 398, 400, 422, 236]
+    joint_index =[2, 6,  2]
+    source_frame=[58,69, 77]
+    start_frame =[59,70, 78]
+    end_frame   =[65,104,90]
     # joint_index =[19,  19,  19,  15]
     # source_frame=[338, 152, 306, 346]
     # start_frame =[339, 147, 307, 347]
