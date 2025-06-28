@@ -1,14 +1,15 @@
 """
+conda activate retargeting
+
 # 3개 입력: sourceChar, sourceMotion, targetChar
 mayapy retargeting_different_axis.py --sourceChar "./models/Adori/Adori.fbx" --sourceMotion "./motions/Adori/Supershy.fbx" --targetChar "./models/Asooni/Asooni.fbx"
+mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Supershy.fbx" --targetChar "./models/Asooni/Asooni.fbx"
 
 # 2개 입력: sourceMotion, targetChar 
 mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/Supershy_wMesh.fbx" --targetChar "./models/Asooni/Asooni.fbx"
 
 # bvh 
 mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/SuperShy.bvh" --targetChar "./models/Asooni/Asooni.fbx" 
-mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/IAM.bvh" --targetChar "./models/Asooni/Asooni.fbx"
-mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/IAM.bvh" --targetChar "./models/SMPL/SMPL.fbx"
 """
 
 '''
@@ -35,7 +36,7 @@ from functions.log import *
 from make_Tpose import make_Tpose
 import time
 
-def import_motion_file(file_path, scale=1.0):
+def import_motion_file(file_path, src_joints_origin=None, scale=1.0):
     """Import motion file (FBX or BVH)"""
     file_ext = os.path.splitext(file_path)[1].lower()
     
@@ -43,7 +44,7 @@ def import_motion_file(file_path, scale=1.0):
         mel.eval('FBXImport -f"{}"'.format(file_path))
         return 
     elif file_ext == '.bvh':
-        grp, fps = import_bvh(file_path, scale=scale)
+        grp, fps = import_bvh(file_path, src_joints_origin, scale=scale)
         return grp, fps
     else:
         raise ValueError(f"Unsupported file format: {file_ext}")
@@ -197,6 +198,7 @@ def main():
 
         # import_motion_file(sourceMotion)
         # make_Tpose() # TODO: make Tpose 
+        raise ValueError("no source character: Not implemented")
     else:
         raise ValueError("no source character") 
 
@@ -206,6 +208,7 @@ def main():
     # refine src_meshes
     src_meshes = [mesh for mesh in src_meshes if not mesh.startswith('tgt:')]
 
+    # joints
     # joints 
     src_joints_origin = get_src_joints(tgt_joints_wNS)
     src_joints_template, _, _ = rename_joint_by_template(src_joints_origin)
@@ -232,14 +235,17 @@ def main():
         src_locator = None
 
 
-    # ''' Common skeleton '''
-    # # common joint 
+    ''' Common skeleton '''
+    # common joint 
     src_joints_common, src_Tpose_rots_common, \
     tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, \
     conversion_matrics \
         = get_conversion(
             src_joints_origin, src_joints_template, 
             tgt_joints_wNS, tgt_joints_template, tgt_joints_template_indices)
+
+    # remove namespace
+    # src_joints_common = remove_namespace_for_joints(src_joints_common)
 
     # for subchain joints 
     subchain_conversion_matrics = []
@@ -288,7 +294,7 @@ def main():
     if file_ext == '.fbx':
         import_motion_file(sourceMotion)
     elif file_ext == '.bvh':
-        _, current_fps = import_motion_file(sourceMotion)
+        _, current_fps = import_motion_file(sourceMotion, src_joints_origin)
     else:
         raise ValueError(f"Unsupported file format: {file_ext}")
 
@@ -314,7 +320,7 @@ def main():
     if tgt_locator is None:
         tgt_locator_angle, tgt_locator_scale, tgt_locator_pos = None, None, None
     
-    # Get data
+    # get root translation
     trans_data, _ = get_keyframe_data(src_root) # trans, rot 
     trans_attr = {'translateX': [], 'translateY': [], 'translateZ': []}
     trans_data = get_array_from_keyframe_data(trans_data, trans_attr, src_root)
@@ -325,7 +331,7 @@ def main():
                         tgt_joints_common, tgt_Tpose_rots_common, tgt_joints_template_indices, conversion_matrics, 
                         subchain_common_joints, subchain_Tpose_rots_common, tgt_subchain_template_indices, subchain_conversion_matrics,
                         len_frame)
-    
+
     # trans
     trans_data = retarget_translation(src_root, tgt_root, 
                                         trans_data, tgt_local_angles[:, src_hip_index], tgt_Tpose_rots_common[src_hip_index],
