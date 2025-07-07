@@ -3,12 +3,12 @@ conda activate retargeting
 
 # 3개 입력: sourceChar, sourceMotion, targetChar
 mayapy retargeting_different_axis.py --sourceChar "./models/Adori/Adori.fbx" --sourceMotion "./motions/Adori/Supershy.fbx" --targetChar "./models/Asooni/Asooni.fbx"
-mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Supershy.fbx" --targetChar "./models/Asooni/Asooni.fbx"
+mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Supershy.fbx" --targetChar "./models/SMPL/SMPL.fbx"
 
 # 2개 입력: sourceMotion, targetChar 
-mayapy retargeting_different_axis.py --sourceMotion "./motions/Adori/Supershy_wMesh.fbx" --targetChar "./models/Asooni/Asooni.fbx"
+mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/Sticky.fbx" --targetChar "./models/Asooni/Asooni.fbx"
 
-# bvh 
+# bvh
 mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/SuperShy.bvh" --targetChar "./models/Asooni/Asooni.fbx" 
 """
 
@@ -209,7 +209,6 @@ def main():
     src_meshes = [mesh for mesh in src_meshes if not mesh.startswith('tgt:')]
 
     # joints
-    # joints 
     src_joints_origin = get_src_joints(tgt_joints_wNS)
     src_joints_template, _, _ = rename_joint_by_template(src_joints_origin)
 
@@ -310,7 +309,6 @@ def main():
     if tgt_locator is not None:
         # locator ~ root 위 조인트 포함
         tgt_locator_angle = update_root_to_locator_rotation(tgt_joints_wNS, tgt_root, tgt_locator_angle)
-
 
     ''' Retarget '''
     # if src_locator is not None or tgt_locator is not None:
