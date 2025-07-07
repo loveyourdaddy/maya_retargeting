@@ -2,7 +2,7 @@
 python functions/bvh_handle/bvh_scale.py
 """
 
-def scale_and_resample_bvh(input_file, output_file, skel_scale=0.01, pos_scale=0.01, target_fps=None):
+def scale_and_resample_bvh(input_file, output_file, skel_scale=0.01, pos_scale=0.01, target_fps=None, resample=False):
     """
     Scale the root translation values in a BVH file by a given factor.
     
@@ -24,9 +24,6 @@ def scale_and_resample_bvh(input_file, output_file, skel_scale=0.01, pos_scale=0
     num_frames = 0
     frame_time = 0
 
-    # Flag
-    resample = False
-    
     for i, line in enumerate(lines):
         if line.strip() == 'HIERARCHY':
             hierarchy_index = i
@@ -126,13 +123,13 @@ if __name__ == "__main__":
     import os
     import glob
     
-    input_folder = "./motions/SMPL_250615" # 100scale
-    output_folder = "./motions/SMPL_250615/output"
+    input_folder  = "./motions/Asooni/250630_sticky"
+    output_folder = "./motions/Asooni/250630_sticky"
     skel_scale = 0.01
     pos_scale = 0.01
     target_fps = 24
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+
+    os.makedirs(output_folder, exist_ok=True)
     
     # Find all BVH files in the input folder
     bvh_files = glob.glob(os.path.join(input_folder, "*.bvh"))
@@ -141,15 +138,16 @@ if __name__ == "__main__":
         # input_file = os.path.join(input_folder, "IAM.bvh")
         filename = os.path.basename(input_file)
         base, ext = os.path.splitext(filename)
-        output_file = os.path.join(output_folder, f"{base}_{target_fps}fps{ext}")
-            
+        output_file = os.path.join(output_folder, f"{base}_{ext}") # {target_fps}fps
+        
         print(f"Processing {filename}...")
         scale_and_resample_bvh(
             input_file, 
             output_file, 
             skel_scale, 
             pos_scale, 
-            target_fps
+            target_fps=None, 
+            resample=False
         )
 
     print("All files processed successfully!")
