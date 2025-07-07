@@ -198,7 +198,7 @@ def main():
 
         # import_motion_file(sourceMotion)
         # make_Tpose() # TODO: make Tpose 
-        raise ValueError("no source character: Not implemented")
+        raise ValueError("no source character, Making Tpose (Not implemented)")
     else:
         raise ValueError("no source character") 
 

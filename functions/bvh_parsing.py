@@ -52,7 +52,44 @@ def parse_channels(line, joint_name):
     
     return channels
 
-def import_bvh(file_path, scale=1.0, frame_offset=0, rotation_order=0, trans_cm=True):
+def map_channels_to_source(channels, src_joints_origin):
+    """
+    channels의 조인트 이름을 src_joints_origin의 소스 기준으로 매핑합니다.
+    
+    Args:
+        channels: 채널 이름 리스트 (예: ['Hips.translateX', 'Spine.rotateY', ...])
+        src_joints_origin: 소스 조인트 이름 리스트 (예: ['ACHID:Hips', 'ACHID:Spine', ...])
+    
+    Returns:
+        매핑된 채널 이름 리스트
+    """
+    # 소스에서 조인트 이름만 추출하여 매핑 딕셔너리 생성
+    joint_mapping = {}
+    for src_joint in src_joints_origin:
+        if ':' in src_joint:
+            # 콜론 뒤의 조인트 이름 추출
+            joint_name = src_joint.split(':')[-1]
+            joint_mapping[joint_name] = src_joint
+    
+    # 채널 이름 변환
+    mapped_channels = []
+    for channel in channels:
+        if '.' in channel:
+            joint_name, attribute = channel.split('.', 1)
+            
+            # 매핑 테이블에서 찾기
+            if joint_name in joint_mapping:
+                mapped_channel = f"{joint_mapping[joint_name]}.{attribute}"
+                mapped_channels.append(mapped_channel)
+            else:
+                # 매핑되지 않는 경우 원본 유지
+                mapped_channels.append(channel)
+        else:
+            # '.'이 없는 경우 원본 유지
+            mapped_channels.append(channel)
+    return mapped_channels
+    
+def import_bvh(file_path, src_joints_origin=None, scale=1.0, frame_offset=0, rotation_order=0, trans_cm=True):
     """BVH 파일을 Maya로 임포트하고 키프레임 생성"""
     channels = []
     motion = False
@@ -139,8 +176,13 @@ def import_bvh(file_path, scale=1.0, frame_offset=0, rotation_order=0, trans_cm=
                 for channel_idx in trans:
                     frame_data[i][channel_idx] = float(frame_data[i][channel_idx]) * 100
         
+        # refine joint name as src joint name 
+        mapped_channels = map_channels_to_source(channels, src_joints_origin)
+        channels = mapped_channels
+
         # 키프레임 생성
         for frame_idx, data in enumerate(frame_data):
+            # print(f"{frame_idx}: {frame_data[frame_idx][3:6]}")
             for chan_idx, value in enumerate(data):
                 if chan_idx < len(channels):
                     create_keyframe(channels[chan_idx], frame_idx, value)
