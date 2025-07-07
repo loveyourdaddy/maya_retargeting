@@ -297,6 +297,9 @@ def main():
     else:
         raise ValueError(f"Unsupported file format: {file_ext}")
 
+    # Set fps of source motion
+    current_fps = mel.eval('currentTimeUnitToFPS')
+    mel.eval(f'currentUnit "{current_fps}fps"')
 
     # Set fps of source motion
     if current_fps is None:

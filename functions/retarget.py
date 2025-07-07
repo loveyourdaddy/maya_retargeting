@@ -454,6 +454,7 @@ def retarget_translation(src_hip, tgt_hip,
         delta_R = np.linalg.inv(Tpose_root_R_ext) @ root_R
         # delta_R = root_R @ np.linalg.inv(Tpose_root_R_ext)
 
+            diff_vec = subchain_local_diff_vec[i]
         # update diff vector
         diff_vec = subchain_local_diff_vec[i]
         diff_vec_ext = np.repeat(diff_vec[None,:], repeats=len_frame, axis=0)[:,:,None]

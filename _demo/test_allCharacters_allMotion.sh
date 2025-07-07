@@ -37,7 +37,6 @@ src_characters=(
 tgt_characters=(
     # "Adori"
     # "Adori2.0"
-    # "Adori2.1"
     # "Asooni"
     # "Asooni2.0"
 
