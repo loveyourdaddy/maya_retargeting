@@ -10,3 +10,4 @@
 - src_motion_path : source motion 
 - tgt_char_path : target character
 - tgt_motion_path : Generating target motion
+ 
