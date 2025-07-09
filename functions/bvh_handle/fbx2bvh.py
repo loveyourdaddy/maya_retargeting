@@ -136,10 +136,13 @@ class FBXToBVHConverter:
         
         # Set up channels (BVH standard order)
         if parent_joint is None:  # Root joint
+            # bvh_joint.channels = ["Xposition", "Yposition", "Zposition", 
+            #                     "Zrotation", "Xrotation", "Yrotation"]
             bvh_joint.channels = ["Xposition", "Yposition", "Zposition", 
-                                "Zrotation", "Xrotation", "Yrotation"]
+                                "Xrotation", "Yrotation", "Zrotation"]
         else:
-            bvh_joint.channels = ["Zrotation", "Xrotation", "Yrotation"]
+            # bvh_joint.channels = ["Zrotation", "Xrotation", "Yrotation"]
+            bvh_joint.channels = ["Xrotation", "Yrotation", "Zrotation"]
         
         self.bvh_data.add_joint(bvh_joint)
         self.joint_mapping[fbx_node] = bvh_joint
@@ -353,17 +356,20 @@ class SimpleFBXToBVHConverter:
 # Usage examples
 def main():
     """Example usage of the FBX to BVH converter"""
-    input_fbx = "./motions/Asooni/Sticky.fbx"
-    output_bvh = "./motions/Asooni/Sticky.bvh"
-    
+    # input_fbx  = "./motions/Adori/SuperShy.fbx"
+    # output_bvh = "./motions/Adori/SuperShy.bvh"
+    name = "./motions/SMPL/Supershy"
+    input_fbx  = name + ".fbx" 
+    output_bvh = name + ".bvh" 
+
     # Method 1: Using FBX SDK (if available)
     converter = FBXToBVHConverter()
     success = converter.convert_fbx_to_bvh_sdk(input_fbx, output_bvh)
-    import pdb; pdb.set_trace()
-    # if success:
-    #     print("FBX successfully converted to BVH using FBX SDK")
-    # else:
-    #     print("Failed to convert FBX to BVH")
+
+    if success:
+        print("FBX successfully converted to BVH using FBX SDK")
+    else:
+        print("Failed to convert FBX to BVH")
     
     # # Method 2: Using pre-parsed data
     # simple_converter = SimpleFBXToBVHConverter()

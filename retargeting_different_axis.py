@@ -1,14 +1,11 @@
 """
 conda activate retargeting
 
-# 3개 입력: sourceChar, sourceMotion, targetChar
-mayapy retargeting_different_axis.py --sourceChar "./models/Adori/Adori.fbx" --sourceMotion "./motions/Adori/Supershy.fbx" --targetChar "./models/Asooni/Asooni.fbx"
+# fbx
 mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Supershy.fbx" --targetChar "./models/SMPL/SMPL.fbx"
 
-# 2개 입력: sourceMotion, targetChar 
-mayapy retargeting_different_axis.py --sourceMotion "./motions/Asooni/Sticky.fbx" --targetChar "./models/Asooni/Asooni.fbx"
-
 # bvh
+mayapy retargeting_different_axis.py --sourceChar "./models/Asooni/Asooni.fbx" --sourceMotion "./motions/Asooni/Supershy.bvh" --targetChar "./models/SMPL/SMPL.fbx"
 mayapy retargeting_different_axis.py --sourceChar "./models/SMPL/SMPL.fbx" --sourceMotion "./motions/SMPL/SuperShy.bvh" --targetChar "./models/Asooni/Asooni.fbx" 
 """
 

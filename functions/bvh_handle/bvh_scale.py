@@ -123,8 +123,8 @@ if __name__ == "__main__":
     import os
     import glob
     
-    input_folder  = "./motions/Asooni/250630_sticky"
-    output_folder = "./motions/Asooni/250630_sticky"
+    input_folder  = "./motions/_100scale"
+    output_folder = input_folder
     skel_scale = 0.01
     pos_scale = 0.01
     target_fps = 24
