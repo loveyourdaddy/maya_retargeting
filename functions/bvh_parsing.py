@@ -12,22 +12,6 @@ class Joint:
 def create_keyframe(channel, frame, value):
     """각 채널에 대한 키프레임 생성"""
     cmds.setKeyframe(channel, time=frame, value=float(value))
-        
-# def create_keyframe(channel, frame, value, offset=None):
-#     """각 채널에 대한 키프레임 생성"""
-#     # cmds.setKeyframe(channel, time=frame, value=float(value))
-
-#     # 채널이 translation 관련이고 offset이 있으면 offset 적용
-#     if offset and channel.split('.')[-1].startswith('translate'):
-#         attr = channel.split('.')[-1]
-#         if attr == 'translateX':
-#             value = float(value) + offset[0]
-#         elif attr == 'translateY':
-#             value = float(value) + offset[1]
-#         elif attr == 'translateZ':
-#             value = float(value) + offset[2]
-        
-#     cmds.setKeyframe(channel, time=frame, value=float(value))
 
 def parse_channels(line, joint_name):
     """채널 정보 파싱"""
@@ -89,14 +73,26 @@ def map_channels_to_source(channels, src_joints_origin):
             mapped_channels.append(channel)
     return mapped_channels
     
-def import_bvh(file_path, src_joints_origin=None, scale=1.0, frame_offset=0, rotation_order=0, trans_cm=True):
+def import_bvh(file_path, src_joints_origin=None, scale=1.0, frame_offset=0, trans_cm=True):
     """BVH 파일을 Maya로 임포트하고 키프레임 생성"""
     channels = []
     motion = False
     safe_close = False
     space_re = re.compile(r"\s+")
     current_joint = None
-    fps = 30.0
+
+    # maya rotation order
+    rotation_order=2
+    """
+    order_map = {
+        ('Xrotation', 'Yrotation', 'Zrotation'): 'XYZ (order=0)',
+        ('Yrotation', 'Zrotation', 'Xrotation'): 'YZX (order=1)',
+        ('Zrotation', 'Xrotation', 'Yrotation'): 'ZXY (order=2)',
+        ('Xrotation', 'Zrotation', 'Yrotation'): 'XZY (order=3)',
+        ('Yrotation', 'Xrotation', 'Zrotation'): 'YXZ (order=4)',
+        ('Zrotation', 'Yrotation', 'Xrotation'): 'ZYX (order=5)'
+    }
+    """
     
     with open(file_path) as f:
         # BVH 파일 유효성 검사
