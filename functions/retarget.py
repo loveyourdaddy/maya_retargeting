@@ -549,17 +549,8 @@ def retarget_rotation(src_common_joints, src_Tpose_localrots, # src {}
                 euler_angle = R_to_E(final_matrix, order='xyz') # MAYA rotation order: XYZ
                 tgt_perjoint_local_angle[frame] = euler_angle
             
-            # if j==0:
-            #     for f in range(len_frame):
-            #         print(f"{f}: {tgt_perjoint_local_angle[f]}")
-            #     import pdb; pdb.set_trace()
-
             # Refine angle as continue value
             tgt_perjoint_local_angle = unwrap_rotation(tgt_perjoint_local_angle)
-
-            # if j==0:
-            #     print(tgt_perjoint_local_angle)
-            #     import pdb; pdb.set_trace()
 
             # update 
             set_keyframe(tgt_joint, tgt_perjoint_local_angle, rot_attr)
