@@ -4,7 +4,7 @@ import maya.cmds as cmds
 # maya rotation order: XYZ
 # local rotation multiplication order: ZYX (z축부터 회전시켜야함)
 
-# zyx euler angles
+# Rotation matrix
 # ZYX 순서로 euler angle 추출
 def R_to_E(R, order='zyx'):
     """
@@ -57,6 +57,39 @@ def R_to_E(R, order='zyx'):
     
     return np.array([alpha, beta, gamma])
 
+def R_to_euler(rotmat, order, radians=True):
+    """
+    Assumes extrinsic rotation and Tait-Bryan angles.
+    Alpha, beta, gamma are the angles of rotation about the x, y, z axes respectively.
+    TODO: handle gimbal lock (singularities)
+    """
+    if len(order) != 3:
+        raise ValueError(f"Order must be a 3-element list, but got {len(order)} elements")
+    
+    order = order.lower()
+    if set(order) != set("xyz"):
+        raise ValueError(f"Invalid order: {order}")
+    
+    axis2idx = {"x": 0, "y": 1, "z": 2}
+    idx0, idx1, idx2 = (axis2idx[axis] for axis in order)
+
+    # compute beta
+    sign = -1.0 if (idx0 - idx2) % 3 == 2 else 1.0
+    beta = np.arcsin(sign * rotmat[..., idx0, idx2])
+
+    # compute alpha
+    sign = -1.0 if (idx0 - idx2) % 3 == 1 else 1.0
+    alpha = np.arctan2(sign * rotmat[..., idx1, idx2], rotmat[..., idx2, idx2])
+
+    # compute gamma -> same sign as alpha
+    gamma = np.arctan2(sign * rotmat[..., idx0, idx1], rotmat[..., idx0, idx0])
+
+    if not radians:
+        alpha, beta, gamma = np.rad2deg(alpha), np.rad2deg(beta), np.rad2deg(gamma)
+
+    return np.stack([alpha, beta, gamma], axis=-1)
+
+# euler
 def E_to_R(E, order="xyz", radians=False): # remove order 
     """
     Args:
@@ -96,12 +129,68 @@ def E_to_R(E, order="xyz", radians=False): # remove order
     # return np.matmul(np.matmul(R[2], R[1]), R[0])
     return np.matmul(np.matmul(R[0], R[1]), R[2])
 
+def E_to_quat(angles, order, radians=True):
+    if not radians:
+        angles = np.deg2rad(angles)
+    
+    def _euler_axis_to_quat(angle, axis):
+        zero = np.zeros_like(angle, dtype=np.float32)
+        cos  = np.cos(angle / 2, dtype=np.float32)
+        sin  = np.sin(angle / 2, dtype=np.float32)
+
+        if axis == "x":
+            quat_flat = (cos, sin, zero, zero)
+        elif axis == "y":
+            quat_flat = (cos, zero, sin, zero)
+        elif axis == "z":
+            quat_flat = (cos, zero, zero, sin)
+        else:
+            raise ValueError(f"Invalid axis: {axis}")
+        return np.stack(quat_flat, axis=-1).reshape(angle.shape + (4,))
+    
+    qs = [_euler_axis_to_quat(angles[..., i], order[i]) for i in range(3)]
+    return quat_mul(quat_mul(qs[0], qs[1]), qs[2])
+
+# quat 
+def quat_to_E(quat, order, radians=True):
+    return R_to_euler(quat_to_R(quat), order, radians=radians)
+
+def quat_mul(q0, q1):
+    r0, i0, j0, k0 = np.split(q0, 4, axis=-1)
+    r1, i1, j1, k1 = np.split(q1, 4, axis=-1)
+
+    res = np.concatenate([
+        r0*r1 - i0*i1 - j0*j1 - k0*k1,
+        r0*i1 + i0*r1 + j0*k1 - k0*j1,
+        r0*j1 - i0*k1 + j0*r1 + k0*i1,
+        r0*k1 + i0*j1 - j0*i1 + k0*r1
+    ], axis=-1)
+
+    return res
+
+def quat_to_R(quat):
+    two_s = 2.0 / np.sum(quat * quat, axis=-1) # (...,)
+    r, i, j, k = quat[..., 0], quat[..., 1], quat[..., 2], quat[..., 3]
+
+    rotmat = np.stack([
+        1.0 - two_s * (j*j + k*k),
+        two_s * (i*j - k*r),
+        two_s * (i*k + j*r),
+        two_s * (i*j + k*r),
+        1.0 - two_s * (i*i + k*k),
+        two_s * (j*k - i*r),
+        two_s * (i*k - j*r),
+        two_s * (j*k + i*r),
+        1.0 - two_s * (i*i + j*j)
+    ], axis=-1)
+    return rotmat.reshape(quat.shape[:-1] + (3, 3)) # (..., 3, 3)
+
+### normalize 
 def normalize_rotmat(rot_data):
     # normalize each row of rotation matrix
     for j in range(3):
         rot_data[j] = rot_data[j]/np.linalg.norm(rot_data[j])
     return rot_data
-
 
 ''' rotation in MAYA '''
 def get_world_rot_data(joint_name):
