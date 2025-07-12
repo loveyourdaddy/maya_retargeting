@@ -22,7 +22,7 @@ if not os.path.exists(app.config['OUTPUT_FOLDER']):
 transactions = {}
 
 # 업로드된 임시 파일들을 정리하는 함수
-preserved_characters = ['Adori', 'Asooni', 'Bear', 'Roblox']
+preserved_characters = ['SMPL', 'Adori', 'Asooni', 'Bear', 'Roblox']
 def cleanup_files(file_paths):
     for file_path in file_paths:
         try:
@@ -332,6 +332,95 @@ def upload_file_api():
             cleanup_files(uploaded_files)
             return jsonify({'message': 'An error occurred: ' + str(e)})
 
+# 파일 없이 캐릭터 이름만으로 처리하는 API 엔드포인트
+@app.route('/upload_api_wo_fbx', methods=['POST'])
+def upload_file_api_wo_fbx():
+    # JSON 데이터 가져오기
+    data = request.json
+    if not data:
+        return jsonify({'message': 'No JSON data provided'}), 400
+    
+    # 필수 파라미터 확인
+    required_params = ['target_character', 'source_character', 'source_motion']
+    for param in required_params:
+        if param not in data:
+            return jsonify({'message': f'Missing required parameter: {param}'}), 400
+    
+    # 파라미터 가져오기
+    target_character = data['target_character']
+    source_character = data['source_character']
+    source_motion = data['source_motion']
+    
+    # 경로가 직접 지정되었을 수도 있고 캐릭터 이름만 지정되었을 수도 있음
+    # 경로에서 캐릭터 이름과 파일 확장자 추출
+    def get_char_name_from_path(path):
+        # 경로에서 파일 이름만 추출
+        filename = os.path.basename(path)
+        # 확장자 제거
+        name_without_ext = os.path.splitext(filename)[0]
+        return name_without_ext
+    
+    def get_file_ext_from_path(path):
+        _, ext = os.path.splitext(path)
+        return ext if ext else '.fbx'  # 기본값은 .fbx
+    
+    # 대상 캐릭터 처리
+    def get_character_name(path):
+        # 경로에서 파일 이름만 추출
+        filename = os.path.basename(path)
+        # 확장자 제거
+        name_without_ext = os.path.splitext(filename)[0]
+        return name_without_ext
+    
+    # 소스 캐릭터 처리
+    target_char_name = get_character_name(target_character)
+    source_char_name = get_char_name_from_path(source_character)
+    
+    # 표준 경로 구성
+    target_char_path = f'./models/{target_char_name}/{target_char_name}.fbx'
+    source_char_path = f'./models/{source_char_name}/{source_char_name}.fbx'
+    source_motion_path = source_motion
+    source_motion_name = source_motion.split('/')[-1].split('.')[0]
+    print("target_char_path:", target_char_path)
+    print("source_char_path:", source_char_path)
+    print("source_motion_path:", source_motion_path)
+    
+    # 파일 존재 확인
+    if not os.path.exists(target_char_path):
+        return jsonify({'message': f'Target character file not found: {target_char_path}'}), 404
+    if not os.path.exists(source_char_path):
+        return jsonify({'message': f'Source character file not found: {source_char_path}'}), 404
+    if not os.path.exists(source_motion_path):
+        return jsonify({'message': f'Source motion file not found: {source_motion_path}'}), 404
+    
+    # transaction_id 생성
+    import uuid
+    transaction_id = str(uuid.uuid4())
+    print("transaction_id in retarget:", transaction_id)
+    
+    # 트랜잭션 정보 저장
+    transactions[transaction_id] = {
+        'target_character_path': target_char_path,
+        'source_character_path': source_char_path,
+        'source_motion_path': source_motion_path,
+    }
+    
+    try:
+        print("Running Maya retargeting script")
+        result = run_maya_script(target_char_path, source_char_path, source_motion_path)
+        
+        return jsonify({
+            'message': 'Processing complete. You can download the file.',
+            'transaction_id': transaction_id,
+            'target_character': target_char_name,
+            'source_character': source_char_name,
+            'source_motion': source_motion_name
+        })
+    except Exception as e:
+        print(">>> run_maya_script Failed")
+        return jsonify({'message': 'An error occurred: ' + str(e)})
+
+
 ''' run maya script '''
 import shutil
 def run_maya_script(target_char_path, source_char_path, source_motion_path):
@@ -364,9 +453,12 @@ def run_maya_script(target_char_path, source_char_path, source_motion_path):
     path_source_char = './models/' + source_char + '/'+ source_char + '.fbx'    
     path_source_motion = './motions/' + source_char + '/'+ source_motion + '.' + source_motion_format
     
-    shutil.copy(target_char_path, path_target_char)
-    shutil.copy(source_char_path, path_source_char)
-    shutil.copy(source_motion_path, path_source_motion)
+    if not os.path.exists(path_target_char):
+        shutil.copy(target_char_path, path_target_char)
+    if not os.path.exists(path_source_char):
+        shutil.copy(source_char_path, path_source_char)
+    if not os.path.exists(path_source_motion):
+        shutil.copy(source_motion_path, path_source_motion)
 
     import datetime
     print("Date: ", datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
