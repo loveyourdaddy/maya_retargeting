@@ -178,9 +178,8 @@ def import_bvh(file_path, src_joints_origin=None, scale=1.0, frame_offset=0, tra
 
         # 키프레임 생성
         for frame_idx, data in enumerate(frame_data):
-            # print(f"{frame_idx}: {frame_data[frame_idx][3:6]}")
             for chan_idx, value in enumerate(data):
                 if chan_idx < len(channels):
-                    create_keyframe(channels[chan_idx], frame_idx, value)
+                    cmds.setKeyframe(channels[chan_idx], time=frame_idx, value=float(value))
 
     return grp, fps
