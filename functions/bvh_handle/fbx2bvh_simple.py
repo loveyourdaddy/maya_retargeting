@@ -37,7 +37,6 @@ for f in files:
 
     frame_start = int(frame_start)
     frame_end = int(frame_end)
-    import pdb; pdb.set_trace()
     bpy.ops.export_anim.bvh(filepath=dumppath,
                             frame_start=frame_start,
                             frame_end=frame_end, root_transform_only=True)

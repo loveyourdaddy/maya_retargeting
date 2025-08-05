@@ -315,7 +315,6 @@ def remove_namespace_from_objects(objects):
             base_name = short_name.split(':')[-1]
             
             # 오브젝트 이름 변경
-            # import pdb; pdb.set_trace()
             renamed = cmds.rename(obj, base_name)
             # print("Object {} -> {}".format(obj, renamed))
             new_objects.append(renamed)

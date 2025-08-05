@@ -125,7 +125,6 @@ def make_Tpose():
         ]
         
         # 저장했던 회전값 적용
-        # import pdb; pdb.set_trace()
         cmds.setAttr(joint_name + ".rotateX", rotation_values[0])
         cmds.setAttr(joint_name + ".rotateY", rotation_values[1])
         cmds.setAttr(joint_name + ".rotateZ", rotation_values[2])
@@ -141,7 +140,6 @@ def make_Tpose():
     update_shoulder(right_shoulder, is_left=False)
 
     # set key
-    # import pdb; pdb.set_trace()
     for joint in all_joints:
         cmds.setKeyframe(joint, attribute=["rotateX", "rotateY", "rotateZ", "translateX", "translateY", "translateZ"], time=0)
 

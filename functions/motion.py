@@ -29,8 +29,8 @@ def get_Tpose_local_rotations(joints):
 
     return Tpose_local_rots
 
-import math 
-import maya.OpenMaya as om
+# import math 
+# import maya.OpenMaya as om
 def mmatrix_to_numpy(mmatrix):
     values = []
     for row in range(4): # 4x4 행렬 순회
@@ -45,4 +45,5 @@ def get_Tpose_localrot(joints):
     for j, joint in enumerate(joints):
         rot = cmds.getAttr(f"{joint}.rotate")[0]
         Tpose_local_rots.append(rot)
+
     return Tpose_local_rots
