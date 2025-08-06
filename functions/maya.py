@@ -1,7 +1,8 @@
-import maya.cmds as cmds
 import os
+import numpy as np
 import maya.cmds as cmds
 import maya.mel as mel
+import maya.api.OpenMaya as om
 
 def freeze_and_bake(top_joint):
     # freeze
@@ -29,3 +30,18 @@ def export(args, target_char, targetMotion):
     mel.eval('FBXExportEmbeddedTextures -v true')
     mel.eval('FBXExport -f"{}"'.format(export_file))
     print(">> File export to ", export_file)
+
+""" matrix """
+def matrix_to_mmatrix(matrix):
+    # For 3x3 rotation matrix
+    if matrix.shape == (3, 3):
+        # Convert 3x3 to 4x4 by adding translation and perspective components
+        matrix_4x4 = np.eye(4, dtype=np.float32)
+        matrix_4x4[:3, :3] = matrix
+    else:
+        matrix_4x4 = matrix
+
+    # Flatten the matrix and convert to list for MMatrix constructor
+    matrix_list = matrix_4x4.flatten().tolist()
+    
+    return om.MMatrix(matrix_list)

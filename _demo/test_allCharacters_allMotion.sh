@@ -69,15 +69,15 @@ run_test_case() {
     local target_char="$3"
     local test_name="$4"
     
-    log ">> COMMAND: python retargeting_request.py "$source_char" "$source_motion" "$target_char""
-    output=$(python retargeting_request.py "$source_char" "$source_motion" "$target_char" 2>> "$LOG_FILE")
+    log ">> COMMAND: python api_request.py "$source_char" "$source_motion" "$target_char""
+    output=$(python api_request.py "$source_char" "$source_motion" "$target_char" 2>> "$LOG_FILE")
     
     if [[ $output == *"Download failed"* ]]; then
         log "❌" #  Test case $test_name failed
-        log "Try mayapy retargeting_different_axis.py --sourceChar "$source_char" --sourceMotion "$source_motion" --targetChar "$target_char""
+        log "Try mayapy api_request.py --sourceChar "$source_char" --sourceMotion "$source_motion" --targetChar "$target_char""
         record_test_result "$test_name" "FAIL" 
         return 1
-    elif python retargeting_request.py "$source_char" "$source_motion" "$target_char" 2>> "$LOG_FILE"; then
+    elif python api_request.py "$source_char" "$source_motion" "$target_char" 2>> "$LOG_FILE"; then
         # success
         log "✅ \n" # Test case $test_name successful
         

@@ -345,7 +345,7 @@ def run_maya_script(target_char_path, source_char_path, source_motion_path):
         return
 
     # path
-    script_path = "retargeting_different_axis.py"
+    script_path = "run_retargeting.py" # retargeting_different_axis
     target_char = target_char_path.split('/')[-1][:-len('.fbx')]
     source_char = source_char_path.split('/')[-1][:-len('.fbx')]
     # source motion

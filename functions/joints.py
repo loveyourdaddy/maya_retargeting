@@ -4,6 +4,7 @@ import copy
 import numpy as np
 from functions.rotations import normalize_rotmat
 
+# Template joints
 # joints
 # Hip1 + Spine5 + Head2 + RightArm4 + LeftArm4 + LeftLeg4 + RightLeg4 = 24
 alter_joint_name = {

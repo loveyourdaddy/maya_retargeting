@@ -53,10 +53,6 @@ class FileHandler:
         cmds.FBXResetExport()
         mel.eval('FBXExportSmoothingGroups -v true')
         mel.eval('FBXExportEmbeddedTextures -v true')
-        # mel.eval('FBXExportBakeComplexAnimation -v true')
-        # mel.eval('FBXExportSkins -v true')
-        # mel.eval('FBXExportShapes -v true')
-        
         cmds.select(all=True)
         mel.eval('FBXExport -f "{}" -s'.format(output_file))
         

@@ -173,8 +173,10 @@ def import_bvh(file_path, src_joints_origin=None, scale=1.0, frame_offset=0, tra
                     frame_data[i][channel_idx] = float(frame_data[i][channel_idx]) * 100
         
         # refine joint name as src joint name 
-        mapped_channels = map_channels_to_source(channels, src_joints_origin)
-        channels = mapped_channels
+        if src_joints_origin is not None:
+            channels = map_channels_to_source(channels, src_joints_origin)
+            # src_joints_origin = cmds.ls(type='joint', long=True)
+            # channels = mapped_channels
 
         # 키프레임 생성
         for frame_idx, data in enumerate(frame_data):
