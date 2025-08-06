@@ -145,27 +145,6 @@ class RetargetingPipeline:
         mel.eval(f'currentUnit "{current_fps}fps"')
         print("소스 fps:", current_fps)
     
-    # def process_retargeting(self):
-    #     """리타겟팅 처리"""
-        
-    #     # 공통 스켈레톤 생성
-    #     self.processor.get_common_skeleton()
-        
-    #     # 루트 관절 식별
-    #     src_root, tgt_root = self.processor.identify_root_joints()
-        
-    #     # 로케이터 회전 정제 # TODO: target character
-    #     self.processor.refine_locator_rotation(tgt_root)
-        
-    #     # 리타겟팅 수행
-    #     self.processor.retarget(src_root, tgt_root)
-        
-        # 소스 정리 # TODO
-        # self.processor.cleanup_source()
-        
-        # 타겟 객체 이름 변경
-        # self.processor.rename_target_objects(self.target_char.joints_origin)
-    
     def export_result(self):
         """결과 내보내기"""
         output_file = self.file_handler.export(self.args, self.target_char.name, get_name(self.args.sourceMotion))
@@ -206,16 +185,19 @@ class RetargetingPipeline:
             self.processor.get_common_skeleton()
             
             # 루트 관절 식별
-            src_root, tgt_root = self.processor.identify_root_joints()
+            self.processor.identify_root_joints()
 
-            # 로케이터 회전 정제 # TODO: target character
-            self.processor.refine_locator_rotation(tgt_root)
+            # source와 target 사이의 height ratio
+            self.processor.get_height_ratio()
+
+            # 로케이터 회전 정제
+            self.target_char.refine_locator_rotation()
             
             # 소스 모션 가져오기
             self.import_source_motion(source_motion)
             
             # 리타겟팅 수행
-            self.processor.retarget(src_root, tgt_root)
+            self.processor.retarget()
             
             # 소스 정리
             self.processor.cleanup_source()

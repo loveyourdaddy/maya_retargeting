@@ -230,3 +230,27 @@ def get_world_rot_data(joint_name):
                 rot_data[fid][attr_idx] = rot_data[fid-1][attr_idx]
 
     return rot_data
+
+
+""" additional functions """
+def get_rotation_matrix(rot_values, len_frame, inverse=False): 
+    if rot_values is None:
+        return None
+    
+    rot_mat = E_to_R(np.array(rot_values))
+    if inverse:
+        rot_mat = np.linalg.inv(rot_mat)
+
+    return repeat_matrix(rot_mat, len_frame)
+
+def apply_scale(data, scale, inverse=False):
+    if scale is not None:
+        for i in range(3):
+            data[:, i] *= (1/scale[i] if inverse else scale[i])
+    return data
+
+def repeat_matrix(matrix, len_frame):
+    return matrix[None, :].repeat(len_frame, axis=0)
+
+def apply_rotation(rot_mat, data):
+    return np.einsum('ijk,ik->ij', rot_mat, data)

@@ -1,5 +1,3 @@
-# retarget 
-
 import maya.mel as mel
 from functions.joints import *
 from functions.keyframe import *
@@ -29,8 +27,6 @@ def get_Tpose_local_rotations(joints):
 
     return Tpose_local_rots
 
-# import math 
-# import maya.OpenMaya as om
 def mmatrix_to_numpy(mmatrix):
     values = []
     for row in range(4): # 4x4 행렬 순회

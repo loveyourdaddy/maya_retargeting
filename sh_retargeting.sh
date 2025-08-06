@@ -23,7 +23,7 @@ for file in "${FILES[@]}"; do
     echo "Processing file: $SOURCE_MOTION"
 
     # Run the conversion
-    if mayapy retargeting_different_axis.py  --sourceChar "$SOURCE_CHAR" --sourceMotion "$SOURCE_MOTION" --targetChar "$TARGET_CHAR" ; then
+    if mayapy run_retargeting.py  --sourceChar "$SOURCE_CHAR" --sourceMotion "$SOURCE_MOTION" --targetChar "$TARGET_CHAR" ; then
         echo "✓ Successfully : $file"
         ((SUCCESS_COUNT++))
     else
